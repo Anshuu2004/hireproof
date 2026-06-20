@@ -1,26 +1,172 @@
 @import "tailwindcss";
 
+/*
+  HireProof — "Forensic Calm" design system
+  A precision-instrument / tamper-evident-document language.
+  Ink-on-paper neutrals (faint warm bias) · Proof Green ONLY at verification ·
+  Bharat Indigo for structure · Ceremonial Amber ONLY on the credential seal.
+  One superfamily: IBM Plex Sans + Plex Sans Devanagari + Plex Mono.
+*/
+
+@theme {
+  /* ---- Type ---- */
+  --font-sans: var(--font-ibm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-ibm-mono), ui-monospace, "SF Mono", monospace;
+  --font-deva: var(--font-ibm-deva), var(--font-ibm-sans), sans-serif;
+
+  /* ---- Neutrals: ink-on-paper, faint warm bias (NOT cold blue-gray) ---- */
+  --color-paper: #fcfcfd;
+  --color-ink-50: #f4f5f7;
+  --color-ink-100: #e6e8ed;
+  --color-ink-200: #c7ccd6;
+  --color-ink-300: #9aa1b0;
+  --color-ink-400: #6b7385;
+  --color-ink-500: #4a515e;
+  --color-ink-600: #2e333c;
+  --color-ink-700: #1f2329;
+  --color-ink-800: #16181d;
+  --color-ink-900: #0e1014;
+  --color-ink-950: #0a0b0d;
+
+  /* ---- Proof Green: verification ONLY ---- */
+  --color-proof: #12b886;
+  --color-proof-strong: #0e9c73;
+  --color-proof-bright: #34d3a0;
+  --color-proof-wash: #e7f8f1;
+  --color-proof-wash-dark: #0c2a22;
+  --color-proof-ink: #062e22;
+
+  /* ---- Bharat Indigo: structure, links, focus, primary action ---- */
+  --color-indigo: #3b4db0;
+  --color-indigo-bright: #5a6bd8;
+  --color-indigo-deep: #2b3a8c;
+  --color-indigo-900: #1b2452;
+  --color-indigo-wash: #e8ebfa;
+
+  /* ---- Ceremonial Amber: credential seal ONLY ---- */
+  --color-amber: #e8a93c;
+  --color-amber-ink: #c8851a;
+  --color-amber-wash: #f6e2bc;
+
+  /* ---- Muted, evidentiary semantic status ---- */
+  --color-danger: #c4422c;
+  --color-danger-wash: #fbe9e5;
+  --color-warn: #b8740e;
+  --color-warn-wash: #fbf0dc;
+  --color-info: #2b6fb0;
+  --color-info-wash: #e6f0fa;
+
+  /* ---- Elevation: only two shadows exist ---- */
+  --shadow-card: 0 1px 2px rgba(10, 11, 13, 0.06), 0 1px 1px rgba(10, 11, 13, 0.04);
+  --shadow-lift: 0 8px 24px rgba(10, 11, 13, 0.18);
+
+  /* ---- Motion ---- */
+  --ease-instrument: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ---- Radii ---- */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-sheet: 16px;
+  --radius-doc: 20px;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--color-ink-950);
+  --foreground: var(--color-ink-100);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--color-ink-700);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-indigo);
+  color: #fff;
+}
+
+/* Always-visible focus ring — a security product must look operable by keyboard */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-indigo-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Evidentiary data: tabular mono with locked figures */
+.font-data {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1, "lnum" 1, "zero" 1;
+  letter-spacing: -0.01em;
+}
+
+.font-deva {
+  font-family: var(--font-deva);
+}
+
+/* All-caps eyebrow / status label */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Hairline grid texture for the forensic backdrop (abstracted, ~ security paper) */
+.grid-paper {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-ink-700) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-ink-700) 45%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* Reveal-by-composition: signature streaming caret */
+@keyframes caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.55ch;
+  height: 1.05em;
+  margin-left: 0.1ch;
+  translate: 0 0.12em;
+  background: var(--color-proof-bright);
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+/* Signal pill: idle -> passed */
+.pulse-soft {
+  animation: pulse-soft 2.4s var(--ease-instrument) infinite;
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* The seal 'press' — the one hero gesture, used only at mint. */
+@keyframes seal-press {
+  0% { transform: scale(0.5); opacity: 0; }
+  55% { transform: scale(1.05); opacity: 1; }
+  78% { transform: scale(0.96); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.seal-press {
+  animation: seal-press 480ms var(--ease-instrument) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .caret::after { animation: none; opacity: 1; }
 }

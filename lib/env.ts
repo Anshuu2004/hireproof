@@ -1,0 +1,49 @@
+/**
+ * Server-side environment access. Throws early with a clear message if a
+ * required secret is missing, so misconfiguration fails loud, not silent.
+ * NEXT_PUBLIC_* values are also readable on the client.
+ */
+function required(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}. Add it to .env.local (see .env.example).`
+    );
+  }
+  return value;
+}
+
+export const env = {
+  // Supabase
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+  get supabaseServiceRole() {
+    return required("SUPABASE_SERVICE_ROLE_KEY");
+  },
+
+  // Credential issuer (Ed25519). On Vercel the issuer DID and site URL derive
+  // from the production domain so the QR + did:web are correct with no manual
+  // config; both stay internally consistent (token iss === did.json id).
+  get issuerDid() {
+    if (process.env.ISSUER_DID) return process.env.ISSUER_DID;
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    return host ? `did:web:${host}` : "did:web:hireproof.app";
+  },
+  get issuerPrivateKeyHex() {
+    return required("ISSUER_PRIVATE_KEY_HEX");
+  },
+  get issuerPublicKeyHex() {
+    return required("ISSUER_PUBLIC_KEY_HEX");
+  },
+
+  // Public site origin (verify URLs, did:web)
+  get siteUrl() {
+    if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    return host ? `https://${host}` : "http://localhost:3000";
+  },
+
+  // Vercel AI Gateway (OIDC token is injected automatically on Vercel;
+  // AI_GATEWAY_API_KEY is only needed for local dev without a pulled token)
+  aiGatewayKey: process.env.AI_GATEWAY_API_KEY,
+} as const;
