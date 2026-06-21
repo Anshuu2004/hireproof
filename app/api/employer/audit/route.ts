@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { bearer } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
 /** The hash-chained audit trail for a session — the explainable evidence record. */
 export async function GET(req: Request) {
+  if (!bearer(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const sessionId = new URL(req.url).searchParams.get("sessionId");
   if (!sessionId) return NextResponse.json({ error: "missing sessionId" }, { status: 400 });
   const sb = supabaseAdmin();

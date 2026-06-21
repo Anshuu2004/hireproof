@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import QRCode from "qrcode";
-import { randomUUID } from "crypto";
+import { createHash, randomBytes, randomUUID } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { signCredential, descriptorHash, type CredentialClaims } from "@/lib/credential/issuer";
 import { appendAudit } from "@/lib/audit";
@@ -58,7 +58,13 @@ export async function POST(req: Request) {
     rounds: session.round_no ?? 1,
   };
 
-  const token = await signCredential(claims, credentialId, EXPIRY_DAYS);
+  // Holder proof-of-possession: a secret the candidate keeps; only its hash is
+  // stored and committed into the signed VC (cnf). Makes the credential bound
+  // to its holder rather than a pure bearer token.
+  const holderSecret = randomBytes(16).toString("hex");
+  const holderCommit = createHash("sha256").update(holderSecret).digest("hex");
+
+  const token = await signCredential(claims, credentialId, EXPIRY_DAYS, holderCommit);
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + EXPIRY_DAYS * 86400_000);
 
@@ -71,6 +77,7 @@ export async function POST(req: Request) {
     issued_at: issuedAt.toISOString(),
     expires_at: expiresAt.toISOString(),
     round_count: claims.rounds,
+    holder_secret_hash: holderCommit,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -94,6 +101,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     token,
     credentialId,
+    holderSecret, // shown to the candidate ONCE; never stored server-side
     verifyUrl,
     qrDataUrl,
     claims,

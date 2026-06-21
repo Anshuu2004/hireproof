@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DownloadSimple, Copy, ArrowSquareOut, Check } from "@phosphor-icons/react";
+import { DownloadSimple, Copy, ArrowSquareOut, Check, Key } from "@phosphor-icons/react";
 import { CredentialCard } from "@/components/credential-card";
 import type { ScoreResult } from "./task-step";
 import { cn } from "@/lib/cn";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 interface MintResult {
   token: string;
   credentialId: string;
+  holderSecret: string;
   verifyUrl: string;
   qrDataUrl: string;
   claims: { aiCollaboration: { score: number; direct: number; judge: number; correct: number } };
@@ -24,6 +25,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
   const [revealed, setRevealed] = useState(0);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [secretCopied, setSecretCopied] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
@@ -73,6 +75,14 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
     navigator.clipboard?.writeText(cred.token).then(() => {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
+    });
+  }
+
+  function copySecret() {
+    if (!cred) return;
+    navigator.clipboard?.writeText(cred.holderSecret).then(() => {
+      setSecretCopied(true);
+      window.setTimeout(() => setSecretCopied(false), 1600);
     });
   }
 
@@ -161,6 +171,34 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
         AI-collaboration judgment score <span className="font-data text-ink-100">{score.aiCollabScore}</span>
         {score.rubric.caughtPlantedError ? " · caught the planted flaw" : ""}
       </div>
+
+      {/* Holder secret — proof-of-possession, shown ONCE, never stored server-side */}
+      {cred && (
+        <div className="mt-5 w-full rounded-control border border-amber/30 bg-amber-wash/5 p-4">
+          <div className="flex items-center gap-2">
+            <Key size={15} className="text-amber" weight="fill" />
+            <span className="text-xs font-medium text-ink-100">Your private holder key</span>
+            <span className="eyebrow ml-auto text-ink-500">shown once</span>
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-400">
+            This is bound into your signed credential. Keep it — it proves the credential is
+            <span className="text-ink-200"> yours</span>, not just whoever holds the QR.
+          </p>
+          <div className="mt-2.5 flex items-center gap-2">
+            <code className="flex-1 truncate rounded-control border border-ink-700 bg-ink-950 px-3 py-2 font-data text-xs text-amber">
+              {cred.holderSecret}
+            </code>
+            <button
+              type="button"
+              onClick={copySecret}
+              className="grid size-9 shrink-0 place-items-center rounded-control border border-ink-700 text-ink-300 transition-colors hover:border-ink-500 hover:bg-ink-900"
+              aria-label="Copy holder key"
+            >
+              {secretCopied ? <Check size={15} className="text-proof" /> : <Copy size={15} />}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

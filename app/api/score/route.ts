@@ -11,7 +11,9 @@ export const maxDuration = 60;
 const Body = z.object({
   sessionId: z.string().uuid(),
   taskId: z.string().uuid(),
-  turns: z.array(z.object({ role: z.enum(["candidate", "assistant"]), content: z.string() })),
+  // `turns` is accepted for backward compatibility but IGNORED for scoring —
+  // the graded transcript is read from the server-recorded turns below.
+  turns: z.array(z.object({ role: z.enum(["candidate", "assistant"]), content: z.string() })).optional(),
   finalAnswer: z.string().min(1),
 });
 
@@ -19,7 +21,7 @@ const Body = z.object({
 export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  const { sessionId, taskId, turns, finalAnswer } = parsed.data;
+  const { sessionId, taskId, finalAnswer } = parsed.data;
 
   const sb = supabaseAdmin();
   const { data: task } = await sb
@@ -30,11 +32,23 @@ export async function POST(req: Request) {
   if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
   const spec = (task.prompt_seed as { spec: TaskSpec }).spec;
 
+  // Authoritative transcript: read the turns the SERVER recorded (in /assistant),
+  // not whatever the client sends — so the score can't be gamed by a forged
+  // transcript. The AI replies here are exactly what the model produced.
+  const { data: turnRows } = await sb
+    .from("ai_transcript_turns")
+    .select("role,content,turn_no")
+    .eq("ai_task_id", taskId)
+    .order("turn_no");
+  const turns: Turn[] = (turnRows ?? [])
+    .filter((t) => t.role === "candidate" || t.role === "assistant")
+    .map((t) => ({ role: t.role as "candidate" | "assistant", content: t.content }));
+
   let result;
   try {
     result = await scoreTranscript(
       { brief: spec.brief, plantedError: spec.plantedError, correctApproach: spec.correctApproach },
-      turns as Turn[],
+      turns,
       finalAnswer
     );
   } catch (e) {
@@ -44,11 +58,14 @@ export async function POST(req: Request) {
     );
   }
 
-  // persist transcript turns (the audit material) + final answer
-  const rows = [...turns, { role: "candidate" as const, content: `FINAL ANSWER:\n${finalAnswer}` }].map(
-    (t, i) => ({ ai_task_id: taskId, turn_no: i + 1, role: t.role, content: t.content })
-  );
-  await sb.from("ai_transcript_turns").insert(rows);
+  // append the final answer as the closing turn (the conversation was already
+  // persisted server-side during /assistant)
+  await sb.from("ai_transcript_turns").insert({
+    ai_task_id: taskId,
+    turn_no: turns.length + 1,
+    role: "candidate",
+    content: `FINAL ANSWER:\n${finalAnswer}`,
+  });
 
   await sb.from("scores").insert({
     session_id: sessionId,

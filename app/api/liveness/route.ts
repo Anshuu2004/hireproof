@@ -46,10 +46,14 @@ export async function POST(req: Request) {
     completed.length >= seed.actions.length && seed.actions.every((a, i) => completed[i] === a);
   const faceOk = livenessProof.faceContinuous;
   // Strongest signal: the spoken transcript contains the just-issued digits.
-  // Fallback (when the browser's STT is unavailable/offline): a live voice was
-  // present during the bound window. We never silently pass on nothing.
+  // If the browser exposes STT and produced a transcript, it MUST match — a
+  // wrong spoken phrase fails. Only when STT is genuinely unavailable (empty
+  // transcript) do we fall back to confirmed live-voice activity, and we record
+  // that explicitly as a degraded mode (never a silent pass on nothing).
   const digitsMatched = transcriptMatchesDigits(spokenTranscript, seed.digits);
-  const voiceOk = digitsMatched || (spokenTranscript.trim() === "" && voiceActivity === true);
+  const sttUnavailable = spokenTranscript.trim() === "";
+  const voiceOk = digitsMatched || (sttUnavailable && voiceActivity === true);
+  const voiceMode = digitsMatched ? "spoken-nonce" : voiceOk ? "voice-activity-fallback" : "none";
   const verdict: "pass" | "fail" = actionsOk && faceOk && voiceOk ? "pass" : "fail";
 
   const vec = `[${faceDescriptor.join(",")}]`;
@@ -95,10 +99,10 @@ export async function POST(req: Request) {
     output: {
       verdict,
       checks: { actionsOk, faceOk, voiceOk },
-      voice: { digitsMatched, voiceActivity: voiceActivity ?? null },
+      voice: { digitsMatched, voiceMode, voiceActivity: voiceActivity ?? null },
       crossRound,
     },
   });
 
-  return NextResponse.json({ verdict, checks: { actionsOk, faceOk, voiceOk }, crossRound });
+  return NextResponse.json({ verdict, checks: { actionsOk, faceOk, voiceOk }, voiceMode, crossRound });
 }

@@ -45,7 +45,12 @@ export function descriptorHash(descriptor: number[], salt: string): string {
 
 const KEY_ID = `${env.issuerDid}#key-1`;
 
-export async function signCredential(claims: CredentialClaims, credentialId: string, expiresInDays = 180): Promise<string> {
+export async function signCredential(
+  claims: CredentialClaims,
+  credentialId: string,
+  expiresInDays = 180,
+  holderCommit?: string
+): Promise<string> {
   const key = await importJWK(privateJwk(), "EdDSA");
   const vc = {
     "@context": ["https://www.w3.org/ns/credentials/v2"],
@@ -53,7 +58,13 @@ export async function signCredential(claims: CredentialClaims, credentialId: str
     issuer: env.issuerDid,
     credentialSubject: claims,
   };
-  return new SignJWT({ vc, hp: claims })
+  // `cnf` (RFC 7800 confirmation) commits the holder-secret hash inside the
+  // signature, so the credential is bound to its holder (not a pure bearer
+  // token) and the binding cannot be altered without breaking the signature.
+  const payload: Record<string, unknown> = { vc, hp: claims };
+  if (holderCommit) payload.cnf = { "x-hp-holder": holderCommit };
+
+  return new SignJWT(payload)
     .setProtectedHeader({ alg: "EdDSA", typ: "JWT", kid: KEY_ID })
     .setIssuer(env.issuerDid)
     .setSubject(credentialId)

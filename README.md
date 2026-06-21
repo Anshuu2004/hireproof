@@ -208,17 +208,20 @@ See also: [LICENSE](LICENSE) (Apache-2.0) · [SECURITY.md](SECURITY.md) · [COMP
 | Active face liveness (randomised challenge) | **Real** — MediaPipe in-browser |
 | Cross-round biometric match (seat-swap) | **Real** — pgvector, demoably flags MISMATCH |
 | Randomised task + AI-collaboration judgment scoring | **Real** — LLM + deterministic signals |
-| Voice liveness (spoken nonce) | **Real** — STT + live-voice fallback |
+| Voice liveness (spoken nonce) | **Real** — spoken-nonce match; explicit `voiceMode` (`spoken-nonce` / `voice-activity-fallback`) recorded in the audit, no silent pass |
 | Ed25519-signed W3C VC + QR + offline verify | **Real** — tamper-evident, verified offline; runnable via `npm run verify:demo` and in CI |
+| Holder proof-of-possession (non-bearer) | **Real** — a holder secret is bound into the signed VC (`cnf`); only its hash is stored; `/api/credential/prove` verifies ownership |
+| Credential revocation | **Real** — authenticated employer can revoke (`/api/credential/revoke`); verify + console show revoked state. (W3C Bitstring *encoding* still roadmap) |
+| Employer authentication | **Real** — password-gated accounts (scrypt) + HMAC-signed sessions; one-click seeded demo login |
+| AI-score transcript integrity | **Real** — the graded transcript is the **server-recorded** one (persisted in `/api/assistant`), not a client-submitted payload |
 | Hash-chained audit log | **Real** — server-side trigger hashes the **full canonical row** atomically; `verify_audit_chain()` re-checks integrity |
 | Vernacular (EN / हिंदी / తెలుగు) | **Partial** — 3 languages end-to-end |
-| Certified anti-deepfake / injection PAD | **Partial / backup** — challenge-response liveness, *not* ISO 30107-3-certified PAD (cite iProov/Incode as the production swap-in) |
+| Single-round liveness attestation | **Partial (honest)** — the server validates the issued challenge sequence + spoken nonce, but the "face was present" signal is **client-attested** (real anti-spoof runs in-browser; sending raw frames server-side would break the privacy design). *Cross-round* match is fully server-side. |
+| Certified anti-deepfake / injection PAD | **Not claimed** — challenge-response liveness, *not* ISO 30107-3-certified PAD; a certified vendor (iProov/Incode) is the production swap-in |
 | Cross-round match FAR/FRR | **Not yet measured** — threshold 0.3 is a sensible default; result is human-review-gated, never an auto-reject |
-| Bias audit (four-fifths / LL144) | **Partial** — methodology on seeded/synthetic data |
+| Bias audit (four-fifths / LL144) | **Methodology only** — on synthetic/seeded data; a real audit needs real outcome data we don't (and shouldn't) fabricate |
 | Issuer key management | **Roadmap** — key is an env var today; KMS/HSM + rotation is the top hardening item ([SECURITY.md](SECURITY.md)) |
-| W3C Bitstring Status List revocation encoding | **Roadmap** — revocation works today via the DB status route; standard encoding is interop work |
-| ATS write-back, SSO/SCIM, SOC 2 | **Roadmap** — see [IMPROVEMENT plan](docs/architecture.md#what-is-working-vs-roadmap) |
-| Employer auth | **Mocked** — console is open for the demo (Supabase Auth is the production path) |
+| ATS write-back, SSO/SCIM, SOC 2 | **Roadmap** — see [docs/architecture.md](docs/architecture.md#what-is-working-vs-roadmap) |
 
 ---
 

@@ -55,6 +55,12 @@ A deepfake or replayed video must not pass as a live human.
   system. We **do not** claim ISO/IEC 30107-3 certification or to out-detect
   dedicated vendors (iProov, Incode). For high-assurance deployments, a certified
   PAD provider is the intended swap-in behind the same interface.
+- **Disclosed limitation:** for a *single* round the server validates the issued
+  challenge **sequence** and the **spoken nonce**, but the "face was present
+  throughout" signal is **client-attested** — the real anti-spoof runs in the
+  browser and sending raw frames to the server would break the "video never
+  leaves the device" privacy design. The *cross-round* biometric match (T4) is
+  fully server-side. A future hardening is a signed client attestation.
 
 ### T4 — Proxy / seat-swap across rounds
 Candidate A passes round 1; impostor B sits round 2.
@@ -88,9 +94,21 @@ A candidate relays an AI's answer instead of judging it.
 - Dependency hygiene: unused packages are pruned (CI keeps `npm ci` honest);
   automated dependency/vulnerability scanning (Dependabot/Snyk) is roadmap.
 
+## Holder binding (proof-of-possession)
+
+The credential is **not a pure bearer token**. At mint a holder secret is
+generated; only its `sha256` is stored, and that hash is committed inside the
+signed VC (`cnf` claim), so the binding cannot be altered without breaking the
+signature. The holder proves ownership at `/api/credential/prove`. This is a
+**shared-secret** PoP, not yet full DID-/key-based holder binding (e.g.
+OID4VP / SD-JWT-VC key binding) — that remains the roadmap step.
+
 ## What is explicitly NOT claimed
 
 - Not a certified PAD / anti-deepfake engine (see T3).
+- Single-round "face present" is client-attested; the server validates the
+  challenge + nonce, and cross-round match is server-side (see T3, T4).
+- Holder binding is shared-secret PoP, not yet DID/key-based (see above).
 - Audit log is tamper-**evident** within the database, not externally anchored.
 - Issuer key is not yet KMS/HSM-backed (see T1).
 - Cross-round matching has no published FAR/FRR yet (see T4).

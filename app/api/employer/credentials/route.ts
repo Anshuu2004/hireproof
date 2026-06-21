@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { bearer } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
-/** Recent issued credentials for the employer console (demo: open access). */
-export async function GET() {
+/** Recent issued credentials for the authenticated employer console. */
+export async function GET(req: Request) {
+  if (!bearer(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const sb = supabaseAdmin();
   const { data } = await sb
     .from("credentials")

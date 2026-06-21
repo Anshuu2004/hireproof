@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, X, Check, Warning, FileText } from "@phosphor-icons/react";
+import { ArrowsClockwise, X, Check, Warning, FileText, SignOut, Prohibit, LockKey } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
 import { LivenessStep, type LivenessResult } from "@/components/verify/liveness-step";
@@ -37,34 +37,95 @@ interface SessionData {
 }
 
 const shortId = (id: string) => `HP·${id.slice(0, 4).toUpperCase()}-${id.slice(4, 8).toUpperCase()}`;
+const TOKEN_KEY = "hp_employer_token";
 
 export default function EmployerPage() {
+  const [token, setToken] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginErr, setLoginErr] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+
   const [creds, setCreds] = useState<Credential[]>([]);
   const [sel, setSel] = useState<Credential | null>(null);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [reverify, setReverify] = useState<SessionData | null>(null);
   const [reverifyResult, setReverifyResult] = useState<LivenessResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+
+  // restore an existing session on load
+  useEffect(() => {
+    setToken(typeof window !== "undefined" ? window.localStorage.getItem(TOKEN_KEY) : null);
+    setAuthReady(true);
+  }, []);
+
+  const authHeaders = useCallback(
+    (extra: Record<string, string> = {}) => ({ Authorization: `Bearer ${token}`, ...extra }),
+    [token]
+  );
+
+  function logout() {
+    window.localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+    setSel(null);
+    setCreds([]);
+  }
+
+  async function login(e?: React.FormEvent, demo?: boolean) {
+    e?.preventDefault();
+    setLoggingIn(true);
+    setLoginErr("");
+    const creds = demo ? { email: "demo@hireproof.app", password: "demo1234" } : { email, password };
+    try {
+      const res = await fetch("/api/employer/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(creds),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginErr(data.error ?? "Login failed");
+        return;
+      }
+      window.localStorage.setItem(TOKEN_KEY, data.token);
+      setToken(data.token);
+    } catch {
+      setLoginErr("Network error");
+    } finally {
+      setLoggingIn(false);
+    }
+  }
 
   const load = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
-    const data = await fetch("/api/employer/credentials").then((r) => r.json());
+    const res = await fetch("/api/employer/credentials", { headers: { Authorization: `Bearer ${token}` } });
+    if (res.status === 401) {
+      window.localStorage.removeItem(TOKEN_KEY);
+      setToken(null);
+      setLoading(false);
+      return;
+    }
+    const data = await res.json();
     setCreds(data.credentials ?? []);
     setLoading(false);
-  }, []);
+  }, [token]);
+
   useEffect(() => {
-    load();
-  }, [load]);
+    if (token) load();
+  }, [token, load]);
 
   useEffect(() => {
     setReverifyResult(null);
     setReverify(null);
-    if (!sel) return setAudit([]);
-    fetch(`/api/employer/audit?sessionId=${sel.session_id}`)
-      .then((r) => r.json())
+    if (!sel || !token) return setAudit([]);
+    fetch(`/api/employer/audit?sessionId=${sel.session_id}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : { events: [] }))
       .then((d) => setAudit(d.events ?? []));
-  }, [sel]);
+  }, [sel, token]);
 
   async function startReverify() {
     if (!sel) return;
@@ -86,6 +147,92 @@ export default function EmployerPage() {
     }
   }
 
+  async function revoke() {
+    if (!sel || revoking) return;
+    setRevoking(true);
+    try {
+      const res = await fetch("/api/credential/revoke", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ credentialId: sel.id }),
+      });
+      if (res.ok) {
+        setSel({ ...sel, revoked: true });
+        await load();
+      }
+    } finally {
+      setRevoking(false);
+    }
+  }
+
+  // ── Login gate ──────────────────────────────────────────────────────────────
+  if (authReady && !token) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col bg-ink-950">
+        <header className="border-b border-ink-700/70">
+          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+            <div className="flex items-center gap-3">
+              <Wordmark />
+              <span className="hidden h-4 w-px bg-ink-700 sm:block" />
+              <span className="hidden eyebrow text-ink-500 sm:block">Verify console</span>
+            </div>
+          </div>
+        </header>
+        <main className="flex flex-1 items-center justify-center px-5 py-12">
+          <form onSubmit={(e) => login(e)} className="w-full max-w-sm rounded-sheet border border-ink-700 bg-ink-950 p-6">
+            <div className="mb-1 flex items-center gap-2">
+              <LockKey size={18} className="text-indigo-bright" />
+              <h1 className="text-base font-semibold text-ink-50">Employer sign-in</h1>
+            </div>
+            <p className="mb-5 text-xs text-ink-500">The verify console is access-controlled.</p>
+
+            <label className="eyebrow text-ink-400">Work email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              className="mt-1.5 mb-3 w-full rounded-control border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-600 focus:border-indigo focus:outline-none"
+            />
+            <label className="eyebrow text-ink-400">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="mt-1.5 w-full rounded-control border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-600 focus:border-indigo focus:outline-none"
+            />
+
+            {loginErr && <p className="mt-3 text-xs text-danger">{loginErr}</p>}
+
+            <button
+              type="submit"
+              disabled={loggingIn}
+              className="mt-4 w-full rounded-control bg-indigo px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-deep disabled:bg-ink-800 active:translate-y-px"
+            >
+              {loggingIn ? "Signing in…" : "Sign in"}
+            </button>
+            <button
+              type="button"
+              onClick={() => login(undefined, true)}
+              disabled={loggingIn}
+              className="mt-2 w-full rounded-control border border-ink-700 px-4 py-2.5 text-sm font-medium text-ink-200 transition-colors hover:border-ink-500 hover:bg-ink-900 disabled:opacity-50"
+            >
+              Sign in as demo employer
+            </button>
+            <p className="mt-3 text-center font-data text-[0.65rem] text-ink-600">
+              demo · demo@hireproof.app / demo1234
+            </p>
+          </form>
+        </main>
+      </div>
+    );
+  }
+
+  if (!authReady) {
+    return <div className="min-h-[100dvh] bg-ink-950" />;
+  }
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-ink-950">
       <header className="border-b border-ink-700/70">
@@ -95,7 +242,12 @@ export default function EmployerPage() {
             <span className="hidden h-4 w-px bg-ink-700 sm:block" />
             <span className="hidden eyebrow text-ink-500 sm:block">Verify console</span>
           </div>
-          <span className="rounded-full border border-ink-700 px-2.5 py-1 eyebrow text-ink-500">demo · open access</span>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 rounded-full border border-ink-700 px-3 py-1 eyebrow text-ink-400 transition-colors hover:border-ink-500 hover:text-ink-200"
+          >
+            <SignOut size={13} /> Sign out
+          </button>
         </div>
       </header>
 
@@ -176,7 +328,7 @@ export default function EmployerPage() {
                 </div>
 
                 <div className="space-y-5">
-                  {/* verdict + reverify */}
+                  {/* verdict + actions */}
                   <div>
                     <p className="eyebrow text-ink-400">Trust verdict</p>
                     <div className="mt-2 flex items-center gap-2">
@@ -186,14 +338,24 @@ export default function EmployerPage() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={startReverify}
-                    disabled={busy}
-                    className="flex w-full items-center justify-center gap-2 rounded-control bg-indigo px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-deep disabled:bg-ink-800 active:translate-y-px"
-                  >
-                    <ArrowsClockwise size={16} /> Re-verify identity (next round)
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={startReverify}
+                      disabled={busy}
+                      className="flex items-center justify-center gap-2 rounded-control bg-indigo px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-deep disabled:bg-ink-800 active:translate-y-px"
+                    >
+                      <ArrowsClockwise size={16} /> Re-verify (next round)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={revoke}
+                      disabled={revoking || sel.revoked}
+                      className="flex items-center justify-center gap-2 rounded-control border border-danger/40 px-4 py-3 text-sm font-medium text-danger transition-colors hover:bg-danger-wash/10 disabled:opacity-40"
+                    >
+                      <Prohibit size={16} /> {sel.revoked ? "Revoked" : revoking ? "Revoking…" : "Revoke"}
+                    </button>
+                  </div>
 
                   {reverifyResult?.crossRound && (
                     <div

@@ -41,6 +41,23 @@ export async function POST(req: Request) {
       temperature: 0.7,
       maxOutputTokens: 700,
     });
+
+    // Persist the turn server-side so scoring is authoritative and cannot be
+    // gamed by a forged client transcript: the AI's reply is recorded as the
+    // model actually produced it, alongside the candidate's latest prompt.
+    const lastCandidate = parsed.data.messages[parsed.data.messages.length - 1];
+    const { count } = await sb
+      .from("ai_transcript_turns")
+      .select("*", { count: "exact", head: true })
+      .eq("ai_task_id", parsed.data.taskId);
+    let turnNo = count ?? 0;
+    const rows: { ai_task_id: string; turn_no: number; role: string; content: string }[] = [];
+    if (lastCandidate?.role === "candidate") {
+      rows.push({ ai_task_id: parsed.data.taskId, turn_no: ++turnNo, role: "candidate", content: lastCandidate.content });
+    }
+    rows.push({ ai_task_id: parsed.data.taskId, turn_no: ++turnNo, role: "assistant", content: text });
+    await sb.from("ai_transcript_turns").insert(rows);
+
     return NextResponse.json({ reply: text, provider });
   } catch (e) {
     return NextResponse.json(
