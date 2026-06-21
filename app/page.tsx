@@ -1,377 +1,399 @@
-import Link from "next/link";
-import { Wordmark } from "@/components/wordmark";
-import { CredentialCard } from "@/components/credential-card";
+"use client";
 
+import Link from "next/link";
+import { useEffect, useRef } from "react";
+import { MintedCredential } from "@/components/minted-credential";
+
+/* ----------------------------------------------------------------- content */
 const STATS = [
   { v: "1 in 4", l: "candidate profiles will be fake by 2028", s: "Gartner, Jul 2025" },
   { v: "100+", l: "U.S. firms infiltrated by fake remote workers", s: "U.S. DOJ, Jun 2025" },
   { v: "9.46%", l: "discrepancy rate in Indian IT/ITeS hiring", s: "AuthBridge, 2025" },
 ];
 
+const SHIFT = [
+  ["Detection arms race", "Forensic detectors chase ever-better deepfakes and flip to wrong under attack."],
+  ["Surveillance proctoring", "Spy on every applicant, bury honest candidates in false positives."],
+  ["Employer-locked tests", "Verify once, for one employer — nothing the candidate owns or reuses."],
+];
+
 const CANDIDATE_STEPS = [
-  {
-    k: "01",
-    t: "Prove you're live",
-    d: "A 2-minute randomised challenge — face + voice liveness with a task generated the instant you start. A proxy, a deepfake avatar, or an earpiece can't pre-stage it.",
-  },
-  {
-    k: "02",
-    t: "Show your judgment",
-    d: "You're handed an AI that's confidently wrong — and scored on whether you catch and correct its planted mistake. Ship its answer verbatim and you're hard-capped at 40. We measure AI judgment, not AI usage.",
-  },
-  {
-    k: "03",
-    t: "Own your proof",
-    d: "You mint a portable, cryptographically-signed credential. It's yours — reuse it with every employer. No re-spying each application.",
-  },
+  ["01", "Prove you're live", "A 2-minute randomised challenge — face + voice liveness with a task generated the instant you start. A proxy, a deepfake avatar, or an earpiece can't pre-stage it."],
+  ["02", "Show your judgment", "You're handed an AI openly and scored on how you direct, judge, and correct it on a real task — not on what you memorised. The job in 2026."],
+  ["03", "Own your proof", "You mint a portable, cryptographically-signed credential. It's yours — reuse it with every employer. No re-spying each application."],
 ];
 
 const EMPLOYER_STEPS = [
-  {
-    k: "01",
-    t: "Verify in seconds",
-    d: "Scan the candidate's HireProof. The signature is checked against our published key — tamper-evident, and it works even if our servers are down.",
-  },
-  {
-    k: "02",
-    t: "See the evidence",
-    d: "A verified-human + AI-judgment record with an auditable, hash-chained trail. No black-box fraud score — every score line quotes the transcript.",
-  },
-  {
-    k: "03",
-    t: "Catch the swap",
-    d: "Identity is re-verified each round and at onboarding. The person who applied is the person who shows up — proxy and seat-swap rings get flagged.",
-  },
+  ["01", "Verify in seconds", "Scan the candidate's HireProof. The signature is checked against our published key — tamper-evident, and it works even if our servers are down."],
+  ["02", "See the evidence", "A verified-human + AI-judgment record with an auditable, hash-chained trail. No black-box fraud score — every score line quotes the transcript."],
+  ["03", "Catch the swap", "Identity is re-verified each round and at onboarding. The person who applied is the person who shows up — proxy and seat-swap rings get flagged."],
 ];
 
-const SHIFT = [
-  {
-    bad: "Detection arms race",
-    badd: "Forensic detectors chase ever-better deepfakes and flip to wrong under attack.",
-  },
-  {
-    bad: "Surveillance proctoring",
-    badd: "Spy on every applicant, bury honest candidates in false positives.",
-  },
-  {
-    bad: "Employer-locked tests",
-    badd: "Verify once, for one employer — nothing the candidate owns or reuses.",
-  },
+const PILLARS = [
+  ["Live challenge-response", "A server-issued random action sequence + nonce, verified against real-time landmark dynamics. No chatbot has this loop.", "server.nonce · landmark.dynamics"],
+  ["Bound to the moment", "Your voice is tied to a sentence generated <2 min ago. A generic LLM would happily score a pre-recorded proxy.", "utterance.ts < now − 120s"],
+  ["Stateful across rounds", "128-D face descriptors compared round-to-round catch seat-swaps. An LLM is stateless per call.", "cosine(descriptor[r], descriptor[r−1])"],
+  ["Cryptographically owned", "An employer trusts the issuer key, not a screenshot. ChatGPT can't mint a signed credential against a did:web key.", "Ed25519.verify(vc, did:web)"],
 ];
 
 const COMPLIANCE = [
-  { t: "India DPDP 2023 + Rules 2025", d: "Itemised consent · minimisation · candidate-held data · erasure-by-revocation" },
-  { t: "EU AI Act", d: "No emotion AI — by law and by design. Scores judgment, never affect (Art 5(1)(f))." },
-  { t: "W3C Verifiable Credentials 2.0", d: "Signed with Ed25519 · did:web issuer · offline-verifiable" },
-  { t: "ISO/IEC 30107-3 · NIST FATE-PAD", d: "The PAD benchmarks we build toward — challenge-response liveness today, not certified PAD; iProov/Incode is the production swap-in" },
+  ["India DPDP 2023 + Rules 2025", "Itemised consent · minimisation · candidate-held data · erasure-by-revocation."],
+  ["EU AI Act", "No emotion AI — by law and by design. Scores judgment, never affect (Art 5(1)(f))."],
+  ["W3C Verifiable Credentials 2.0", "Signed with Ed25519 · did:web issuer · offline-verifiable."],
+  ["ISO/IEC 30107-3 · NIST FATE-PAD", "The PAD benchmarks we build toward — challenge-response liveness today, not certified PAD; iProov/Incode is the production swap-in."],
 ];
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return <p className="eyebrow text-indigo-bright">{children}</p>;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+function ArrowIcon() {
+  return (
+    <svg viewBox="0 0 20 20" width="16" height="16" className="hp-arrow" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <path d="M4 10h11M11 5l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Track({ label, steps }: { label: string; steps: string[][] }) {
+  return (
+    <div className="hp-reveal">
+      <div className="hp-track-label">
+        <span className="hp-eyebrow hp-gold">{label}</span>
+        <span className="hp-track-label-line" />
+      </div>
+      <ol className="hp-steps">
+        {steps.map(([k, t, d]) => (
+          <li key={k} className="hp-step">
+            <span className="hp-step-num">{k}</span>
+            <h3 className="hp-title" style={{ fontSize: "1.05rem" }}>{t}</h3>
+            <p className="hp-body hp-muted" style={{ fontSize: "0.95rem", marginTop: "0.4rem" }}>{d}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }
 
 export default function Home() {
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    const supportsIO = typeof IntersectionObserver !== "undefined";
+
+    let reveal: IntersectionObserver | undefined;
+    let glitch: IntersectionObserver | undefined;
+
+    if (!supportsIO) {
+      // JS on but no IntersectionObserver: never leave content stuck at opacity:0
+      document.querySelectorAll(".hp-reveal").forEach((el) => el.classList.add("is-revealed"));
+    } else {
+      // reveal once per element
+      reveal = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("is-revealed");
+              reveal!.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: "0px 0px -7% 0px" }
+      );
+      document.querySelectorAll(".hp-reveal").forEach((el) => reveal!.observe(el));
+
+      // the one "fake" that doesn't survive the loop
+      glitch = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("is-glitching");
+              glitch!.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.6 }
+      );
+      document.querySelectorAll("[data-glitch]").forEach((el) => glitch!.observe(el));
+    }
+
+    // nav condense + scroll-linked rail fill (the credential minted along the path)
+    const steps = Array.from(document.querySelectorAll<HTMLElement>(".hp-steps"));
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      if (header) header.dataset.scrolled = String(window.scrollY > 8);
+      const vh = window.innerHeight;
+      steps.forEach((s) => {
+        const r = s.getBoundingClientRect();
+        const p = clamp((vh * 0.82 - r.top) / (r.height || 1), 0, 1);
+        s.style.setProperty("--hp-rail", `${p * 100}%`);
+      });
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+
+    return () => {
+      reveal?.disconnect();
+      glitch?.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
-    <main className="flex-1">
-      {/* ---------- Nav ---------- */}
-      <header className="sticky top-0 z-50 border-b border-ink-700/80 bg-ink-950/85 backdrop-blur-md">
-        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-          <Wordmark />
-          <div className="hidden items-center gap-7 text-sm text-ink-300 md:flex">
-            <Link href="#how" className="transition-colors hover:text-ink-50">How it works</Link>
-            <Link href="#shift" className="transition-colors hover:text-ink-50">Why different</Link>
-            <Link href="#compliance" className="transition-colors hover:text-ink-50">Compliance</Link>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/v"
-              className="hidden rounded-control px-3.5 py-2 text-sm font-medium text-ink-200 transition-colors hover:bg-ink-800 sm:block"
-            >
+    <div className="hp">
+      <a href="#main" className="hp-skip">Skip to content</a>
+      {/* no-JS: never trap content behind the reveal animation */}
+      <noscript>
+        <style>{`.hp-reveal{opacity:1 !important;transform:none !important;}`}</style>
+      </noscript>
+
+      {/* ---------------------------------------------------------- nav ---- */}
+      <header ref={headerRef} className="hp-nav">
+        <div className="hp-container hp-nav-inner">
+          <Link href="/" className="hp-wordmark" aria-label="HireProof — home">
+            <span className="hp-wordmark-seal" aria-hidden="true" />
+            HireProof
+          </Link>
+          <nav aria-label="Primary" className="hp-nav-links">
+            <Link href="#how" className="hp-navlink">How it works</Link>
+            <Link href="#shift" className="hp-navlink">Why different</Link>
+            <Link href="#compliance" className="hp-navlink">Compliance</Link>
+          </nav>
+          <div className="hp-row" style={{ gap: "0.6rem" }}>
+            <Link href="/v" className="hp-btn hp-btn--ghost hp-cta-desktop">
               Verify a credential
             </Link>
-            <Link
-              href="/verify"
-              className="rounded-control bg-indigo px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-deep"
-            >
+            <Link href="/verify" className="hp-btn hp-btn--primary">
               Prove you&apos;re real
             </Link>
           </div>
-        </nav>
+        </div>
       </header>
 
-      {/* ---------- Hero ---------- */}
-      <section className="relative overflow-hidden border-b border-ink-700/60">
-        <div aria-hidden className="grid-paper absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 lg:grid-cols-[1.15fr_0.85fr] lg:py-28">
-          <div className="space-y-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-ink-700 bg-ink-900/60 px-3 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-proof pulse-soft" />
-              <span className="eyebrow text-ink-300">Hiring-integrity infrastructure · Built for Bharat</span>
-            </div>
-            <h1 className="text-balance text-4xl font-semibold leading-[1.05] tracking-[-0.02em] text-ink-50 sm:text-5xl lg:text-[3.4rem]">
-              Prove you&apos;re a real human — with real{" "}
-              <span className="text-proof">AI judgment</span>.
-            </h1>
-            <p className="max-w-xl text-pretty text-base leading-relaxed text-ink-300 sm:text-lg">
-              HireProof is a candidate-owned, cryptographically-signed credential that proves an
-              applicant is a live human with real AI-collaboration skill — verifiable by any
-              employer in seconds, re-checked every round. Not surveillance. Not a detection arms
-              race. <span className="font-deva text-ink-200">आपका प्रमाण, आपके पास।</span>
-            </p>
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Link
-                href="/verify"
-                className="group inline-flex items-center gap-2 rounded-control bg-indigo px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-deep"
-              >
-                Prove you&apos;re real
-                <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M4 10h11M11 5l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Link>
-              <Link
-                href="/employer"
-                className="inline-flex items-center gap-2 rounded-control border border-ink-600 px-5 py-3 text-sm font-medium text-ink-100 transition-colors hover:border-ink-400 hover:bg-ink-900"
-              >
-                Verify in seconds
-              </Link>
-            </div>
-            <div className="flex items-center gap-2 pt-2 font-data text-xs text-ink-400">
-              <span className="h-px w-6 bg-ink-600" />
-              <span>liveness · cross-round biometric match · Ed25519 · W3C VC 2.0</span>
-            </div>
-          </div>
-
-          <div className="relative flex justify-center lg:justify-end">
-            {/* the signature artifact, shown as proof the product is real */}
-            <div className="relative">
-              <div aria-hidden className="absolute -inset-6 -z-10 rounded-[28px] bg-indigo/10 blur-2xl" />
-              <CredentialCard className="rotate-[1.2deg]" />
-            </div>
-          </div>
-        </div>
-
-        {/* stat band */}
-        <div className="relative border-t border-ink-700/60 bg-ink-900/40">
-          <div className="mx-auto grid max-w-6xl divide-ink-700/60 px-5 sm:grid-cols-3 sm:divide-x">
-            {STATS.map((s) => (
-              <div key={s.l} className="flex flex-col gap-1 py-6 sm:px-6 sm:first:pl-0">
-                <span className="font-data text-2xl font-semibold text-ink-50">{s.v}</span>
-                <span className="text-sm text-ink-300">{s.l}</span>
-                <span className="eyebrow text-ink-500">{s.s}</span>
+      <main id="main">
+        {/* -------------------------------------------------------- hero ---- */}
+        <section className="hp-section hp-section--tight" aria-labelledby="hero-h1">
+          <div className="hp-container">
+            <div className="hp-hero">
+              <div className="a-eyebrow hp-reveal">
+                <span className="hp-chip">
+                  <span className="hp-wordmark-seal" aria-hidden="true" style={{ width: 8, height: 8 }} />
+                  <span className="hp-eyebrow">Hiring-integrity infrastructure · Built for Bharat</span>
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ---------- The mechanic no one else ships ---------- */}
-      <section className="border-b border-ink-700/60 bg-ink-900/30">
-        <div className="mx-auto max-w-6xl px-5 py-16">
-          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-14">
-            <div className="space-y-3">
-              <Eyebrow>AI judgment, not AI usage</Eyebrow>
-              <h2 className="text-3xl font-semibold tracking-[-0.02em] text-ink-50">
-                We hand you an AI that&apos;s <span className="text-proof">confidently wrong</span>.
-              </h2>
-              <p className="text-ink-300">
-                Everyone can prompt a model now. The skill that matters is catching it when it&apos;s
-                wrong. So our task plants a deliberate, hidden error in the AI&apos;s answer — and
-                scores whether <span className="text-ink-100">you</span> catch and correct it.
+              <h1 id="hero-h1" className="a-headline hp-hero-h1 hp-reveal" style={{ "--hp-delay": "60ms" } as React.CSSProperties}>
+                Prove you&apos;re a real human — with real <span className="hp-gold">AI judgment</span>.
+              </h1>
+
+              <div className="a-card hp-reveal" style={{ "--hp-delay": "120ms" } as React.CSSProperties}>
+                <MintedCredential />
+              </div>
+
+              <p className="a-sub hp-body hp-lead hp-reveal" style={{ "--hp-delay": "150ms" } as React.CSSProperties}>
+                HireProof is a candidate-owned, cryptographically-signed credential that proves a job
+                applicant is a live human with real AI-collaboration judgment — verifiable by any
+                employer in seconds, re-checked every round. Not surveillance. Not a detection arms
+                race.{" "}
+                <span className="hp-deva" lang="hi" style={{ color: "var(--gold-core)", whiteSpace: "nowrap" }}>
+                  आपका प्रमाण, आपके पास।
+                </span>
               </p>
+
+              <div className="a-cta hp-row hp-reveal" style={{ "--hp-delay": "210ms" } as React.CSSProperties}>
+                <Link href="/verify" className="hp-btn hp-btn--primary">
+                  Prove you&apos;re real <ArrowIcon />
+                </Link>
+                <Link href="/employer" className="hp-btn hp-btn--ghost">
+                  Verify in seconds
+                </Link>
+              </div>
+
+              <div className="a-micro hp-reveal" style={{ "--hp-delay": "260ms" } as React.CSSProperties}>
+                <p className="hp-mono" style={{ color: "var(--haze)" }}>
+                  liveness · cross-round biometric match · Ed25519 · W3C VC 2.0
+                </p>
+              </div>
             </div>
-            <div className="grid gap-px overflow-hidden rounded-card border border-ink-700 bg-ink-700 sm:grid-cols-3">
-              {[
-                ["Catch", "Spot the planted flaw the AI never tells you about.", "text-judge"],
-                ["Direct", "Steer it to the right approach — graded on quoted transcript lines.", "text-direct"],
-                ["Correct", "Ship the AI's flawed answer verbatim → hard-capped at 40.", "text-correct"],
-              ].map(([t, d]) => (
-                <div key={t} className="bg-ink-900 p-5">
-                  <p className="text-sm font-medium text-ink-50">{t}</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-400">{d}</p>
+          </div>
+        </section>
+
+        {/* ----------------------------------------------- threat band ---- */}
+        <section className="hp-section hp-section--tight" aria-label="The problem">
+          <div className="hp-container hp-reveal">
+            <p className="hp-eyebrow" style={{ marginBottom: "1.5rem" }}>The problem · signal from the void</p>
+            <div className="hp-threat-grid hp-glass" style={{ overflow: "hidden" }}>
+              {STATS.map((s) => (
+                <div key={s.l} className="hp-threat-node">
+                  <p className="hp-threat-num">{s.v}</p>
+                  <p className="hp-body" style={{ fontSize: "0.95rem", marginTop: "0.5rem" }}>{s.l}</p>
+                  <p className="hp-mono" style={{ color: "var(--haze)", marginTop: "0.5rem", fontSize: "0.7rem" }}>{s.s}</p>
                 </div>
               ))}
             </div>
           </div>
-          <p className="mt-6 text-xs leading-relaxed text-ink-500">
-            HackerRank, CodeSignal and others score whether you <em>used</em> an AI. No shipped product
-            scores whether you <em>out-judged</em> one — fused with live human-proof and a candidate-owned
-            credential. <Link href="#how" className="text-ink-300 underline-offset-4 hover:underline">See how it works ↓</Link>
-          </p>
-        </div>
-      </section>
+        </section>
 
-      {/* ---------- The shift ---------- */}
-      <section id="shift" className="border-b border-ink-700/60">
-        <div className="mx-auto max-w-6xl px-5 py-20">
-          <div className="max-w-2xl space-y-4">
-            <Eyebrow>The shift</Eyebrow>
-            <h2 className="text-3xl font-semibold tracking-[-0.02em] text-ink-50 sm:text-4xl">
-              Stop surveilling everyone. Let real people prove themselves.
-            </h2>
-            <p className="text-ink-300">
-              Today&apos;s tools fight AI use and spy on applicants. HireProof flips the model:
-              the candidate owns the proof, and we measure the one skill that actually matters now —
-              directing AI well.
-            </p>
-          </div>
+        {/* ------------------------------------------------- the shift ---- */}
+        <section id="shift" className="hp-section" aria-labelledby="shift-h">
+          <div className="hp-container">
+            <div className="hp-section-head hp-measure hp-reveal">
+              <span className="hp-eyebrow">The shift</span>
+              <h2 id="shift-h" className="hp-h2">Stop surveilling everyone. Let real people prove themselves.</h2>
+              <p className="hp-body hp-muted hp-lead">
+                Today&apos;s tools fight AI use and spy on applicants. HireProof flips the model: the
+                candidate owns the proof, and we measure the one skill that actually matters now —
+                directing AI well.
+              </p>
+            </div>
 
-          <div className="mt-12 grid gap-px overflow-hidden rounded-card border border-ink-700 bg-ink-700 md:grid-cols-3">
-            {SHIFT.map((c) => (
-              <div key={c.bad} className="bg-ink-900 p-6">
-                <div className="flex items-center gap-2 text-danger">
-                  <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path d="M6 6l8 8M14 6l-8 8" strokeLinecap="round" />
-                  </svg>
-                  <span className="text-sm font-medium text-ink-100">{c.bad}</span>
+            <div className="hp-cols-3 hp-reveal" style={{ marginTop: "clamp(40px, 6vw, 64px)" }}>
+              {SHIFT.map(([t, d]) => (
+                <div key={t} className="hp-broken">
+                  <div className="hp-row" style={{ gap: "0.5rem" }}>
+                    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="var(--haze)" strokeWidth={2} aria-hidden="true">
+                      <path d="M6 6l8 8M14 6l-8 8" strokeLinecap="round" />
+                    </svg>
+                    <h3 className="hp-title" style={{ fontSize: "1rem", color: "var(--bone)" }}>{t}</h3>
+                  </div>
+                  <p className="hp-body" style={{ fontSize: "0.92rem", marginTop: "0.6rem", color: "var(--haze)" }}>{d}</p>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-ink-400">{c.badd}</p>
+              ))}
+            </div>
+
+            <div className="hp-flip hp-reveal" style={{ marginTop: "clamp(16px, 2.5vw, 22px)" }}>
+              <div className="hp-row" style={{ gap: "0.8rem", alignItems: "flex-start" }}>
+                <span aria-hidden="true" style={{ flex: "none", width: 30, height: 30, borderRadius: 999, display: "grid", placeItems: "center", background: "var(--gold)", color: "var(--void)" }}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2.6} aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <p className="hp-body" style={{ maxWidth: "62ch" }}>
+                  <span className="hp-gold" style={{ fontWeight: 600 }}>HireProof</span> — one
+                  candidate-owned token that fuses live human-proof, AI-judgment scoring, and
+                  cross-round re-verification.{" "}
+                  <span className="hp-muted">Integration is the innovation.</span>
+                </p>
               </div>
-            ))}
-          </div>
-
-          <div className="mt-px flex items-center gap-3 rounded-card border border-proof/30 bg-proof-wash-dark/40 p-6">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-proof text-ink-950">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path d="M5 12.5l4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <p className="text-sm text-ink-100">
-              <span className="font-medium text-ink-50">HireProof</span> — one candidate-owned token
-              that fuses live human-proof, AI-judgment scoring, and cross-round re-verification.
-              <span className="text-ink-400"> Integration is the innovation.</span>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- How it works ---------- */}
-      <section id="how" className="border-b border-ink-700/60">
-        <div className="mx-auto max-w-6xl px-5 py-20">
-          <Eyebrow>How it works · end to end</Eyebrow>
-          <div className="mt-10 grid gap-12 lg:grid-cols-2 lg:gap-16">
-            <div>
-              <h3 className="mb-7 flex items-center gap-2 text-lg font-semibold text-ink-50">
-                <span className="font-data text-sm text-indigo-bright">candidate</span>
-                <span className="h-px flex-1 bg-ink-700" />
-              </h3>
-              <ol className="space-y-7">
-                {CANDIDATE_STEPS.map((s) => (
-                  <li key={s.k} className="flex gap-4">
-                    <span className="font-data text-sm text-ink-500">{s.k}</span>
-                    <div className="space-y-1.5">
-                      <p className="font-medium text-ink-50">{s.t}</p>
-                      <p className="text-sm leading-relaxed text-ink-400">{s.d}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-            <div>
-              <h3 className="mb-7 flex items-center gap-2 text-lg font-semibold text-ink-50">
-                <span className="font-data text-sm text-indigo-bright">employer</span>
-                <span className="h-px flex-1 bg-ink-700" />
-              </h3>
-              <ol className="space-y-7">
-                {EMPLOYER_STEPS.map((s) => (
-                  <li key={s.k} className="flex gap-4">
-                    <span className="font-data text-sm text-ink-500">{s.k}</span>
-                    <div className="space-y-1.5">
-                      <p className="font-medium text-ink-50">{s.t}</p>
-                      <p className="text-sm leading-relaxed text-ink-400">{s.d}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ---------- Value beyond a generic LLM ---------- */}
-      <section className="border-b border-ink-700/60 bg-ink-900/30">
-        <div className="mx-auto max-w-6xl px-5 py-20">
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
-            <div className="space-y-4">
-              <Eyebrow>Why it can&apos;t be faked</Eyebrow>
-              <h2 className="text-3xl font-semibold tracking-[-0.02em] text-ink-50">
-                You can&apos;t reproduce this by pasting into ChatGPT.
-              </h2>
-              <p className="text-ink-300">
+        {/* --------------------------------------------- how it works ---- */}
+        <section id="how" className="hp-section" aria-labelledby="how-h">
+          <div className="hp-container">
+            <div className="hp-section-head hp-measure hp-reveal">
+              <span className="hp-eyebrow">How it works</span>
+              <h2 id="how-h" className="hp-h2">Two tracks, one credential — minted along the path.</h2>
+            </div>
+            <div className="hp-cols-2" style={{ marginTop: "clamp(40px, 6vw, 64px)", gap: "clamp(40px, 6vw, 72px)" }}>
+              <Track label="candidate" steps={CANDIDATE_STEPS} />
+              <Track label="employer" steps={EMPLOYER_STEPS} />
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------ why it can't be faked ---- */}
+        <section className="hp-section" aria-labelledby="fake-h">
+          <div className="hp-container">
+            <div className="hp-section-head hp-measure hp-reveal">
+              <span className="hp-eyebrow">Why it can&apos;t be faked</span>
+              <h2 id="fake-h" className="hp-h2">You can&apos;t reproduce this by pasting into ChatGPT.</h2>
+              <p className="hp-body hp-muted hp-lead">
                 HireProof is a protocol, not a single inference. The proof lives in the
                 challenge-response loop, the live binding, and the signature — none of which a
                 chatbot can produce.
               </p>
+              <p aria-hidden="true" style={{ marginTop: "0.2rem" }}>
+                <span className="hp-fake hp-mono" data-glitch style={{ fontSize: "0.78rem" }}>
+                  ✕ pasted-into-chatgpt.png — flat copy, does not survive the loop
+                </span>
+              </p>
             </div>
-            <ul className="grid gap-px overflow-hidden rounded-card border border-ink-700 bg-ink-700 sm:grid-cols-2">
-              {[
-                ["Live challenge-response", "A server-issued random action sequence + nonce, verified against real-time landmark dynamics. No chatbot has this loop."],
-                ["Bound to the moment", "Your voice is tied to a sentence generated <2 min ago. A generic LLM would happily score a pre-recorded proxy."],
-                ["Stateful across rounds", "128-D face descriptors compared round-to-round catch seat-swaps. An LLM is stateless per call."],
-                ["Cryptographically owned", "An employer trusts the issuer key, not a screenshot. ChatGPT can't mint a signed credential against a did:web key."],
-              ].map(([t, d]) => (
-                <li key={t} className="bg-ink-900 p-5">
-                  <p className="text-sm font-medium text-ink-50">{t}</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-400">{d}</p>
-                </li>
+
+            <div className="hp-cols-2 hp-reveal" style={{ marginTop: "clamp(32px, 5vw, 56px)" }}>
+              {PILLARS.map(([t, d, code]) => (
+                <div key={t} className="hp-pillar hp-glass hp-glass--hover">
+                  <h3 className="hp-title" style={{ fontSize: "1.1rem" }}>{t}</h3>
+                  <p className="hp-body hp-muted" style={{ fontSize: "0.95rem", marginTop: "0.5rem" }}>{d}</p>
+                  <p className="hp-mono" style={{ marginTop: "0.85rem", fontSize: "0.72rem" }}>{code}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ---------- Compliance ---------- */}
-      <section id="compliance" className="border-b border-ink-700/60">
-        <div className="mx-auto max-w-6xl px-5 py-20">
-          <Eyebrow>Compliant by design</Eyebrow>
-          <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.02em] text-ink-50">
-            Built to what the law requires — and rewards.
-          </h2>
-          <div className="mt-10 grid gap-px overflow-hidden rounded-card border border-ink-700 bg-ink-700 sm:grid-cols-2 lg:grid-cols-4">
-            {COMPLIANCE.map((c) => (
-              <div key={c.t} className="bg-ink-900 p-5">
-                <p className="text-sm font-medium text-ink-50">{c.t}</p>
-                <p className="mt-2 text-xs leading-relaxed text-ink-400">{c.d}</p>
+        {/* ------------------------------------------------ compliance ---- */}
+        <section id="compliance" className="hp-section" aria-labelledby="comp-h">
+          <div className="hp-container">
+            <div className="hp-section-head hp-measure hp-reveal">
+              <span className="hp-eyebrow">Compliant by design</span>
+              <h2 id="comp-h" className="hp-h2">Built to what the law requires — and rewards.</h2>
+            </div>
+            <div className="hp-cols-4 hp-reveal" style={{ marginTop: "clamp(32px, 5vw, 56px)" }}>
+              {COMPLIANCE.map(([t, d]) => (
+                <div key={t} className="hp-badge">
+                  <h3 className="hp-title" style={{ fontSize: "0.98rem" }}>{t}</h3>
+                  <p className="hp-body hp-muted" style={{ fontSize: "0.85rem", marginTop: "0.6rem", lineHeight: 1.5 }}>{d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* -------------------------------------------------- final CTA ---- */}
+        <section className="hp-section" aria-labelledby="cta-h">
+          <div className="hp-container">
+            <div className="hp-cols-2" style={{ alignItems: "center", gap: "clamp(40px, 6vw, 72px)" }}>
+              <div className="hp-section-head hp-reveal">
+                <h2 id="cta-h" className="hp-h2">Honest candidates win. Fakes can&apos;t.</h2>
+                <p className="hp-body hp-muted hp-lead">
+                  Earn your HireProof once. Reuse it everywhere. Let employers trust you in seconds.
+                </p>
+                <div className="hp-row" style={{ marginTop: "0.6rem" }}>
+                  <Link href="/verify" className="hp-btn hp-btn--primary">
+                    Prove you&apos;re real <ArrowIcon />
+                  </Link>
+                  <Link href="/employer" className="hp-btn hp-btn--ghost">
+                    For employers
+                  </Link>
+                </div>
               </div>
-            ))}
+              <div className="hp-reveal" style={{ display: "flex", justifyContent: "center" }}>
+                <MintedCredential mint={false} compact />
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* ---------- CTA ---------- */}
-      <section className="border-b border-ink-700/60">
-        <div className="mx-auto max-w-6xl px-5 py-20 text-center">
-          <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-[-0.02em] text-ink-50 sm:text-4xl">
-            Honest candidates win. Fakes can&apos;t.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-ink-300">
-            Earn your HireProof once. Reuse it everywhere. Let employers trust you in seconds.
-          </p>
-          <div className="mt-8 flex justify-center gap-3">
-            <Link
-              href="/verify"
-              className="inline-flex items-center gap-2 rounded-control bg-indigo px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-deep"
-            >
-              Prove you&apos;re real
+      {/* ----------------------------------------------------- footer ---- */}
+      <footer className="hp-footer">
+        <div className="hp-container" style={{ paddingBlock: "clamp(36px, 5vw, 52px)" }}>
+          <div className="hp-row" style={{ justifyContent: "space-between", alignItems: "flex-start", gap: "2rem" }}>
+            <Link href="/" className="hp-wordmark" aria-label="HireProof — home">
+              <span className="hp-wordmark-seal" aria-hidden="true" />
+              HireProof
             </Link>
-            <Link
-              href="/employer"
-              className="inline-flex items-center gap-2 rounded-control border border-ink-600 px-6 py-3 text-sm font-medium text-ink-100 transition-colors hover:border-ink-400 hover:bg-ink-900"
-            >
-              For employers
-            </Link>
+            <nav aria-label="Footer" className="hp-row" style={{ gap: "1.4rem" }}>
+              <Link href="#how" className="hp-navlink">How it works</Link>
+              <Link href="#shift" className="hp-navlink">Why different</Link>
+              <Link href="#compliance" className="hp-navlink">Compliance</Link>
+              <Link href="/v" className="hp-navlink">Verify a credential</Link>
+              <Link href="/verify" className="hp-navlink">Prove you&apos;re real</Link>
+            </nav>
           </div>
-        </div>
-      </section>
-
-      {/* ---------- Footer ---------- */}
-      <footer className="bg-ink-950">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 sm:flex-row sm:items-center sm:justify-between">
-          <Wordmark />
-          <p className="font-data text-xs text-ink-500">
-            Team DOMINATORS · InnovateZ 2026 · prototype — see honest limitations in the demo
+          <p className="hp-mono" style={{ color: "var(--haze)", marginTop: "1.6rem", fontSize: "0.72rem" }}>
+            Prototype — see honest limitations in the demo.
           </p>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }

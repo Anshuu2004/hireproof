@@ -170,3 +170,761 @@ body {
   }
   .caret::after { animation: none; opacity: 1; }
 }
+
+/* ============================================================================
+   HireProof — Galaxy identity  (the landing experience only)
+
+   A separate visual language layered over the WebGL cosmos backdrop.
+   Every token below is lifted straight from the galaxy palette (brief §3).
+   These are plain :root custom properties — they deliberately do NOT collide
+   with the Tailwind @theme tokens above (those drive the functional
+   /verify · /v · /employer routes and must stay untouched).
+
+   Everything is scoped under `.hp` so it can never leak into those routes.
+   Section rhythm lives in ONE place (here) to avoid the specificity traps
+   the brief warns about (§9).
+   ============================================================================ */
+:root {
+  --void: #05071a;       /* page base — mostly hidden behind the canvas */
+  --ink: #070a22;        /* panel base for solid surfaces */
+  --gold-core: #fff3b0;  /* brightest gold — verified-human signal, seals */
+  --gold: #ffb52a;       /* primary gold — CTAs, active state, "the light" */
+  --amber: #e8951f;      /* secondary warm */
+  --brass: #b8771f;      /* deep gold — strokes, borders, hairline accents */
+  --flame: #ff3b1f;      /* fraud / fake / danger — rare, this meaning only */
+  --rose: #ff5e8a;       /* liveness pulse accent — biometric heartbeat, rare */
+  --bone: #f5ecd8;       /* primary text on void */
+  --haze: #ada8be;       /* muted / secondary text (cool-tinted) */
+  --signal: #82e0cf;     /* utility only — cool mint for crypto/mono data */
+  --liner: rgba(245, 236, 216, 0.1);  /* hairline dividers */
+  --glass: rgba(10, 12, 34, 0.55);    /* translucent panel fill */
+
+  /* three-voice type system (families injected by next/font in layout) */
+  --hp-display: var(--font-bricolage), "Bricolage Grotesque", ui-sans-serif, sans-serif;
+  --hp-body: var(--font-hanken), "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --hp-mono: var(--font-jet), "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --hp-deva: var(--font-tiro), "Tiro Devanagari Hindi", serif;
+
+  /* geometry */
+  --hp-r-card: 22px;
+  --hp-r-btn: 13px;
+  --hp-r-tile: 14px;
+
+  /* motion */
+  --hp-micro: 180ms;
+  --hp-reveal: 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- Static fallback backdrop (no WebGL / reduced-motion) ---- */
+.hp-static-sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 30% at 50% 16%, rgba(255, 181, 42, 0.07), transparent 70%),
+    radial-gradient(120% 120% at 50% 20%, #0b0e2a 0%, #05071a 60%, #03030e 100%);
+}
+.hp-static-sky::after {
+  /* a few static dim points — same mood, no motion */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 18% 32%, rgba(255, 243, 176, 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 72% 22%, rgba(255, 181, 42, 0.35), transparent),
+    radial-gradient(1px 1px at 44% 64%, rgba(245, 236, 216, 0.35), transparent),
+    radial-gradient(1px 1px at 86% 70%, rgba(255, 94, 138, 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 30% 82%, rgba(255, 243, 176, 0.3), transparent),
+    radial-gradient(1px 1px at 60% 44%, rgba(130, 224, 207, 0.25), transparent);
+}
+
+/* ---- The galaxy canvas singleton ---- */
+.hp-galaxy-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   Landing root + typography
+   ============================================================================ */
+.hp {
+  position: relative;
+  z-index: 1;
+  font-family: var(--hp-body);
+  color: var(--bone);
+  background: transparent;            /* let the cosmos read through */
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  /* legibility insurance: a soft dark halo, invisible over the void, that keeps
+     text AA-readable wherever a bright galaxy nucleus passes behind it — so the
+     cosmos stays visible without papering it over with opaque slabs (§10). */
+  text-shadow: 0 1px 18px rgba(5, 7, 26, 0.62), 0 1px 3px rgba(3, 4, 14, 0.5);
+}
+/* surfaces with their own fill don't need (or want) the halo */
+.hp-btn,
+.hp-chip,
+.hp-cred-status,
+.hp-cred,
+.hp-flip {
+  text-shadow: none;
+}
+
+.hp ::selection {
+  background: var(--gold);
+  color: var(--void);
+}
+
+/* keyboard focus — gold ring, ≥3:1 against any surface here */
+.hp :where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.hp-display {
+  font-family: var(--hp-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  color: var(--bone);
+  text-wrap: balance;
+}
+.hp-h2 {
+  font-family: var(--hp-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3.5vw, 3rem);
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+  color: var(--bone);
+  text-wrap: balance;
+}
+.hp-title {
+  margin: 0; /* neutralise UA heading margins where hp-title is an <h3> */
+  font-family: var(--hp-display);
+  font-weight: 600;
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  letter-spacing: -0.02em;
+  color: var(--bone);
+}
+.hp-body {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--bone);
+}
+.hp-muted { color: var(--haze); }
+.hp-deva { font-family: var(--hp-deva); font-weight: 400; }
+.hp-gold { color: var(--gold); }
+
+/* machine voice */
+.hp-mono {
+  font-family: var(--hp-mono);
+  font-size: 0.8125rem;
+  color: var(--signal);
+  letter-spacing: 0;
+  font-feature-settings: "tnum" 1, "lnum" 1, "zero" 1;
+}
+.hp-eyebrow {
+  font-family: var(--hp-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--haze);
+  font-weight: 500;
+}
+
+/* ============================================================================
+   Layout primitives — one place for section rhythm
+   ============================================================================ */
+.hp-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 5vw, 40px);
+}
+.hp-section {
+  padding-block: clamp(96px, 12vw, 180px);
+  position: relative;
+}
+.hp-section--tight { padding-block: clamp(64px, 8vw, 110px); }
+
+/* ---- Glass surface ---- */
+.hp-glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--liner);
+  border-radius: var(--hp-r-card);
+  box-shadow: inset 0 1px 0 rgba(245, 236, 216, 0.06);
+}
+.hp-glass--hover {
+  transition: border-color var(--hp-micro) ease-out,
+    box-shadow var(--hp-micro) ease-out, transform var(--hp-micro) ease-out;
+}
+.hp-glass--hover:hover {
+  border-color: rgba(184, 119, 31, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 236, 216, 0.08),
+    0 0 0 1px rgba(255, 181, 42, 0.08),
+    0 18px 50px -28px rgba(255, 181, 42, 0.4);
+}
+
+/* ============================================================================
+   Buttons
+   ============================================================================ */
+.hp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--hp-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.85rem 1.3rem;
+  border-radius: var(--hp-r-btn);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform var(--hp-micro) ease-out, box-shadow var(--hp-micro) ease-out,
+    background-color var(--hp-micro) ease-out, border-color var(--hp-micro) ease-out;
+  min-height: 44px;
+}
+.hp-btn:active { transform: translateY(1px) scale(0.99); }
+
+.hp-btn--primary {
+  background: var(--gold);
+  color: var(--void);
+  box-shadow: 0 0 0 1px rgba(255, 207, 42, 0.25), 0 10px 30px -12px rgba(255, 181, 42, 0.55);
+}
+.hp-btn--primary:hover {
+  background: var(--gold-core);
+  box-shadow: 0 0 0 1px rgba(255, 207, 42, 0.5), 0 14px 44px -14px rgba(255, 181, 42, 0.85);
+}
+.hp-btn--ghost {
+  background: transparent;
+  color: var(--bone);
+  border-color: rgba(184, 119, 31, 0.55);
+}
+.hp-btn--ghost:hover {
+  background: rgba(255, 181, 42, 0.07);
+  border-color: var(--brass);
+}
+.hp-btn svg { transition: transform var(--hp-micro) ease-out; }
+.hp-btn:hover svg.hp-arrow { transform: translateX(2px); }
+
+/* ---- Chips / pills ---- */
+.hp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--liner);
+  background: rgba(10, 12, 34, 0.4);
+}
+
+/* ============================================================================
+   Sticky nav — condenses on scroll
+   ============================================================================ */
+.hp-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: backdrop-filter var(--hp-micro) ease-out, background-color var(--hp-micro) ease-out,
+    border-color var(--hp-micro) ease-out;
+  border-bottom: 1px solid transparent;
+}
+.hp-nav[data-scrolled="true"] {
+  background: rgba(5, 7, 26, 0.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom-color: var(--liner);
+}
+.hp-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  transition: height var(--hp-micro) ease-out;
+}
+.hp-nav[data-scrolled="true"] .hp-nav-inner { height: 60px; }
+.hp-navlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px; /* AA tap target (WCAG 2.5.8 / brief ≥44px) */
+  color: var(--haze);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color var(--hp-micro) ease-out;
+}
+.hp-navlink:hover { color: var(--bone); }
+
+/* skip-to-content — first focusable element, visible only on focus */
+.hp-skip {
+  position: absolute;
+  left: 12px;
+  top: -64px;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  border-radius: var(--hp-r-btn);
+  background: var(--gold);
+  color: var(--void);
+  font-family: var(--hp-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: top var(--hp-micro) ease-out;
+}
+.hp-skip:focus { top: 12px; }
+
+/* responsive visibility for nav pieces */
+.hp-nav-links { display: none; gap: 1.6rem; }
+@media (min-width: 900px) { .hp-nav-links { display: flex; } }
+.hp-cta-desktop { display: none; }
+@media (min-width: 640px) { .hp-cta-desktop { display: inline-flex; } }
+
+/* wordmark */
+.hp-wordmark {
+  font-family: var(--hp-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: 1.15rem;
+  color: var(--bone);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.hp-wordmark-seal {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 42%, var(--gold-core) 0%, var(--gold) 38%, var(--amber) 60%, #3a1402 100%);
+  box-shadow: 0 0 12px -1px rgba(255, 181, 42, 0.7);
+}
+
+/* ============================================================================
+   Scroll reveal — fires once per element
+   ============================================================================ */
+.hp-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity var(--hp-reveal), transform var(--hp-reveal);
+  transition-delay: var(--hp-delay, 0ms);
+  will-change: opacity, transform;
+}
+.hp-reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+/* ============================================================================
+   Threat band — constellation nodes
+   ============================================================================ */
+.hp-threat-grid {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 720px) {
+  .hp-threat-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.hp-threat-node {
+  position: relative;
+  padding: clamp(20px, 3vw, 32px) clamp(8px, 2vw, 24px);
+}
+.hp-threat-node::before {
+  /* the constellation point */
+  content: "";
+  position: absolute;
+  top: clamp(20px, 3vw, 32px);
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--flame);
+  box-shadow: 0 0 10px 1px rgba(255, 59, 31, 0.5);
+  opacity: 0.7;
+}
+.hp-threat-num {
+  font-family: var(--hp-mono);
+  font-size: clamp(2rem, 4vw, 2.9rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--bone);
+  line-height: 1;
+}
+
+/* ============================================================================
+   "The shift" — broken (dim) vs HireProof (lit)
+   ============================================================================ */
+.hp-broken {
+  padding: 1.5rem;
+  border-radius: var(--hp-r-tile);
+  border: 1px solid rgba(245, 236, 216, 0.06);
+  background: rgba(10, 12, 34, 0.35);
+  filter: saturate(0.25);
+  opacity: 0.62;
+  transition: opacity var(--hp-micro) ease-out, filter var(--hp-micro) ease-out;
+}
+.hp-broken:hover { opacity: 0.78; }
+.hp-flip {
+  position: relative;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border-radius: var(--hp-r-card);
+  border: 1px solid rgba(255, 181, 42, 0.35);
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(255, 181, 42, 0.1), transparent 55%),
+    var(--glass);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 243, 176, 0.12),
+    0 24px 70px -36px rgba(255, 181, 42, 0.6);
+}
+
+/* ============================================================================
+   How it works — the only numbered section; connector lights up on scroll
+   ============================================================================ */
+.hp-track-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+.hp-track-label-line { height: 1px; flex: 1; background: var(--liner); }
+.hp-steps { position: relative; }
+.hp-step { position: relative; padding-left: 3.25rem; padding-bottom: 2.25rem; }
+.hp-step:last-child { padding-bottom: 0; }
+/* the rail the credential is minted along */
+.hp-steps::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--liner);
+}
+.hp-steps::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 8px;
+  width: 2px;
+  border-radius: 2px;
+  height: var(--hp-rail, 0%);
+  background: linear-gradient(var(--gold), var(--amber));
+  box-shadow: 0 0 12px -1px rgba(255, 181, 42, 0.6);
+  transition: height 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hp-step-num {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-family: var(--hp-mono);
+  font-size: 0.7rem;
+  color: var(--haze);
+  background: var(--ink);
+  border: 1px solid var(--liner);
+}
+
+/* ============================================================================
+   Pillars (§7.5) — the one "fake" glitches and de-resolves
+   ============================================================================ */
+.hp-pillar { padding: 1.5rem; border-radius: var(--hp-r-tile); }
+.hp-fake {
+  display: inline-block;
+  color: var(--flame);
+}
+.hp-fake.is-glitching {
+  animation: hp-glitch 760ms steps(2) 1 both;
+}
+@keyframes hp-glitch {
+  0% { opacity: 1; transform: none; filter: none; clip-path: none; }
+  18% { transform: translateX(2px) skewX(6deg); opacity: 0.85; }
+  34% { transform: translateX(-3px); opacity: 0.55; text-shadow: 2px 0 var(--rose), -2px 0 var(--flame); }
+  52% { transform: translateX(1px) skewX(-4deg); opacity: 0.35; }
+  74% { opacity: 0.18; filter: blur(1.5px); }
+  100% { opacity: 0; transform: translateX(0) scale(0.96); filter: blur(3px); }
+}
+
+/* ============================================================================
+   Compliance badges
+   ============================================================================ */
+.hp-badge {
+  padding: 1.4rem;
+  border-radius: var(--hp-r-tile);
+  border: 1px solid var(--liner);
+  background: rgba(10, 12, 34, 0.38);
+  transition: border-color var(--hp-micro) ease-out, background-color var(--hp-micro) ease-out;
+}
+.hp-badge:hover {
+  border-color: rgba(184, 119, 31, 0.4);
+  background: rgba(10, 12, 34, 0.55);
+}
+
+/* ============================================================================
+   Footer
+   ============================================================================ */
+.hp-footer {
+  border-top: 1px solid var(--liner);
+  background: rgba(5, 7, 26, 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================================================
+   THE SIGNATURE — the Minted Credential card (§6, the one risk)
+   A credential rendered as one of the galaxies, pulled from the field.
+   ============================================================================ */
+.hp-cred-stage {
+  perspective: 1400px;
+  width: 100%;
+  max-width: 430px;
+}
+.hp-cred-float {
+  transform-style: preserve-3d;
+  animation: hp-float 7s ease-in-out infinite;
+  will-change: transform;
+}
+.hp-cred {
+  position: relative;
+  aspect-ratio: 1.586;          /* credit-card proportion */
+  width: 100%;
+  border-radius: var(--hp-r-card);
+  padding: clamp(16px, 4.2%, 22px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  color: var(--bone);
+  background:
+    radial-gradient(135% 130% at 82% -10%, rgba(255, 181, 42, 0.12), transparent 48%),
+    linear-gradient(168deg, rgba(18, 16, 40, 0.92), rgba(6, 8, 24, 0.96));
+  border: 1px solid rgba(184, 119, 31, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 243, 176, 0.1),
+    inset 0 0 0 1px rgba(245, 236, 216, 0.03),
+    0 30px 80px -40px rgba(0, 0, 0, 0.9),
+    0 0 60px -30px rgba(255, 181, 42, 0.5);
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+  overflow: hidden;
+}
+/* faint ledger/dot texture over the void */
+.hp-cred::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(245, 236, 216, 0.05) 0.5px, transparent 0.6px);
+  background-size: 7px 7px;
+  mask-image: radial-gradient(130% 120% at 80% 0%, #000 30%, transparent 75%);
+}
+/* specular sweep that follows the pointer */
+.hp-cred-spec {
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at calc(var(--mx, 50%)) calc(var(--my, 0%)),
+    rgba(255, 243, 176, 0.16),
+    transparent 38%
+  );
+  opacity: var(--spec, 0);
+  transition: opacity 240ms ease-out;
+  mix-blend-mode: screen;
+}
+/* the draw-on hairline border (geometry via CSS geometry properties) */
+.hp-cred-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.hp-cred-frame rect {
+  x: 1px;
+  y: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  rx: 21px; /* matches the 22px card token minus the 1px inset */
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 1.25;
+  stroke-dasharray: 1700;
+  stroke-dashoffset: 0; /* resting / settled / reduced-motion: drawn */
+}
+/* mint: start hidden, draw on */
+.hp-cred[data-phase="mint"] .hp-cred-frame rect {
+  stroke-dashoffset: 1700;
+  animation: hp-draw 760ms ease-out 120ms forwards;
+}
+@keyframes hp-draw { to { stroke-dashoffset: 0; } }
+
+/* header */
+.hp-cred-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+.hp-cred-brand { font-family: var(--hp-display); font-weight: 800; letter-spacing: -0.03em; font-size: 0.95rem; }
+.hp-cred-id { font-family: var(--hp-mono); font-size: 0.66rem; color: var(--haze); margin-top: 1px; }
+.hp-cred-issued { font-family: var(--hp-mono); font-size: 0.6rem; color: var(--haze); text-align: right; }
+.hp-cred-status {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-family: var(--hp-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--void); background: var(--gold); padding: 0.18rem 0.45rem; border-radius: 999px; font-weight: 600;
+}
+.hp-cred-sub { font-family: var(--hp-mono); font-size: 0.58rem; letter-spacing: 0.04em; color: var(--gold-core); }
+
+/* seal / nucleus — exact galaxy-core gradient */
+.hp-cred-seal-wrap { position: relative; width: clamp(44px, 13%, 56px); aspect-ratio: 1; flex: none; }
+.hp-cred-seal {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: radial-gradient(circle at 50% 42%, var(--gold-core) 0%, var(--gold) 30%, var(--amber) 52%, #3a1402 100%);
+  box-shadow: 0 0 26px -2px rgba(255, 181, 42, 0.8), inset 0 0 8px rgba(255, 243, 176, 0.6);
+}
+.hp-cred[data-phase="mint"] .hp-cred-seal { animation: hp-ignite 720ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.hp-cred-seal-ring {
+  position: absolute; inset: -6px; border-radius: 999px;
+  border: 1.5px solid var(--rose);
+  animation: hp-liveness 2.4s ease-in-out infinite;
+}
+@keyframes hp-ignite {
+  0% { transform: scale(0); opacity: 0; box-shadow: 0 0 0 0 rgba(255, 243, 176, 1); }
+  55% { opacity: 1; }
+  70% { transform: scale(1.12); box-shadow: 0 0 44px 4px rgba(255, 181, 42, 0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes hp-liveness {
+  0%, 100% { opacity: 0.16; transform: scale(0.97); }
+  18% { opacity: 0.7; transform: scale(1.04); }
+  30% { opacity: 0.3; transform: scale(1.0); }
+  46% { opacity: 0.55; transform: scale(1.07); }
+  62% { opacity: 0.16; transform: scale(1.0); }
+}
+
+/* radial judgment gauges */
+.hp-cred-gauges { display: flex; gap: clamp(8px, 3%, 16px); }
+.hp-cred-gauge { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.hp-cred-gauge-ring {
+  position: relative; width: clamp(34px, 11%, 44px); aspect-ratio: 1; border-radius: 999px;
+  background: conic-gradient(from -90deg, var(--gold) calc(var(--val, 0) * 1%), rgba(245, 236, 216, 0.12) 0);
+  -webkit-mask: radial-gradient(circle, transparent 58%, #000 59%);
+  mask: radial-gradient(circle, transparent 58%, #000 59%);
+}
+.hp-cred-gauge-val {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--hp-mono); font-size: 0.62rem; font-weight: 600; color: var(--bone);
+}
+.hp-cred-gauge-lbl { font-family: var(--hp-mono); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--haze); }
+
+/* QR block */
+.hp-cred-foot { display: flex; align-items: flex-end; gap: 0.7rem; margin-top: auto; }
+.hp-cred-qr { position: relative; width: clamp(48px, 16%, 60px); aspect-ratio: 1; flex: none; border-radius: 5px; background: var(--bone); padding: 8%; }
+.hp-cred-qr-grid { display: grid; width: 100%; height: 100%; }
+.hp-cred-qr-grid span { background: var(--void); border-radius: 0.5px; }
+.hp-cred-qr-noise {
+  position: absolute; inset: 0; border-radius: 5px; pointer-events: none;
+  background-image:
+    radial-gradient(rgba(7, 10, 34, 0.9) 0.5px, transparent 0.6px),
+    radial-gradient(rgba(7, 10, 34, 0.7) 0.5px, transparent 0.6px);
+  background-size: 3px 3px, 4px 4px;
+  background-position: 0 0, 1px 2px;
+}
+.hp-cred[data-phase="mint"] .hp-cred-qr-noise { animation: hp-resolve 700ms ease-out 760ms both; }
+.hp-cred[data-phase="settled"] .hp-cred-qr-noise { opacity: 0; }
+@keyframes hp-resolve {
+  0% { opacity: 1; filter: blur(1px); }
+  100% { opacity: 0; filter: blur(0); }
+}
+.hp-cred-qr-cap { min-width: 0; }
+.hp-cred-crypto { font-family: var(--hp-mono); font-size: 0.58rem; color: var(--signal); white-space: nowrap; overflow: hidden; }
+
+@keyframes hp-float {
+  0%, 100% { transform: translateY(0) rotateZ(0.4deg); }
+  50% { transform: translateY(-12px) rotateZ(-0.4deg); }
+}
+
+/* mobile: card scales down, never tilts */
+@media (max-width: 520px) {
+  .hp-cred-stage { max-width: 360px; }
+}
+
+/* ============================================================================
+   Hero layout — single source of truth for the mobile/desktop ordering
+   (mobile: eyebrow → headline → card → sub → CTAs → microline)
+   ============================================================================ */
+.hp-hero {
+  display: grid;
+  gap: clamp(22px, 3.5vw, 32px);
+  align-items: center;
+  grid-template-areas: "eyebrow" "headline" "card" "sub" "cta" "micro";
+}
+.hp-hero .a-eyebrow { grid-area: eyebrow; }
+.hp-hero .a-headline { grid-area: headline; }
+.hp-hero .a-card { grid-area: card; justify-self: center; width: 100%; display: flex; justify-content: center; }
+.hp-hero .a-sub { grid-area: sub; }
+.hp-hero .a-cta { grid-area: cta; }
+.hp-hero .a-micro { grid-area: micro; }
+
+@media (min-width: 920px) {
+  .hp-hero {
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    column-gap: clamp(32px, 5vw, 72px);
+    grid-template-areas:
+      "eyebrow  card"
+      "headline card"
+      "sub      card"
+      "cta      card"
+      "micro    card";
+  }
+  .hp-hero .a-card { justify-self: end; }
+}
+
+.hp-hero-h1 {
+  font-family: var(--hp-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  font-size: clamp(2.6rem, 6vw, 5.5rem);
+  color: var(--bone);
+  text-wrap: balance;
+}
+
+/* ============================================================================
+   Generic layout helpers (kept here so section rhythm stays in one place)
+   ============================================================================ */
+.hp-section-head { display: flex; flex-direction: column; gap: 0.9rem; }
+.hp-lead { max-width: 60ch; }
+.hp-measure { max-width: 64ch; }
+
+.hp-cols-2 { display: grid; gap: clamp(16px, 3vw, 28px); grid-template-columns: 1fr; }
+@media (min-width: 820px) { .hp-cols-2 { grid-template-columns: repeat(2, 1fr); } }
+
+.hp-cols-3 { display: grid; gap: clamp(14px, 2vw, 18px); grid-template-columns: 1fr; }
+@media (min-width: 720px) { .hp-cols-3 { grid-template-columns: repeat(3, 1fr); } }
+
+.hp-cols-4 { display: grid; gap: clamp(12px, 2vw, 16px); grid-template-columns: 1fr; }
+@media (min-width: 560px) { .hp-cols-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .hp-cols-4 { grid-template-columns: repeat(4, 1fr); } }
+
+.hp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.hp-stack-sm { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* free the compositor once a reveal has fired */
+.hp-reveal.is-revealed { will-change: auto; }
+
+/* rail: scroll-linked, lightly smoothed */
+.hp-steps::after { transition: height 140ms linear; }
