@@ -3,13 +3,11 @@ import {
   IBM_Plex_Sans,
   IBM_Plex_Mono,
   IBM_Plex_Sans_Devanagari,
-  Bricolage_Grotesque,
   Hanken_Grotesk,
   JetBrains_Mono,
   Tiro_Devanagari_Hindi,
 } from "next/font/google";
 import "./globals.css";
-import GalaxyMount from "@/components/galaxy/galaxy-mount";
 
 /* ---- Functional routes (/verify · /v · /employer) keep the Plex superfamily ---- */
 const plexSans = IBM_Plex_Sans({
@@ -33,14 +31,9 @@ const plexDevanagari = IBM_Plex_Sans_Devanagari({
   display: "swap",
 });
 
-/* ---- Landing identity: a human voice, an interface voice, a machine voice ---- */
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  display: "swap",
-});
-
+/* ---- Landing voices: body (Hanken), machine/data (JetBrains Mono), Hindi (Tiro).
+       Display = General Sans (Fontshare), loaded via <link> below — Fontshare is
+       not in next/font/google, so we link its swap-display stylesheet directly. ---- */
 const hanken = Hanken_Grotesk({
   variable: "--font-hanken",
   subsets: ["latin"],
@@ -79,6 +72,10 @@ export const metadata: Metadata = {
   ],
 };
 
+// Set the landing theme before first paint (no flash). Functional routes ignore
+// data-theme; only the landing's tokens read it.
+const themeInit = `(function(){try{var t=localStorage.getItem('hp-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -87,10 +84,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plexSans.variable} ${plexMono.variable} ${plexDevanagari.variable} ${bricolage.variable} ${hanken.variable} ${jetbrains.variable} ${tiroDevanagari.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${plexMono.variable} ${plexDevanagari.variable} ${hanken.variable} ${jetbrains.variable} ${tiroDevanagari.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f%5B%5D=general-sans@500,600,700&display=swap"
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-ink-950 text-ink-100 font-sans">
-        <GalaxyMount />
         {children}
       </body>
     </html>

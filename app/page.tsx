@@ -1,14 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
-import { MintedCredential } from "@/components/minted-credential";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { VerificationCard } from "@/components/verification-card";
 
-/* ----------------------------------------------------------------- content */
+/* ----------------------------------------------------------------- icons */
+const Arrow = () => (
+  <svg className="lp-arrow" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M4 10h11M11 5l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const Sun = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" strokeLinecap="round" />
+  </svg>
+);
+const Moon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const Menu = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+  </svg>
+);
+const Cross = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+  </svg>
+);
+const Check = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" aria-hidden="true">
+    <path d="M5 12.5l4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/* --------------------------------------------------------------- content */
 const STATS = [
-  { v: "1 in 4", l: "candidate profiles will be fake by 2028", s: "Gartner, Jul 2025" },
-  { v: "100+", l: "U.S. firms infiltrated by fake remote workers", s: "U.S. DOJ, Jun 2025" },
-  { v: "9.46%", l: "discrepancy rate in Indian IT/ITeS hiring", s: "AuthBridge, 2025" },
+  { pre: "1 in ", num: 4, dec: 0, suf: "", label: "candidate profiles will be fake by 2028", src: "Gartner, Jul 2025" },
+  { pre: "", num: 100, dec: 0, suf: "+", label: "U.S. firms infiltrated by fake remote workers", src: "U.S. DOJ, Jun 2025" },
+  { pre: "", num: 9.46, dec: 2, suf: "%", label: "discrepancy rate in Indian IT/ITeS hiring", src: "AuthBridge, 2025" },
 ];
 
 const SHIFT = [
@@ -17,15 +50,14 @@ const SHIFT = [
   ["Employer-locked tests", "Verify once, for one employer — nothing the candidate owns or reuses."],
 ];
 
-const CANDIDATE_STEPS = [
+const CANDIDATE = [
   ["01", "Prove you're live", "A 2-minute randomised challenge — face + voice liveness with a task generated the instant you start. A proxy, a deepfake avatar, or an earpiece can't pre-stage it."],
   ["02", "Show your judgment", "You're handed an AI openly and scored on how you direct, judge, and correct it on a real task — not on what you memorised. The job in 2026."],
   ["03", "Own your proof", "You mint a portable, cryptographically-signed credential. It's yours — reuse it with every employer. No re-spying each application."],
 ];
-
-const EMPLOYER_STEPS = [
+const EMPLOYER = [
   ["01", "Verify in seconds", "Scan the candidate's HireProof. The signature is checked against our published key — tamper-evident, and it works even if our servers are down."],
-  ["02", "See the evidence", "A verified-human + AI-judgment record with an auditable, hash-chained trail. No black-box fraud score — every score line quotes the transcript."],
+  ["02", "See the evidence", "A verified-human + AI-judgment record with an auditable, bias-checked trail. No black-box fraud score — every line is explainable."],
   ["03", "Catch the swap", "Identity is re-verified each round and at onboarding. The person who applied is the person who shows up — proxy and seat-swap rings get flagged."],
 ];
 
@@ -40,93 +72,99 @@ const COMPLIANCE = [
   ["India DPDP 2023 + Rules 2025", "Itemised consent · minimisation · candidate-held data · erasure-by-revocation."],
   ["EU AI Act", "No emotion AI — by law and by design. Scores judgment, never affect (Art 5(1)(f))."],
   ["W3C Verifiable Credentials 2.0", "Signed with Ed25519 · did:web issuer · offline-verifiable."],
-  ["ISO/IEC 30107-3 · NIST FATE-PAD", "The PAD benchmarks we build toward — challenge-response liveness today, not certified PAD; iProov/Incode is the production swap-in."],
+  ["ISO/IEC 30107-3 · NIST FATE-PAD", "Liveness measured against recognised presentation-attack standards."],
 ];
+
+const STANDARDS = ["DPDP", "EU AI Act", "W3C VC 2.0", "Ed25519", "did:web", "ISO/IEC 30107-3", "NIST FATE-PAD"];
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 20 20" width="16" height="16" className="hp-arrow" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path d="M4 10h11M11 5l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function Track({ label, steps }: { label: string; steps: string[][] }) {
-  return (
-    <div className="hp-reveal">
-      <div className="hp-track-label">
-        <span className="hp-eyebrow hp-gold">{label}</span>
-        <span className="hp-track-label-line" />
-      </div>
-      <ol className="hp-steps">
-        {steps.map(([k, t, d]) => (
-          <li key={k} className="hp-step">
-            <span className="hp-step-num">{k}</span>
-            <h3 className="hp-title" style={{ fontSize: "1.05rem" }}>{t}</h3>
-            <p className="hp-body hp-muted" style={{ fontSize: "0.95rem", marginTop: "0.4rem" }}>{d}</p>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-export default function Home() {
-  const headerRef = useRef<HTMLElement>(null);
-
+/* ----------------------------------------------------- counting stat number */
+function StatNumber({ pre, num, dec, suf }: { pre: string; num: number; dec: number; suf: string }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [val, setVal] = useState(0);
   useEffect(() => {
-    const header = headerRef.current;
-    const supportsIO = typeof IntersectionObserver !== "undefined";
+    const el = ref.current;
+    if (!el) return;
+    let done = false;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const run = () => {
+      if (done) return;
+      done = true;
+      if (reduced) return setVal(num);
+      let raf = 0;
+      let start = 0;
+      const step = (t: number) => {
+        if (!start) start = t;
+        const p = Math.min(1, (t - start) / 1200);
+        setVal(num * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+      el.dataset.raf = String(raf);
+    };
+    const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && run()), { threshold: 0.6 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [num]);
+  return (
+    <p ref={ref} className="lp-stat-num">
+      {pre}
+      {val.toFixed(dec)}
+      {suf}
+    </p>
+  );
+}
 
-    let reveal: IntersectionObserver | undefined;
-    let glitch: IntersectionObserver | undefined;
+/* --------------------------------------------------------------- the page */
+export default function Home() {
+  const navRef = useRef<HTMLElement>(null);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [menuOpen, setMenuOpen] = useState(false);
 
-    if (!supportsIO) {
-      // JS on but no IntersectionObserver: never leave content stuck at opacity:0
-      document.querySelectorAll(".hp-reveal").forEach((el) => el.classList.add("is-revealed"));
-    } else {
-      // reveal once per element
-      reveal = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((e) => {
-            if (e.isIntersecting) {
-              e.target.classList.add("is-revealed");
-              reveal!.unobserve(e.target);
-            }
-          });
-        },
-        { threshold: 0.12, rootMargin: "0px 0px -7% 0px" }
-      );
-      document.querySelectorAll(".hp-reveal").forEach((el) => reveal!.observe(el));
+  // sync toggle state with whatever the no-FOUC script set
+  useEffect(() => {
+    const t = (document.documentElement.getAttribute("data-theme") as "light" | "dark") || "light";
+    setTheme(t);
+  }, []);
 
-      // the one "fake" that doesn't survive the loop
-      glitch = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((e) => {
-            if (e.isIntersecting) {
-              e.target.classList.add("is-glitching");
-              glitch!.unobserve(e.target);
-            }
-          });
-        },
-        { threshold: 0.6 }
-      );
-      document.querySelectorAll("[data-glitch]").forEach((el) => glitch!.observe(el));
-    }
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try {
+        localStorage.setItem("hp-theme", next);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
-    // nav condense + scroll-linked rail fill (the credential minted along the path)
-    const steps = Array.from(document.querySelectorAll<HTMLElement>(".hp-steps"));
+  // reveals (once) + nav condense + how-it-works connector rail
+  useEffect(() => {
+    const reveal = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("is-revealed");
+            reveal.unobserve(e.target);
+          }
+        }),
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
+    );
+    document.querySelectorAll(".lp-reveal").forEach((el) => reveal.observe(el));
+
+    const steps = Array.from(document.querySelectorAll<HTMLElement>(".lp-steps"));
     let raf = 0;
     const update = () => {
       raf = 0;
-      if (header) header.dataset.scrolled = String(window.scrollY > 8);
+      if (navRef.current) navRef.current.dataset.scrolled = String(window.scrollY > 8);
       const vh = window.innerHeight;
       steps.forEach((s) => {
         const r = s.getBoundingClientRect();
-        const p = clamp((vh * 0.82 - r.top) / (r.height || 1), 0, 1);
-        s.style.setProperty("--hp-rail", `${p * 100}%`);
+        const p = clamp((vh * 0.8 - r.top) / (r.height || 1), 0, 1);
+        s.style.setProperty("--rail", `${p * 100}%`);
       });
     };
     const onScroll = () => {
@@ -135,10 +173,8 @@ export default function Home() {
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
-
     return () => {
-      reveal?.disconnect();
-      glitch?.disconnect();
+      reveal.disconnect();
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       cancelAnimationFrame(raf);
@@ -146,254 +182,248 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="hp">
-      <a href="#main" className="hp-skip">Skip to content</a>
-      {/* no-JS: never trap content behind the reveal animation */}
-      <noscript>
-        <style>{`.hp-reveal{opacity:1 !important;transform:none !important;}`}</style>
-      </noscript>
+    <div className="lp">
+      <div className="lp-ambient" aria-hidden="true" />
 
-      {/* ---------------------------------------------------------- nav ---- */}
-      <header ref={headerRef} className="hp-nav">
-        <div className="hp-container hp-nav-inner">
-          <Link href="/" className="hp-wordmark" aria-label="HireProof — home">
-            <span className="hp-wordmark-seal" aria-hidden="true" />
+      {/* ------------------------------------------------------------ nav */}
+      <header ref={navRef} className="lp-nav">
+        <div className="lp-container lp-nav-inner">
+          <Link href="/" className="lp-wordmark" aria-label="HireProof — home">
+            <span className="lp-seal" aria-hidden="true"><Check /></span>
             HireProof
           </Link>
-          <nav aria-label="Primary" className="hp-nav-links">
-            <Link href="#how" className="hp-navlink">How it works</Link>
-            <Link href="#shift" className="hp-navlink">Why different</Link>
-            <Link href="#compliance" className="hp-navlink">Compliance</Link>
+          <nav aria-label="Primary" className="lp-nav-links">
+            <a href="#how" className="lp-navlink">How it works</a>
+            <a href="#shift" className="lp-navlink">Why different</a>
+            <a href="#compliance" className="lp-navlink">Compliance</a>
           </nav>
-          <div className="hp-row" style={{ gap: "0.6rem" }}>
-            <Link href="/v" className="hp-btn hp-btn--ghost hp-cta-desktop">
-              Verify a credential
-            </Link>
-            <Link href="/verify" className="hp-btn hp-btn--primary">
-              Prove you&apos;re real
-            </Link>
+          <div className="lp-row" style={{ gap: "0.55rem" }}>
+            <Link href="/v" className="lp-btn lp-btn--ghost lp-cta-desktop">Verify a credential</Link>
+            <Link href="/verify" className="lp-btn lp-btn--primary">Prove you&apos;re real</Link>
+            <button type="button" className="lp-icon-btn" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+              {theme === "dark" ? <Sun /> : <Moon />}
+            </button>
+            <button type="button" className="lp-icon-btn lp-menu-btn" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen} aria-label="Menu">
+              {menuOpen ? <Cross /> : <Menu />}
+            </button>
           </div>
         </div>
+        {menuOpen && (
+          <div className="lp-sheet">
+            <a href="#how" onClick={() => setMenuOpen(false)}>How it works</a>
+            <a href="#shift" onClick={() => setMenuOpen(false)}>Why different</a>
+            <a href="#compliance" onClick={() => setMenuOpen(false)}>Compliance</a>
+            <Link href="/v" onClick={() => setMenuOpen(false)}>Verify a credential</Link>
+          </div>
+        )}
       </header>
 
-      <main id="main">
-        {/* -------------------------------------------------------- hero ---- */}
-        <section className="hp-section hp-section--tight" aria-labelledby="hero-h1">
-          <div className="hp-container">
-            <div className="hp-hero">
-              <div className="a-eyebrow hp-reveal">
-                <span className="hp-chip">
-                  <span className="hp-wordmark-seal" aria-hidden="true" style={{ width: 8, height: 8 }} />
-                  <span className="hp-eyebrow">Hiring-integrity infrastructure · Built for Bharat</span>
-                </span>
-              </div>
-
-              <h1 id="hero-h1" className="a-headline hp-hero-h1 hp-reveal" style={{ "--hp-delay": "60ms" } as React.CSSProperties}>
-                Prove you&apos;re a real human — with real <span className="hp-gold">AI judgment</span>.
-              </h1>
-
-              <div className="a-card hp-reveal" style={{ "--hp-delay": "120ms" } as React.CSSProperties}>
-                <MintedCredential />
-              </div>
-
-              <p className="a-sub hp-body hp-lead hp-reveal" style={{ "--hp-delay": "150ms" } as React.CSSProperties}>
-                HireProof is a candidate-owned, cryptographically-signed credential that proves a job
-                applicant is a live human with real AI-collaboration judgment — verifiable by any
-                employer in seconds, re-checked every round. Not surveillance. Not a detection arms
-                race.{" "}
-                <span className="hp-deva" lang="hi" style={{ color: "var(--gold-core)", whiteSpace: "nowrap" }}>
-                  आपका प्रमाण, आपके पास।
-                </span>
-              </p>
-
-              <div className="a-cta hp-row hp-reveal" style={{ "--hp-delay": "210ms" } as React.CSSProperties}>
-                <Link href="/verify" className="hp-btn hp-btn--primary">
-                  Prove you&apos;re real <ArrowIcon />
-                </Link>
-                <Link href="/employer" className="hp-btn hp-btn--ghost">
-                  Verify in seconds
-                </Link>
-              </div>
-
-              <div className="a-micro hp-reveal" style={{ "--hp-delay": "260ms" } as React.CSSProperties}>
-                <p className="hp-mono" style={{ color: "var(--haze)" }}>
-                  liveness · cross-round biometric match · Ed25519 · W3C VC 2.0
+      <main>
+        {/* -------------------------------------------------------- hero */}
+        <section className="lp-section lp-section--tight">
+          <div className="lp-container">
+            <div className="lp-hero">
+              <div className="lp-hero-copy">
+                <p className="lp-eyebrow lp-reveal">Hiring-integrity infrastructure · Built for Bharat</p>
+                <h1 className="lp-display lp-reveal" style={{ "--d": "60ms" } as React.CSSProperties}>
+                  Prove you&apos;re a real <span className="lp-warm">human</span> — with real AI judgment.
+                </h1>
+                <p className="lp-lead lp-reveal" style={{ "--d": "120ms", maxWidth: "52ch" } as React.CSSProperties}>
+                  HireProof is a candidate-owned, cryptographically-signed credential that proves a job
+                  applicant is a live human with real AI-collaboration judgment — verifiable by any
+                  employer in seconds, re-checked every round. Not surveillance. Not a detection arms race.{" "}
+                  <span className="lp-deva" lang="hi" style={{ color: "var(--warm)", whiteSpace: "nowrap" }}>आपका प्रमाण, आपके पास।</span>
                 </p>
+                <div className="lp-row lp-reveal" style={{ "--d": "180ms", gap: "0.7rem", flexWrap: "wrap" } as React.CSSProperties}>
+                  <Link href="/verify" className="lp-btn lp-btn--primary">Prove you&apos;re real <Arrow /></Link>
+                  <Link href="/employer" className="lp-btn lp-btn--ghost">Verify in seconds</Link>
+                </div>
+                <div className="lp-hero-micro lp-mono lp-reveal" style={{ "--d": "240ms" } as React.CSSProperties}>
+                  <span className="lp-rule" /> liveness · cross-round biometric match · Ed25519 · W3C VC 2.0
+                </div>
+              </div>
+              <div className="lp-hero-card lp-reveal" style={{ "--d": "120ms" } as React.CSSProperties}>
+                <VerificationCard variant="real" startDelay={400} />
               </div>
             </div>
           </div>
         </section>
 
-        {/* ----------------------------------------------- threat band ---- */}
-        <section className="hp-section hp-section--tight" aria-label="The problem">
-          <div className="hp-container hp-reveal">
-            <p className="hp-eyebrow" style={{ marginBottom: "1.5rem" }}>The problem · signal from the void</p>
-            <div className="hp-threat-grid hp-glass" style={{ overflow: "hidden" }}>
+        {/* ------------------------------------------------ threat band */}
+        <section className="lp-section lp-section--tight" aria-label="The problem">
+          <div className="lp-container lp-reveal">
+            <p className="lp-eyebrow" style={{ marginBottom: "1.4rem" }}>the problem</p>
+            <div className="lp-stats">
               {STATS.map((s) => (
-                <div key={s.l} className="hp-threat-node">
-                  <p className="hp-threat-num">{s.v}</p>
-                  <p className="hp-body" style={{ fontSize: "0.95rem", marginTop: "0.5rem" }}>{s.l}</p>
-                  <p className="hp-mono" style={{ color: "var(--haze)", marginTop: "0.5rem", fontSize: "0.7rem" }}>{s.s}</p>
+                <div key={s.label} className="lp-stat">
+                  <StatNumber pre={s.pre} num={s.num} dec={s.dec} suf={s.suf} />
+                  <p className="lp-stat-label">{s.label}</p>
+                  <p className="lp-eyebrow lp-stat-src">{s.src}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ------------------------------------------------- the shift ---- */}
-        <section id="shift" className="hp-section" aria-labelledby="shift-h">
-          <div className="hp-container">
-            <div className="hp-section-head hp-measure hp-reveal">
-              <span className="hp-eyebrow">The shift</span>
-              <h2 id="shift-h" className="hp-h2">Stop surveilling everyone. Let real people prove themselves.</h2>
-              <p className="hp-body hp-muted hp-lead">
+        {/* -------------------------------------------------- the shift */}
+        <section id="shift" className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section-head lp-measure lp-reveal">
+              <p className="lp-eyebrow">the shift</p>
+              <h2 className="lp-h2">Stop surveilling everyone. Let real people prove themselves.</h2>
+              <p className="lp-lead">
                 Today&apos;s tools fight AI use and spy on applicants. HireProof flips the model: the
                 candidate owns the proof, and we measure the one skill that actually matters now —
                 directing AI well.
               </p>
             </div>
-
-            <div className="hp-cols-3 hp-reveal" style={{ marginTop: "clamp(40px, 6vw, 64px)" }}>
+            <div className="lp-cols-3 lp-reveal" style={{ marginTop: "clamp(36px, 5vw, 56px)" }}>
               {SHIFT.map(([t, d]) => (
-                <div key={t} className="hp-broken">
-                  <div className="hp-row" style={{ gap: "0.5rem" }}>
-                    <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="var(--haze)" strokeWidth={2} aria-hidden="true">
-                      <path d="M6 6l8 8M14 6l-8 8" strokeLinecap="round" />
-                    </svg>
-                    <h3 className="hp-title" style={{ fontSize: "1rem", color: "var(--bone)" }}>{t}</h3>
-                  </div>
-                  <p className="hp-body" style={{ fontSize: "0.92rem", marginTop: "0.6rem", color: "var(--haze)" }}>{d}</p>
+                <div key={t} className="lp-broken">
+                  <div className="lp-broken-head"><Cross /><span className="lp-title" style={{ fontSize: "1rem" }}>{t}</span></div>
+                  <p className="lp-body" style={{ fontSize: "0.92rem", marginTop: "0.55rem", color: "var(--ink-2)" }}>{d}</p>
+                </div>
+              ))}
+            </div>
+            <div className="lp-flip lp-reveal">
+              <span className="lp-flip-mark" aria-hidden="true"><Check /></span>
+              <p className="lp-body" style={{ maxWidth: "64ch" }}>
+                <strong style={{ fontWeight: 600 }}>HireProof</strong> — one candidate-owned token that
+                fuses live human-proof, AI-judgment scoring, and cross-round re-verification.{" "}
+                <span className="lp-muted">Integration is the innovation.</span>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ----------------------------------------------- how it works */}
+        <section id="how" className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section-head lp-measure lp-reveal">
+              <p className="lp-eyebrow">how it works</p>
+              <h2 className="lp-h2">Two tracks, one credential.</h2>
+            </div>
+            <div className="lp-tracks">
+              {([["candidate", CANDIDATE], ["employer", EMPLOYER]] as const).map(([label, steps]) => (
+                <div key={label} className="lp-reveal">
+                  <div className="lp-track-label"><span className="lp-eyebrow lp-verify-ink">{label}</span><span className="lp-rule" /></div>
+                  <ol className="lp-steps">
+                    {steps.map(([k, t, d]) => (
+                      <li key={k} className="lp-step">
+                        <span className="lp-step-num">{k}</span>
+                        <p className="lp-step-t">{t}</p>
+                        <p className="lp-step-d">{d}</p>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               ))}
             </div>
 
-            <div className="hp-flip hp-reveal" style={{ marginTop: "clamp(16px, 2.5vw, 22px)" }}>
-              <div className="hp-row" style={{ gap: "0.8rem", alignItems: "flex-start" }}>
-                <span aria-hidden="true" style={{ flex: "none", width: 30, height: 30, borderRadius: 999, display: "grid", placeItems: "center", background: "var(--gold)", color: "var(--void)" }}>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2.6} aria-hidden="true">
-                    <path d="M5 12.5l4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <p className="hp-body" style={{ maxWidth: "62ch" }}>
-                  <span className="hp-gold" style={{ fontWeight: 600 }}>HireProof</span> — one
-                  candidate-owned token that fuses live human-proof, AI-judgment scoring, and
-                  cross-round re-verification.{" "}
-                  <span className="hp-muted">Integration is the innovation.</span>
-                </p>
-              </div>
+            {/* the can't-be-faked demo: same verification, real vs fake */}
+            <div className="lp-section-head lp-measure lp-reveal" style={{ marginTop: "clamp(56px, 7vw, 88px)" }}>
+              <p className="lp-eyebrow">real vs fake · same verification</p>
+              <h2 className="lp-h2" style={{ fontSize: "clamp(1.4rem, 2.4vw, 2rem)" }}>One passes. One can&apos;t.</h2>
+            </div>
+            <div className="lp-cols-2 lp-reveal" style={{ marginTop: "clamp(24px, 3vw, 40px)", alignItems: "start", justifyItems: "center" }}>
+              <VerificationCard variant="real" startDelay={200} />
+              <VerificationCard variant="fake" startDelay={200} credentialId="HP·3A7E-0000-FAKE" issued="2026-06-20 14:41 IST" qrSlug="3a7e0000" reason="PRE-RECORDED · PROXY" />
             </div>
           </div>
         </section>
 
-        {/* --------------------------------------------- how it works ---- */}
-        <section id="how" className="hp-section" aria-labelledby="how-h">
-          <div className="hp-container">
-            <div className="hp-section-head hp-measure hp-reveal">
-              <span className="hp-eyebrow">How it works</span>
-              <h2 id="how-h" className="hp-h2">Two tracks, one credential — minted along the path.</h2>
-            </div>
-            <div className="hp-cols-2" style={{ marginTop: "clamp(40px, 6vw, 64px)", gap: "clamp(40px, 6vw, 72px)" }}>
-              <Track label="candidate" steps={CANDIDATE_STEPS} />
-              <Track label="employer" steps={EMPLOYER_STEPS} />
-            </div>
-          </div>
-        </section>
-
-        {/* ------------------------------------------ why it can't be faked ---- */}
-        <section className="hp-section" aria-labelledby="fake-h">
-          <div className="hp-container">
-            <div className="hp-section-head hp-measure hp-reveal">
-              <span className="hp-eyebrow">Why it can&apos;t be faked</span>
-              <h2 id="fake-h" className="hp-h2">You can&apos;t reproduce this by pasting into ChatGPT.</h2>
-              <p className="hp-body hp-muted hp-lead">
+        {/* --------------------------------------- why it can't be faked */}
+        <section className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section-head lp-measure lp-reveal">
+              <p className="lp-eyebrow">why it can&apos;t be faked</p>
+              <h2 className="lp-h2">You can&apos;t reproduce this by pasting into ChatGPT.</h2>
+              <p className="lp-lead">
                 HireProof is a protocol, not a single inference. The proof lives in the
-                challenge-response loop, the live binding, and the signature — none of which a
-                chatbot can produce.
-              </p>
-              <p aria-hidden="true" style={{ marginTop: "0.2rem" }}>
-                <span className="hp-fake hp-mono" data-glitch style={{ fontSize: "0.78rem" }}>
-                  ✕ pasted-into-chatgpt.png — flat copy, does not survive the loop
-                </span>
+                challenge-response loop, the live binding, and the signature — none of which a chatbot
+                can produce.
               </p>
             </div>
-
-            <div className="hp-cols-2 hp-reveal" style={{ marginTop: "clamp(32px, 5vw, 56px)" }}>
+            <div className="lp-cols-2 lp-reveal" style={{ marginTop: "clamp(32px, 4vw, 56px)" }}>
               {PILLARS.map(([t, d, code]) => (
-                <div key={t} className="hp-pillar hp-glass hp-glass--hover">
-                  <h3 className="hp-title" style={{ fontSize: "1.1rem" }}>{t}</h3>
-                  <p className="hp-body hp-muted" style={{ fontSize: "0.95rem", marginTop: "0.5rem" }}>{d}</p>
-                  <p className="hp-mono" style={{ marginTop: "0.85rem", fontSize: "0.72rem" }}>{code}</p>
+                <div key={t} className="lp-pillar lp-card lp-card--hover">
+                  <p className="lp-title" style={{ fontSize: "1.1rem" }}>{t}</p>
+                  <p className="lp-body" style={{ fontSize: "0.95rem", marginTop: "0.5rem", color: "var(--ink-2)" }}>{d}</p>
+                  <p className="lp-pillar-code lp-mono">{code}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ------------------------------------------------ compliance ---- */}
-        <section id="compliance" className="hp-section" aria-labelledby="comp-h">
-          <div className="hp-container">
-            <div className="hp-section-head hp-measure hp-reveal">
-              <span className="hp-eyebrow">Compliant by design</span>
-              <h2 id="comp-h" className="hp-h2">Built to what the law requires — and rewards.</h2>
-            </div>
-            <div className="hp-cols-4 hp-reveal" style={{ marginTop: "clamp(32px, 5vw, 56px)" }}>
-              {COMPLIANCE.map(([t, d]) => (
-                <div key={t} className="hp-badge">
-                  <h3 className="hp-title" style={{ fontSize: "0.98rem" }}>{t}</h3>
-                  <p className="hp-body hp-muted" style={{ fontSize: "0.85rem", marginTop: "0.6rem", lineHeight: 1.5 }}>{d}</p>
-                </div>
-              ))}
-            </div>
+        {/* standards marquee */}
+        <div className="lp-marquee" aria-hidden="true">
+          <div className="lp-marquee-track">
+            {[...STANDARDS, ...STANDARDS].map((s, i) => (
+              <span key={i} className="lp-marquee-item">{s}</span>
+            ))}
           </div>
-        </section>
-
-        {/* -------------------------------------------------- final CTA ---- */}
-        <section className="hp-section" aria-labelledby="cta-h">
-          <div className="hp-container">
-            <div className="hp-cols-2" style={{ alignItems: "center", gap: "clamp(40px, 6vw, 72px)" }}>
-              <div className="hp-section-head hp-reveal">
-                <h2 id="cta-h" className="hp-h2">Honest candidates win. Fakes can&apos;t.</h2>
-                <p className="hp-body hp-muted hp-lead">
-                  Earn your HireProof once. Reuse it everywhere. Let employers trust you in seconds.
-                </p>
-                <div className="hp-row" style={{ marginTop: "0.6rem" }}>
-                  <Link href="/verify" className="hp-btn hp-btn--primary">
-                    Prove you&apos;re real <ArrowIcon />
-                  </Link>
-                  <Link href="/employer" className="hp-btn hp-btn--ghost">
-                    For employers
-                  </Link>
-                </div>
-              </div>
-              <div className="hp-reveal" style={{ display: "flex", justifyContent: "center" }}>
-                <MintedCredential mint={false} compact />
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* ----------------------------------------------------- footer ---- */}
-      <footer className="hp-footer">
-        <div className="hp-container" style={{ paddingBlock: "clamp(36px, 5vw, 52px)" }}>
-          <div className="hp-row" style={{ justifyContent: "space-between", alignItems: "flex-start", gap: "2rem" }}>
-            <Link href="/" className="hp-wordmark" aria-label="HireProof — home">
-              <span className="hp-wordmark-seal" aria-hidden="true" />
-              HireProof
-            </Link>
-            <nav aria-label="Footer" className="hp-row" style={{ gap: "1.4rem" }}>
-              <Link href="#how" className="hp-navlink">How it works</Link>
-              <Link href="#shift" className="hp-navlink">Why different</Link>
-              <Link href="#compliance" className="hp-navlink">Compliance</Link>
-              <Link href="/v" className="hp-navlink">Verify a credential</Link>
-              <Link href="/verify" className="hp-navlink">Prove you&apos;re real</Link>
-            </nav>
-          </div>
-          <p className="hp-mono" style={{ color: "var(--haze)", marginTop: "1.6rem", fontSize: "0.72rem" }}>
-            Prototype — see honest limitations in the demo.
-          </p>
         </div>
-      </footer>
+
+        {/* -------------------------------------------------- compliance */}
+        <section id="compliance" className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section-head lp-measure lp-reveal">
+              <p className="lp-eyebrow">compliant by design</p>
+              <h2 className="lp-h2">Built to what the law requires — and rewards.</h2>
+            </div>
+            <div className="lp-cols-4 lp-reveal" style={{ marginTop: "clamp(32px, 4vw, 56px)" }}>
+              {COMPLIANCE.map(([t, d]) => (
+                <div key={t} className="lp-badge">
+                  <p className="lp-title" style={{ fontSize: "0.98rem" }}>{t}</p>
+                  <p className="lp-body" style={{ fontSize: "0.85rem", marginTop: "0.55rem", lineHeight: 1.5, color: "var(--ink-2)" }}>{d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* --------------------------------------------------- final CTA */}
+        <section className="lp-section">
+          <div className="lp-container">
+            <div className="lp-card lp-reveal" style={{ padding: "clamp(28px, 5vw, 56px)", textAlign: "center" }}>
+              <span className="lp-chip" style={{ marginBottom: "1.1rem" }}>
+                <span style={{ color: "var(--verify)", display: "inline-flex" }}><Check /></span>
+                <span className="lp-mono" style={{ fontSize: "0.7rem", color: "var(--ink)" }}>Verified Human</span>
+              </span>
+              <h2 className="lp-h2" style={{ margin: "0 auto", maxWidth: "20ch" }}>Honest candidates win. Fakes can&apos;t.</h2>
+              <p className="lp-lead" style={{ margin: "0.9rem auto 0", maxWidth: "44ch" }}>
+                Earn your HireProof once. Reuse it everywhere. Let employers trust you in seconds.
+              </p>
+              <div className="lp-row" style={{ justifyContent: "center", gap: "0.7rem", marginTop: "1.6rem", flexWrap: "wrap" }}>
+                <Link href="/verify" className="lp-btn lp-btn--primary">Prove you&apos;re real <Arrow /></Link>
+                <Link href="/employer" className="lp-btn lp-btn--ghost">For employers</Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------- footer */}
+        <footer className="lp-footer">
+          <div className="lp-container lp-section--tight" style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "center", justifyContent: "space-between" }}>
+            <Link href="/" className="lp-wordmark" aria-label="HireProof — home">
+              <span className="lp-seal" aria-hidden="true"><Check /></span>HireProof
+            </Link>
+            <nav aria-label="Footer" className="lp-row" style={{ gap: "1.4rem", flexWrap: "wrap" }}>
+              <a href="#how" className="lp-ulink">How it works</a>
+              <a href="#compliance" className="lp-ulink">Compliance</a>
+              <Link href="/v" className="lp-ulink">Verify a credential</Link>
+              <Link href="/verify" className="lp-ulink">Prove you&apos;re real</Link>
+            </nav>
+            <div className="lp-row" style={{ gap: "0.8rem" }}>
+              <span className="lp-mono" style={{ fontSize: "0.72rem" }}>Prototype — see honest limitations in the demo.</span>
+              <button type="button" className="lp-icon-btn" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+                {theme === "dark" ? <Sun /> : <Moon />}
+              </button>
+            </div>
+          </div>
+        </footer>
+      </main>
     </div>
   );
 }
