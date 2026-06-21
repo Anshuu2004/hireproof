@@ -26,9 +26,13 @@ with the public key at `/.well-known/did.json`.
 
 - We forgo, **for now**, selective disclosure and standardized presentation
   exchange. **SD-JWT-VC + OID4VCI/OID4VP are roadmap** for eIDAS-wallet interop.
+- **Holder binding** is now real via a committed `cnf` claim (shared-secret
+  proof-of-possession) — the credential is no longer a pure bearer token. Full
+  DID-/key-based holder binding remains roadmap. See
+  [adr/0006](0006-holder-binding.md).
 - **Key management is the main risk:** the issuer private key is currently an env
   var (`ISSUER_PRIVATE_KEY_HEX`). Production must move it to **KMS/HSM with
   rotation and a published issuer-trust statement** — the #1 hardening item
   (see `SECURITY.md` T1). did:web makes key rotation a document update.
-- Revocation works today via the DB status route; the **W3C Bitstring Status
-  List 2021 encoding** is roadmap for interop.
+- Revocation is **operational** (`/api/credential/revoke`, auth-gated); only the
+  **W3C Bitstring Status List 2021 encoding** of it is roadmap for interop.

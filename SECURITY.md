@@ -85,6 +85,16 @@ A candidate relays an AI's answer instead of judging it.
   accepted-verbatim behavior; the LLM grader runs at temperature 0 against a
   locked rubric. The scoring logic is the moat, not surveillance.
 
+### T7 — Unauthorized access to the employer console
+The employer surface must not be open to anyone with the URL.
+- **Mitigation:** the console, its reads (`/api/employer/*`), and credential
+  revocation require a real session (`lib/auth/session.ts`): scrypt-hashed
+  passwords + HMAC-signed, expiring tokens with constant-time comparison. The
+  *candidate* flow is intentionally public; the *employer* surface is gated.
+  Logins are written to the audit log.
+- **Scope (disclosed):** app-level auth, not a full IdP — no SSO/SAML, SCIM, MFA,
+  or password reset yet. See [docs/adr/0007](docs/adr/0007-self-contained-employer-auth.md).
+
 ## Secrets & dependencies
 
 - Secrets are provided via environment variables and are git-ignored

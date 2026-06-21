@@ -30,7 +30,9 @@ before relying on any single date.
 - **Residency:** primary data store is Supabase in **Mumbai (`ap-south-1`)**.
 - **Note:** DPDP grants **no statutory data-portability right** — credential
   portability is **candidate-controlled cryptographic sharing**, not a legal
-  portability claim.
+  portability claim. The credential is now **holder-bound** (a secret committed in
+  the signed VC via `cnf`; ownership provable at `/api/credential/prove`) rather
+  than a pure bearer token — so sharing is the holder's deliberate act.
 - **Roadmap:** breach notification workflow to the Data Protection Board; formal
   DPA + DPIA pack; retention schedule for descriptors.
 

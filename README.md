@@ -55,22 +55,23 @@ issued on open standards (**W3C VC 2.0**, **did:web**, **Ed25519**), India-first
    raw video NEVER leaves device          │  POST { liveness_proof, 128-D descriptor, transcript, turns }
                                           ▼
         ┌──────────────────────── Next.js 16 App Router · Vercel (Node runtime) ────────────────────────┐
-        │  /api/session   issue randomised challenge (actions + nonce digits)                            │
-        │  /api/liveness  re-verify actions+face+voice · pgvector cross-round match · audit              │
-        │  /api/task      generate randomised task w/ HIDDEN planted error      ─┐                       │
-        │  /api/assistant the AI tool the candidate is given (steered)           ├─ Claude (Vercel AI    │
-        │  /api/score     deterministic signals + locked-rubric grader          ─┘  Gateway/OIDC)        │
+        │  /api/session    issue randomised challenge (actions + nonce digits)                          │
+        │  /api/liveness   re-verify actions+face+voice · pgvector cross-round match · audit             │
+        │  /api/task       generate randomised task w/ HIDDEN planted error     ─┐                       │
+        │  /api/assistant  AI tool (steered) · persists each turn server-side    ├─ Claude (Vercel AI    │
+        │  /api/score      deterministic signals + locked-rubric grader (DB turns)┘  Gateway/OIDC)       │
         │                                                                           → Gemini failover    │
-        │  /api/mint      assemble W3C VC 2.0 → Ed25519 sign (jose) → QR (qrcode)                         │
+        │  /api/mint       W3C VC 2.0 → Ed25519 sign (jose) + holder `cnf` → QR                          │
+        │  /api/credential/{revoke,prove}   revoke (auth) · holder proof-of-possession                  │
+        │  /api/employer/{login,credentials,audit}   scrypt password · HMAC-signed sessions             │
         │  /.well-known/did.json   publish issuer public key (did:web)                                   │
-        │  /api/credential-status  revocation / round count                                              │
         └───────┬───────────────────────────────────────────────────┬───────────────────────────────────┘
                 ▼                                                     ▼
    ┌──────────────────────────┐                       ┌────────────────────────────────────┐
    │  Supabase (Mumbai)       │                       │  Employer / verifier                │
-   │  Postgres + pgvector     │                       │  /employer  console + re-verify     │
-   │  11 tables · hash-chained│                       │  /v  scan QR → verify Ed25519 vs    │
-   │  append-only audit_log   │                       │      did:web key OFFLINE (jose)     │
+   │  Postgres + pgvector     │                       │  /employer  sign-in · revoke · re-vfy│
+   │  hash-chained audit_log  │                       │  /v  scan QR → verify Ed25519 vs    │
+   │  + verify_audit_chain()  │                       │      did:web key OFFLINE (jose)     │
    └──────────────────────────┘                       └────────────────────────────────────┘
 ```
 
@@ -85,11 +86,12 @@ issued on open standards (**W3C VC 2.0**, **did:web**, **Ed25519**), India-first
 3. **Capture (browser):** MediaPipe reads blendshapes + head-pose per frame to confirm each action live (with on-screen metric readout); face-api computes a 128-D descriptor; the mic meter + Web Speech confirm a spoken phrase. **Raw video never leaves the device** — only the descriptor + derived signals + transcript do.
 4. **Server re-check (`/api/liveness`):** independently verifies the actions occurred in the issued order, the face was continuous, and the transcript contains the nonce digits (with a live-voice fallback). Stores the descriptor in pgvector.
 5. **Cross-round match:** if re-verifying an existing credential, the new descriptor is compared (cosine distance) to the enrolled one → same-person or **MISMATCH** flag.
-6. **AI-collaboration task (`/api/task` + `/api/assistant`):** a fresh task is generated with a *hidden planted error*; the candidate is given an AI tool steered to be confidently wrong; the full transcript is captured.
-7. **Scoring (`/api/score`):** deterministic signals (did the candidate ship the AI's answer verbatim? did they diverge?) + a locked-rubric LLM grader (temp 0) scoring five judgment axes — **never affect/personality**. Shipping the AI's flawed answer **hard-caps the score ≤ 40**.
+6. **AI-collaboration task (`/api/task` + `/api/assistant`):** a fresh task is generated with a *hidden planted error*; the candidate is given an AI tool steered to be confidently wrong. **Each turn is recorded server-side** as the model actually produced it — so scoring is authoritative and can't be gamed by a forged client transcript.
+7. **Scoring (`/api/score`):** graded against the **server-recorded** transcript: deterministic signals (did the candidate ship the AI's answer verbatim? did they diverge?) + a locked-rubric LLM grader (temp 0) scoring five judgment axes — **never affect/personality**. Shipping the AI's flawed answer **hard-caps the score ≤ 40**.
 8. **Audit:** every step writes an append-only, **hash-chained** `audit_log` row. The chain is computed **server-side in a Postgres trigger over the full canonical row** (seq, id, session, event type, input hash, output, model/prompt version, timestamp) under a transaction-scoped advisory lock — so editing any field, reordering rows, or racing concurrent appends breaks it. Re-checkable anytime via `select * from verify_audit_chain()`. (See [ADR 0004](docs/adr/0004-audit-hash-chain.md).)
-9. **Mint (`/api/mint`):** assemble a **W3C VC 2.0**-shaped payload, **Ed25519-sign** it (jose) → compact JWS, render a QR. Bind the descriptor to the credential for future rounds.
+9. **Mint (`/api/mint`):** assemble a **W3C VC 2.0**-shaped payload, **Ed25519-sign** it (jose) → compact JWS, render a QR. A **holder secret** is generated and its hash is bound into the signature (`cnf` claim); only the hash is stored — so the credential is the holder's, not a pure bearer token (the secret is shown once). Bind the descriptor to the credential for future rounds.
 10. **Verify (`/v`):** an employer scans/pastes the token → fetches the issuer public key from `/.well-known/did.json` → verifies the signature **client-side / offline** (works even if our server is down) → renders the record + an honest "what this does NOT prove" block.
+11. **Govern (`/employer`):** an **authenticated** employer (scrypt password + HMAC-signed session) reviews the record, can **revoke** the credential (`/api/credential/revoke`), re-verify identity each round (cross-round biometric match), and read the hash-chained audit trail. The holder can prove ownership at `/api/credential/prove`.
 
 ---
 
@@ -183,11 +185,13 @@ hireproof/
 │  ├─ v/                           # public no-login verify page
 │  ├─ employer/                    # employer console + seat-swap re-verify
 │  ├─ .well-known/did.json/        # did:web issuer key
-│  └─ api/                         # session · liveness · task · assistant · score · mint · …
+│  └─ api/                         # session · liveness · task · assistant · score · mint ·
+│                                  #   credential/{revoke,prove} · employer/{login,credentials,audit} · credential-status
 ├─ components/                     # wordmark, credential-card, verify/* (consent, liveness, task, mint)
 ├─ lib/
 │  ├─ ai/        (gateway, task, scorer)     # Claude/Gemini failover + locked rubric
-│  ├─ credential/(issuer)                    # Ed25519 sign/verify + did:web
+│  ├─ credential/(issuer)                    # Ed25519 sign/verify + did:web + holder `cnf`
+│  ├─ auth/      (session)                   # scrypt password + HMAC-signed employer sessions
 │  ├─ liveness/  (challenge)                 # randomised challenge + transcript match
 │  ├─ audit.ts   supabase/admin.ts  env.ts   # hash-chained audit, DB, typed env
 ├─ scripts/verify-credential.mjs   # standalone offline verifier (CI smoke test)
@@ -230,12 +234,13 @@ See also: [LICENSE](LICENSE) (Apache-2.0) · [SECURITY.md](SECURITY.md) · [COMP
 1. **Proxy / seat-swap caught mid-funnel** — candidate A mints a credential; a *different* person re-verifies in `/employer` → live **MISMATCH** (the gap onboarding-only IDV misses).
 2. **Judgment, not memorisation** — a candidate who blind-accepts the AI's planted-wrong output scores low (capped); one who catches and corrects it scores high. See the "why this score" panel.
 3. **Portability in seconds** — the same QR token is verified by any employer at `/v`, signature-checked **offline**, in < 2 s — with a real elapsed counter.
+4. **Governed lifecycle** — sign in to `/employer` (one-click demo account), **revoke** a credential and watch `/v` flip to *Revoked*; the holder proves ownership with their private key (`/api/credential/prove`). Every step lands in the hash-chained audit trail.
 
 ---
 
 ## 12. Security & privacy
 
-Raw video never leaves the device; only a 128-D descriptor + a salted hash are stored. Candidates are account-less (the credential is the identity). Consent is itemised and revocable. No emotion/affect is ever inferred. The audit log is append-only and hash-chained. Secrets live in `.env.local` (git-ignored) / Vercel env — never committed.
+Raw video never leaves the device; only a 128-D descriptor + a salted hash are stored. **Candidates** are account-less — the credential is the identity, bound to a holder secret (proof-of-possession via the signed `cnf` claim) so it is not a pure bearer token. **Employers** authenticate (scrypt-hashed passwords + HMAC-signed sessions) to reach the console, and revocation is authenticated. Consent is itemised and revocable. No emotion/affect is ever inferred. The audit log is append-only and hash-chained over the full row server-side (re-checkable via `verify_audit_chain()`). Secrets live in `.env.local` (git-ignored) / Vercel env — never committed.
 
 ---
 

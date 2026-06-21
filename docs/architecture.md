@@ -23,15 +23,20 @@ flowchart TB
         S[/api/session — issue nonce + challenge/]
         LV[/api/liveness — verify actions + descriptor/]
         TK[/api/task — generate planted-error task/]
-        SC[/api/score — deterministic + LLM grader/]
-        MT[/api/mint — sign credential/]
-        CS[/api/credential-status — revoke/expiry/]
+        AS[/api/assistant — AI tool · persists turns/]
+        SC[/api/score — grades server-recorded turns/]
+        MT[/api/mint — sign VC + holder cnf/]
+        CS[/api/credential-status — status/]
+        RV[/api/credential/revoke — auth-gated/]
+        PR[/api/credential/prove — holder PoP/]
+        EM[/api/employer/login + reads — auth/]
     end
 
     subgraph Core["Server libraries"]
-        ISS[issuer.ts<br/>Ed25519 JWT-VC · did:web]
+        ISS[issuer.ts<br/>Ed25519 JWT-VC · did:web · holder cnf]
         AUD[audit.ts → Postgres trigger<br/>full-row hash chain]
         AI[ai/gateway.ts<br/>Claude→Gemini failover, temp 0]
+        AUTH[auth/session.ts<br/>scrypt password · HMAC sessions]
     end
 
     subgraph Data["Supabase — Mumbai ap-south-1"]
@@ -47,14 +52,15 @@ flowchart TB
     end
 
     L & V & F --> LV
-    T --> SC
+    T --> AS --> SC
     S --> LV --> VEC
     TK --> T
     SC --> ISS --> MT
     MT --> PG
-    LV & SC & MT & CS --> AUD --> AL
-    AI --> TK & SC
-    MT -->|QR / token| Verify
+    LV & SC & MT & CS & RV & PR & EM --> AUD --> AL
+    AI --> TK & AS & SC
+    EM --> AUTH
+    MT -->|QR / token + holder secret| Verify
     DID --> VP
     DID --> CLI
 ```
@@ -73,17 +79,25 @@ flowchart TB
    proxy/seat-swap — **human-review-gated, never an auto-reject**.
 4. **Task** — `/api/task` generates an AI-collaboration problem with a *planted
    error* the candidate must catch and correct.
-5. **Score** — `/api/score` fuses deterministic transcript signals (e.g.
-   accepted-verbatim hard cap) with a locked-rubric LLM grader at temperature 0.
-   Output/judgment only — never affect (EU AI Act Art 5(1)(f)).
+5. **Task + score** — `/api/assistant` is the AI tool the candidate directs;
+   **each turn is persisted server-side** as the model produced it. `/api/score`
+   then grades the **server-recorded** transcript (not a client payload) with
+   deterministic signals (e.g. accepted-verbatim hard cap) + a locked-rubric LLM
+   grader at temperature 0. Output/judgment only — never affect (EU AI Act
+   Art 5(1)(f)).
 6. **Mint** — `/api/mint` signs an EdDSA (Ed25519) JWT-VC (W3C VC 2.0 shape) with
    the issuer key; a salted hash of the descriptor goes into the credential, not
-   the biometric. A QR/token is handed to the candidate, who **owns** it.
+   the biometric. A **holder secret** is generated and its hash is bound into the
+   signature (`cnf`) so the credential is the holder's, not a pure bearer token;
+   only the hash is stored. The QR/token + holder secret are handed to the candidate.
 7. **Verify** — any employer verifies offline: `/v` in the browser, or
    `scripts/verify-credential.mjs` on the command line, against the public key at
-   `/.well-known/did.json`. No DB, no callback. Tampering is rejected.
-8. **Govern** — `/api/credential-status` returns revoked/expiry/round-count;
-   every step appends to the hash-chained `audit_log`.
+   `/.well-known/did.json`. No DB, no callback. Tampering is rejected. The holder
+   can prove possession at `/api/credential/prove`.
+8. **Govern** — an **authenticated** employer (`/api/employer/login`, scrypt +
+   HMAC session) reviews the record, can **revoke** (`/api/credential/revoke`),
+   re-verify each round, and read the trail. `/api/credential-status` returns
+   revoked/expiry/round-count; every step appends to the hash-chained `audit_log`.
 
 ## Trust & integrity properties
 
@@ -94,14 +108,22 @@ flowchart TB
   See [adr/0004](adr/0004-audit-hash-chain.md).
 - **Data-minimized biometrics** — descriptor in pgvector; only a salted hash in
   the credential. See [adr/0003](adr/0003-cross-round-cosine-threshold.md).
-- **Deterministic scoring** — temp-0 grader + a planted-error task make the score
-  reproducible and hard to game. See [adr/0005](adr/0005-temp-zero-grader.md).
+- **Deterministic scoring** — temp-0 grader + a planted-error task, graded over
+  the server-recorded transcript, make the score reproducible and hard to game.
+  See [adr/0005](adr/0005-temp-zero-grader.md).
+- **Holder-bound credential** — a holder secret is committed in the signature
+  (`cnf`); ownership is provable, so it is not a pure bearer token.
+  See [adr/0006](adr/0006-holder-binding.md).
+- **Authenticated console** — employer access + revocation are gated by real
+  scrypt/HMAC auth. See [adr/0007](adr/0007-self-contained-employer-auth.md).
 
 ## What is working vs. roadmap
 
 See the honesty table in the top-level `README.md` and `SECURITY.md` /
-`COMPLIANCE.md` for the explicit working / mocked / roadmap breakdown
+`COMPLIANCE.md` for the explicit working / partial / roadmap breakdown
 (rubric §6). In short: the candidate flow, signing, offline verify, cross-round
-match, and hash-chained audit are **real**; a packaged Action API, W3C Bitstring
-revocation encoding, ATS write-back, KMS-backed issuer key, SSO/SCIM, and SOC 2
-are **roadmap**.
+match, hash-chained audit, **holder proof-of-possession, server-authoritative
+scoring, employer authentication, and credential revocation** are **real**. A
+packaged Action API, the W3C Bitstring **encoding** of revocation, ATS write-back,
+a KMS-backed issuer key, SSO/SCIM, and SOC 2 are **roadmap**. Certified ISO-30107-3
+PAD and a real (non-synthetic) bias audit are **honestly out of scope**, not faked.
