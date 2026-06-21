@@ -11,7 +11,7 @@
 
 > Team **DOMINATORS** · InnovateZ 2026 (Zentiti) · Round 2. This is a working prototype — see [Honest status](#honest-status--whats-real-partial-mocked) for exactly what is real vs mocked.
 
-**Project docs:** [Architecture](docs/architecture.md) · [Decision records (ADRs)](docs/adr/) · [Security & threat model](SECURITY.md) · [Compliance](COMPLIANCE.md) · [Contributing](CONTRIBUTING.md)
+**Project docs:** [Architecture](docs/architecture.md) · [Competitive landscape](docs/market-landscape.md) · [Decision records (ADRs)](docs/adr/) · [Security & threat model](SECURITY.md) · [Compliance](COMPLIANCE.md) · [Contributing](CONTRIBUTING.md)
 
 **Try the cryptography in 5 seconds** (no setup, no server): `npm install && npm run verify:demo` — mints a sample credential, verifies the Ed25519 signature, tampers one claim, and watches the verification reject it.
 
@@ -39,6 +39,8 @@ No single pillar here is novel on its own (HackerRank scores AI-collaboration; C
 3. **cross-round biometric re-verification** (catch proxy / seat-swap rings),
 
 issued on open standards (**W3C VC 2.0**, **did:web**, **Ed25519**), India-first, and **compliant-by-design** with DPDP + the EU AI Act. *Integration is the innovation.*
+
+**Competitive landscape (honest):** we surveyed the 2025–2026 market and every pillar already has serious players — AI-collaboration scoring (HackerRank AI IDE / AI Interviewer, CodeSignal, Karat), deepfake/proxy interview-fraud detection (Cicero, Willo, InterviewGuard, Sherlock AI), candidate-owned W3C credentials (Velocity Network, Dock, Indicio), and certified liveness/IDV (iProov, Incode, Persona). **What no one ships is the fusion of all three in one candidate-owned, offline-verifiable credential** — and the market is converging on it *now*, so this is a timing window, not a moat. Full gap-table, named competitors, and risks: **[docs/market-landscape.md](docs/market-landscape.md)**.
 
 ---
 
