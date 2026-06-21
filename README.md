@@ -2,10 +2,18 @@
 
 **A candidate-owned, cryptographically-signed credential that proves a job applicant is a real, live human with real AI-collaboration judgment — verifiable by any employer in seconds, re-checked every interview round, and built privacy-first for India's DPDP Act and the EU AI Act.**
 
+[![CI](https://github.com/Anshuu2004/hireproof/actions/workflows/ci.yml/badge.svg)](https://github.com/Anshuu2004/hireproof/actions/workflows/ci.yml)
+&nbsp;[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+&nbsp;[![W3C VC 2.0](https://img.shields.io/badge/W3C-VC_2.0-005a9c.svg)](https://www.w3.org/TR/vc-data-model-2.0/)
+
 🔗 **Live demo:** https://hireproof-ecru.vercel.app
 &nbsp;·&nbsp; Candidate flow: [`/verify`](https://hireproof-ecru.vercel.app/verify) &nbsp;·&nbsp; Public verify: [`/v`](https://hireproof-ecru.vercel.app/v) &nbsp;·&nbsp; Employer console: [`/employer`](https://hireproof-ecru.vercel.app/employer)
 
 > Team **DOMINATORS** · InnovateZ 2026 (Zentiti) · Round 2. This is a working prototype — see [Honest status](#honest-status--whats-real-partial-mocked) for exactly what is real vs mocked.
+
+**Project docs:** [Architecture](docs/architecture.md) · [Decision records (ADRs)](docs/adr/) · [Security & threat model](SECURITY.md) · [Compliance](COMPLIANCE.md) · [Contributing](CONTRIBUTING.md)
+
+**Try the cryptography in 5 seconds** (no setup, no server): `npm install && npm run verify:demo` — mints a sample credential, verifies the Ed25519 signature, tampers one claim, and watches the verification reject it.
 
 ---
 
@@ -15,10 +23,10 @@ Remote hiring no longer guarantees the person you interview is real, qualified, 
 
 - **Gartner (Jul 2025):** *by 2028, 1 in 4 candidate profiles worldwide will be fake*; 6% of 3,000 surveyed candidates admit to interview fraud.
 - **U.S. DOJ (30 Jun 2025):** nationwide takedown of the North-Korean IT-worker scheme — **100+ U.S. companies** infiltrated, 80+ stolen identities, 29 "laptop farms" raided. (A related DOJ/IRS-CI case: **309 companies** via stolen identities, $17M to the regime.)
-- **India / "Built for Bharat":** AuthBridge 2025 — **9.46% discrepancy in IT/ITeS hiring**, ~1 in 5 IT résumés misrepresented; **Infosys deferred tests for 20,000+** candidates over impersonation; NASSCOM IT-BPM employs **5.8M** people.
+- **India / "Built for Bharat":** AuthBridge 2025 (vendor-reported) — **9.46% discrepancy in IT/ITeS hiring**; **Infosys deferred tests for 20,000+** candidates over impersonation (press-reported); NASSCOM IT-BPM employs **~5.95M** people (FY26). *(The two India hiring-fraud figures are vendor/press-reported; we cite them as directional, not audited.)*
 - **Experian 2026 Future of Fraud:** "Deepfakes outsmart HR" is one of five named top fraud threats for 2026.
 
-Today's tools either run a **detection arms race** (which loses — detectors flip to ~99.8% wrong under attack) or **surveil every applicant** (false positives, no candidate ownership). HireProof flips the model: **the candidate owns the proof, and we measure the one skill that matters now — directing AI well.**
+Today's tools either run a **detection arms race** (a costly, escalating game as injection attacks improve) or **surveil every applicant** (false positives, no candidate ownership). HireProof flips the model: **the candidate owns the proof, and we measure the one skill that matters now — directing AI well.**
 
 ---
 
@@ -26,7 +34,7 @@ Today's tools either run a **detection arms race** (which loses — detectors fl
 
 No single pillar here is novel on its own (HackerRank scores AI-collaboration; CodeSignal has reusable scores; Velocity/Indicio issue portable W3C credentials; iProov does liveness). **Our defensible novelty is the fusion no one ships:** one candidate-owned token binding
 
-1. a **live, un-pre-stageable anti-deepfake human-proof** (randomised liveness),
+1. a **live, un-pre-stageable human-proof** (randomised active challenge-response liveness — anti-spoof, *not* a certified PAD; we don't claim to out-detect dedicated vendors),
 2. an **AI-collaboration *judgment* score** (catch + correct an AI's deliberate mistake), and
 3. **cross-round biometric re-verification** (catch proxy / seat-swap rings),
 
@@ -66,7 +74,7 @@ issued on open standards (**W3C VC 2.0**, **did:web**, **Ed25519**), India-first
    └──────────────────────────┘                       └────────────────────────────────────┘
 ```
 
-**Stack:** Next.js 16 (App Router) + TypeScript + Tailwind v4 + shadcn-style components, deployed on **Vercel**. Supabase **Postgres + pgvector** (cross-round face match) + Storage + Auth. **Claude** via the **Vercel AI Gateway** (OIDC) with automatic **Gemini** failover (Vercel AI SDK v6). **MediaPipe Tasks-Vision** (in-browser liveness) + **@vladmandic/face-api** (128-D descriptors). **jose** + **@noble/ed25519** (signing). All TypeScript — no separate Python service.
+**Stack:** Next.js 16 (App Router) + TypeScript + Tailwind v4 + shadcn-style components, deployed on **Vercel**. Supabase **Postgres + pgvector** (cross-round face match) + Storage + Auth. **Claude** via the **Vercel AI Gateway** (OIDC) with automatic **Gemini** failover (Vercel AI SDK v6). **MediaPipe Tasks-Vision** (in-browser liveness) + **@vladmandic/face-api** (128-D descriptors). **jose** (Ed25519 credential signing). All TypeScript — no separate Python service. CI runs lint + typecheck + an offline credential-verifier smoke test on every push.
 
 ---
 
@@ -79,7 +87,7 @@ issued on open standards (**W3C VC 2.0**, **did:web**, **Ed25519**), India-first
 5. **Cross-round match:** if re-verifying an existing credential, the new descriptor is compared (cosine distance) to the enrolled one → same-person or **MISMATCH** flag.
 6. **AI-collaboration task (`/api/task` + `/api/assistant`):** a fresh task is generated with a *hidden planted error*; the candidate is given an AI tool steered to be confidently wrong; the full transcript is captured.
 7. **Scoring (`/api/score`):** deterministic signals (did the candidate ship the AI's answer verbatim? did they diverge?) + a locked-rubric LLM grader (temp 0) scoring five judgment axes — **never affect/personality**. Shipping the AI's flawed answer **hard-caps the score ≤ 40**.
-8. **Audit:** every step writes an append-only, **hash-chained** `audit_log` row (`row_hash = sha256(prev_hash | output)`).
+8. **Audit:** every step writes an append-only, **hash-chained** `audit_log` row. The chain is computed **server-side in a Postgres trigger over the full canonical row** (seq, id, session, event type, input hash, output, model/prompt version, timestamp) under a transaction-scoped advisory lock — so editing any field, reordering rows, or racing concurrent appends breaks it. Re-checkable anytime via `select * from verify_audit_chain()`. (See [ADR 0004](docs/adr/0004-audit-hash-chain.md).)
 9. **Mint (`/api/mint`):** assemble a **W3C VC 2.0**-shaped payload, **Ed25519-sign** it (jose) → compact JWS, render a QR. Bind the descriptor to the credential for future rounds.
 10. **Verify (`/v`):** an employer scans/pastes the token → fetches the issuer public key from `/.well-known/did.json` → verifies the signature **client-side / offline** (works even if our server is down) → renders the record + an honest "what this does NOT prove" block.
 
@@ -111,7 +119,7 @@ Verified behaviour: a candidate who **blind-accepts** the AI's flawed answer sco
 
 ## 7. Data sources, APIs & regulations
 
-**Libraries / APIs:** MediaPipe Tasks-Vision (Apache-2.0), @vladmandic/face-api (MIT), Web Speech API, Web Audio API, Anthropic Claude via Vercel AI Gateway, Google Gemini (AI SDK v6), Supabase (Postgres + pgvector), `jose` / `@noble/ed25519`, `qrcode`, `@zxing/browser`.
+**Libraries / APIs:** MediaPipe Tasks-Vision (Apache-2.0), @vladmandic/face-api (MIT), Web Speech API, Web Audio API, Anthropic Claude via Vercel AI Gateway, Google Gemini (AI SDK v6), Supabase (Postgres + pgvector), `jose` (Ed25519 / EdDSA JWT-VC signing), `qrcode`, `@zxing/browser`.
 
 **Standards & regulations (cited with dates):**
 - **India DPDP Act 2023 + DPDP Rules 2025** (notified 13 Nov 2025) — itemised consent, minimisation, erasure-by-revocation.
@@ -148,6 +156,8 @@ npm run dev                      # http://localhost:3000  (use Chrome/Edge for c
 
 The MediaPipe WASM + the face-api / face-landmarker models are committed under `public/` (≈13 MB) so the app works offline with no CDN dependency.
 
+**Scripts:** `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm run verify:demo` (offline credential sign→verify→tamper→reject; also the CI smoke test). To verify a real token offline against the issuer key: `ISSUER_PUBLIC_KEY_HEX=… node scripts/verify-credential.mjs <token>`.
+
 ### Environment variables
 
 | Variable | Purpose |
@@ -180,9 +190,14 @@ hireproof/
 │  ├─ credential/(issuer)                    # Ed25519 sign/verify + did:web
 │  ├─ liveness/  (challenge)                 # randomised challenge + transcript match
 │  ├─ audit.ts   supabase/admin.ts  env.ts   # hash-chained audit, DB, typed env
-├─ supabase/migrations/            # schema + pgvector + hp_cross_round_match()
+├─ scripts/verify-credential.mjs   # standalone offline verifier (CI smoke test)
+├─ supabase/migrations/            # schema + pgvector + cross-round match + audit-chain trigger
+├─ docs/                           # architecture.md + adr/ (decision records)
+├─ .github/workflows/ci.yml        # lint · typecheck · offline-verifier
 └─ public/{mediapipe,models}/      # in-browser ML assets (version-matched, offline)
 ```
+
+See also: [LICENSE](LICENSE) (Apache-2.0) · [SECURITY.md](SECURITY.md) · [COMPLIANCE.md](COMPLIANCE.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [docs/architecture.md](docs/architecture.md) · [docs/adr/](docs/adr/).
 
 ---
 
@@ -194,11 +209,15 @@ hireproof/
 | Cross-round biometric match (seat-swap) | **Real** — pgvector, demoably flags MISMATCH |
 | Randomised task + AI-collaboration judgment scoring | **Real** — LLM + deterministic signals |
 | Voice liveness (spoken nonce) | **Real** — STT + live-voice fallback |
-| Ed25519-signed W3C VC + QR + offline verify | **Real** — tamper-evident, verified offline |
-| Hash-chained audit log | **Real** |
+| Ed25519-signed W3C VC + QR + offline verify | **Real** — tamper-evident, verified offline; runnable via `npm run verify:demo` and in CI |
+| Hash-chained audit log | **Real** — server-side trigger hashes the **full canonical row** atomically; `verify_audit_chain()` re-checks integrity |
 | Vernacular (EN / हिंदी / తెలుగు) | **Partial** — 3 languages end-to-end |
 | Certified anti-deepfake / injection PAD | **Partial / backup** — challenge-response liveness, *not* ISO 30107-3-certified PAD (cite iProov/Incode as the production swap-in) |
-| Bias audit (four-fifths / LL144) | **Partial** — methodology on seeded data |
+| Cross-round match FAR/FRR | **Not yet measured** — threshold 0.3 is a sensible default; result is human-review-gated, never an auto-reject |
+| Bias audit (four-fifths / LL144) | **Partial** — methodology on seeded/synthetic data |
+| Issuer key management | **Roadmap** — key is an env var today; KMS/HSM + rotation is the top hardening item ([SECURITY.md](SECURITY.md)) |
+| W3C Bitstring Status List revocation encoding | **Roadmap** — revocation works today via the DB status route; standard encoding is interop work |
+| ATS write-back, SSO/SCIM, SOC 2 | **Roadmap** — see [IMPROVEMENT plan](docs/architecture.md#what-is-working-vs-roadmap) |
 | Employer auth | **Mocked** — console is open for the demo (Supabase Auth is the production path) |
 
 ---

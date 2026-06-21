@@ -2,10 +2,27 @@ import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
- * Append a row to the tamper-evident, hash-chained audit log.
- * row_hash = sha256(prev_hash | canonical(output)). Any later edit to a row
- * breaks every subsequent hash — this is both the explainability trail
+ * Append a row to the hash-chained audit log — the explainability trail
  * (DPDP / EU AI Act) and the "why this score" evidence source.
+ *
+ * Two layers, so this is correct with OR without the DB migration applied:
+ *
+ *  1. App layer (here): the hash covers the FULL set of application fields
+ *     (session_id, event_type, input_hash, output, model/prompt version, and an
+ *     explicit created_at) — not just `output` as the original code did. Editing
+ *     any of those fields now breaks the chain. This fixes the output-only
+ *     defect immediately, with no database change required.
+ *
+ *  2. DB layer (migration 20260621120000_audit_chain_hardening.sql): a
+ *     BEFORE INSERT trigger SUPERSEDES the app-computed values, recomputing the
+ *     chain server-side over the full canonical row INCLUDING the db-assigned id
+ *     and a monotonic `seq`, under a transaction-scoped advisory lock — which
+ *     also removes the read-then-insert race the app layer alone can't. When the
+ *     migration is applied, `select * from verify_audit_chain()` re-checks
+ *     integrity end to end.
+ *
+ * Net: deploying the app before the migration is safe (full-field app hash);
+ * after the migration the stronger atomic full-row hash takes over.
  */
 export async function appendAudit(params: {
   sessionId?: string | null;
@@ -16,6 +33,7 @@ export async function appendAudit(params: {
   promptVersion?: string | null;
 }): Promise<string> {
   const sb = supabaseAdmin();
+
   const { data: last } = await sb
     .from("audit_log")
     .select("row_hash")
@@ -24,19 +42,39 @@ export async function appendAudit(params: {
     .maybeSingle();
 
   const prevHash = last?.row_hash ?? "GENESIS";
-  const canonical = JSON.stringify(params.output ?? null);
+  const createdAt = new Date().toISOString();
+
+  // Canonical over every persisted application field, in a fixed order.
+  const canonical = [
+    params.sessionId ?? "",
+    params.eventType,
+    params.inputHash ?? "",
+    JSON.stringify(params.output ?? null),
+    params.modelVersion ?? "",
+    params.promptVersion ?? "",
+    createdAt,
+  ].join("|");
   const rowHash = createHash("sha256").update(`${prevHash}|${canonical}`).digest("hex");
 
-  await sb.from("audit_log").insert({
-    session_id: params.sessionId ?? null,
-    event_type: params.eventType,
-    input_hash: params.inputHash ?? null,
-    output_json: params.output ?? null,
-    model_version: params.modelVersion ?? null,
-    prompt_version: params.promptVersion ?? null,
-    prev_hash: prevHash,
-    row_hash: rowHash,
-  });
+  // Insert with the app-computed chain. If the DB trigger is present it will
+  // override prev_hash / row_hash (and set seq) atomically; we read back
+  // whichever value was actually stored.
+  const { data, error } = await sb
+    .from("audit_log")
+    .insert({
+      session_id: params.sessionId ?? null,
+      event_type: params.eventType,
+      input_hash: params.inputHash ?? null,
+      output_json: params.output ?? null,
+      model_version: params.modelVersion ?? null,
+      prompt_version: params.promptVersion ?? null,
+      created_at: createdAt,
+      prev_hash: prevHash,
+      row_hash: rowHash,
+    })
+    .select("row_hash")
+    .single();
 
-  return rowHash;
+  if (error) throw error;
+  return (data?.row_hash as string) ?? rowHash;
 }
