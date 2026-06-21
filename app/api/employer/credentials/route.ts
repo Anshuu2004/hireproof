@@ -17,17 +17,25 @@ export async function GET(req: Request) {
 
   const sb = supabaseAdmin();
   const cols = "id,session_id,payload_json,issued_at,expires_at,revoked,round_count";
+  // Exclude synthetic fraud-ring demo data (issuer did:web:synthetic-demo) so it
+  // never pollutes the real candidate roster.
   const scoped = await sb
     .from("credentials")
     .select(cols)
     .or(`governed_by.is.null,governed_by.eq.${session.sub}`)
+    .not("issuer_did", "like", "%synthetic%")
     .order("issued_at", { ascending: false })
     .limit(50);
 
   let data = scoped.data;
   if (scoped.error) {
     // governed_by not present yet — fall back to the unscoped list.
-    const fallback = await sb.from("credentials").select(cols).order("issued_at", { ascending: false }).limit(50);
+    const fallback = await sb
+      .from("credentials")
+      .select(cols)
+      .not("issuer_did", "like", "%synthetic%")
+      .order("issued_at", { ascending: false })
+      .limit(50);
     data = fallback.data;
   }
   return NextResponse.json({ credentials: data ?? [] });
