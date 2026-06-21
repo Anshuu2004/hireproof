@@ -65,15 +65,19 @@ export function spokenPhrase(challenge: Pick<LivenessChallenge, "digits" | "lang
 
 /**
  * Does a speech transcript contain the challenge digits, in order? Tolerant of
- * STT noise: matches digit words (any of the 3 languages) OR numerals.
+ * STT noise: matches numerals plus digit words. When a `language` is given we
+ * scope word-matching to THAT language (numerals always count) — so the chosen
+ * language is enforced and a cross-language pre-recorded clip is harder to pass.
+ * Omitting `language` keeps the permissive all-language behaviour (back-compat).
  */
-export function transcriptMatchesDigits(transcript: string, digits: number[]): boolean {
+export function transcriptMatchesDigits(transcript: string, digits: number[], language?: Language): boolean {
   const lower = ` ${transcript.toLowerCase()} `;
   // Build, in order, the sequence of digits found by scanning for words/numerals.
   const found: number[] = [];
   const tokens = lower.split(/[\s,.-]+/).filter(Boolean);
   const wordToDigit = new Map<string, number>();
-  (["en", "hi", "te"] as Language[]).forEach((lng) =>
+  const langs: Language[] = language ? [language] : ["en", "hi", "te"];
+  langs.forEach((lng) =>
     DIGIT_WORDS[lng].forEach((w, d) => wordToDigit.set(w.toLowerCase(), d))
   );
   for (const t of tokens) {

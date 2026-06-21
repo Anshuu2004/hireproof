@@ -74,6 +74,22 @@ export async function signCredential(
     .sign(key);
 }
 
+/**
+ * Sign an arbitrary JSON payload with the issuer key (EdDSA JWT) — used for
+ * portable, independently-verifiable artifacts beyond the credential itself,
+ * e.g. a DPDP consent receipt. Verifiable against the same /.well-known/did.json
+ * key as a credential.
+ */
+export async function signDetached(payload: Record<string, unknown>, expiresIn = "365d"): Promise<string> {
+  const key = await importJWK(privateJwk(), "EdDSA");
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "EdDSA", typ: "JWT", kid: KEY_ID })
+    .setIssuer(env.issuerDid)
+    .setIssuedAt()
+    .setExpirationTime(expiresIn)
+    .sign(key);
+}
+
 export interface VerifiedCredential {
   valid: boolean;
   reason?: string;

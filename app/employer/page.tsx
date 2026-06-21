@@ -134,7 +134,7 @@ export default function EmployerPage() {
     try {
       const data = await fetch("/api/session", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({
           language: "en",
           consent: { face: true, voice: true, crossStage: true },

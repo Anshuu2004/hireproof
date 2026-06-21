@@ -17,12 +17,22 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   const sb = supabaseAdmin();
-  const { data, error } = await sb
+  // Revoking a credential claims governance of that candidate for this employer
+  // (best-effort: ignore the governed_by write if the column isn't migrated yet).
+  let { data, error } = await sb
     .from("credentials")
-    .update({ revoked: true })
+    .update({ revoked: true, governed_by: session.sub })
     .eq("id", parsed.data.credentialId)
     .select("id,revoked")
     .maybeSingle();
+  if (error) {
+    ({ data, error } = await sb
+      .from("credentials")
+      .update({ revoked: true })
+      .eq("id", parsed.data.credentialId)
+      .select("id,revoked")
+      .maybeSingle());
+  }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Credential not found" }, { status: 404 });

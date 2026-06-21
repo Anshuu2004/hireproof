@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { transcriptMatchesDigits, type LivenessAction } from "@/lib/liveness/challenge";
+import { transcriptMatchesDigits, type Language, type LivenessAction } from "@/lib/liveness/challenge";
 import { appendAudit } from "@/lib/audit";
+import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -20,8 +21,17 @@ const Body = z.object({
 
 /** Cosine-distance threshold below which two descriptors are the same person (tunable). */
 const SAME_PERSON_THRESHOLD = 0.3;
+/** A challenge is only valid briefly after it was issued — defeats slow proxy
+ *  coaching and replay of an old captured body. */
+const FRESHNESS_MS = 180_000;
+/** Plausible bounds for completing three actions (defeats instantaneous replay). */
+const MIN_DURATION_MS = 1200;
+const MAX_DURATION_MS = 180_000;
 
 export async function POST(req: Request) {
+  const rl = limited(req, "liveness", 30, 60_000);
+  if (rl) return rl;
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
@@ -38,23 +48,42 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
+  // Replay/one-shot guard: a session that already PASSED liveness cannot be
+  // re-driven by re-POSTing a captured body (a retry after a fail is still ok).
+  if (session.liveness_verdict === "pass" || ["live_passed", "scored", "issued"].includes(session.status)) {
+    return NextResponse.json({ error: "Liveness already verified for this session" }, { status: 409 });
+  }
+
   const seed = session.task_seed_json as { actions: LivenessAction[]; digits: number[] };
   const completed = livenessProof.completedActions.map((a) => a.action);
 
-  // Server re-checks the three independent signals (never trusts a client "pass"):
+  // Server re-checks the independent signals (never trusts a client "pass"):
   const actionsOk =
     completed.length >= seed.actions.length && seed.actions.every((a, i) => completed[i] === a);
   const faceOk = livenessProof.faceContinuous;
-  // Strongest signal: the spoken transcript contains the just-issued digits.
-  // If the browser exposes STT and produced a transcript, it MUST match — a
-  // wrong spoken phrase fails. Only when STT is genuinely unavailable (empty
-  // transcript) do we fall back to confirmed live-voice activity, and we record
-  // that explicitly as a degraded mode (never a silent pass on nothing).
-  const digitsMatched = transcriptMatchesDigits(spokenTranscript, seed.digits);
+
+  // Timing: the client already sends per-action atMs + durationMs — validate them
+  // instead of ignoring them. The submission must be fresh (within FRESHNESS_MS of
+  // issuance), the per-action timestamps strictly increasing, and the total
+  // duration humanly plausible. This kills instantaneous replays and slow-proxy
+  // coaching using data we already collect.
+  const ageMs = Date.now() - new Date(session.created_at as string).getTime();
+  const acts = livenessProof.completedActions;
+  const atMonotonic = acts.every((a, i) => i === 0 || a.atMs > acts[i - 1].atMs);
+  const durOk = livenessProof.durationMs >= MIN_DURATION_MS && livenessProof.durationMs <= MAX_DURATION_MS;
+  const timingOk = ageMs <= FRESHNESS_MS && atMonotonic && durOk;
+
+  // Strongest signal: the spoken transcript contains the just-issued digits, in
+  // the session's chosen language. If the browser exposes STT and produced a
+  // transcript, it MUST match — a wrong spoken phrase fails. Only when STT is
+  // genuinely unavailable (empty transcript) do we fall back to confirmed
+  // live-voice activity, recorded explicitly as a degraded mode (never a silent
+  // pass on nothing).
+  const digitsMatched = transcriptMatchesDigits(spokenTranscript, seed.digits, session.language as Language);
   const sttUnavailable = spokenTranscript.trim() === "";
   const voiceOk = digitsMatched || (sttUnavailable && voiceActivity === true);
   const voiceMode = digitsMatched ? "spoken-nonce" : voiceOk ? "voice-activity-fallback" : "none";
-  const verdict: "pass" | "fail" = actionsOk && faceOk && voiceOk ? "pass" : "fail";
+  const verdict: "pass" | "fail" = actionsOk && faceOk && voiceOk && timingOk ? "pass" : "fail";
 
   const vec = `[${faceDescriptor.join(",")}]`;
 
@@ -76,6 +105,9 @@ export async function POST(req: Request) {
     }
   }
 
+  // One descriptor per session (a retry replaces, never appends — so a session's
+  // cross-round anchor can't be stuffed with multiple vectors).
+  await sb.from("face_descriptors").delete().eq("session_id", sessionId);
   await sb.from("face_descriptors").insert({
     credential_id: session.credential_id,
     session_id: sessionId,
@@ -98,11 +130,12 @@ export async function POST(req: Request) {
     eventType: "liveness",
     output: {
       verdict,
-      checks: { actionsOk, faceOk, voiceOk },
+      checks: { actionsOk, faceOk, voiceOk, timingOk },
+      timing: { ageMs, durationMs: livenessProof.durationMs, atMonotonic, durOk, fresh: ageMs <= FRESHNESS_MS },
       voice: { digitsMatched, voiceMode, voiceActivity: voiceActivity ?? null },
       crossRound,
     },
   });
 
-  return NextResponse.json({ verdict, checks: { actionsOk, faceOk, voiceOk }, voiceMode, crossRound });
+  return NextResponse.json({ verdict, checks: { actionsOk, faceOk, voiceOk, timingOk }, voiceMode, crossRound });
 }

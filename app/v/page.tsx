@@ -51,7 +51,9 @@ export default function VerifyPage() {
       const { payload } = await jwtVerify(token, key, { issuer: did.id });
       let status: Result["status"];
       try {
-        status = await fetch(`/api/credential-status?id=${payload.sub}`).then((r) => r.json());
+        // Pass the token so the server confirms the signature too (and records a
+        // truthful audit event) — the client already verified it offline above.
+        status = await fetch(`/api/credential-status?id=${payload.sub}&token=${encodeURIComponent(token)}`).then((r) => r.json());
       } catch {
         status = undefined;
       }

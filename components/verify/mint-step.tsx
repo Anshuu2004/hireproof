@@ -1,10 +1,81 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DownloadSimple, Copy, ArrowSquareOut, Check, Key } from "@phosphor-icons/react";
+import { DownloadSimple, Copy, ArrowSquareOut, Check, Key, Scales, Warning } from "@phosphor-icons/react";
 import { CredentialCard } from "@/components/credential-card";
 import type { ScoreResult } from "./task-step";
 import { cn } from "@/lib/cn";
+
+/** The five judgment axes, in weight order, with human labels. Mirrors WEIGHTS
+ *  in lib/ai/scorer.ts — the score IS this breakdown, not a black box. */
+const AXES = [
+  { key: "error_detection", label: "Error detection", weight: 30 },
+  { key: "final_correctness", label: "Final correctness", weight: 25 },
+  { key: "direction_quality", label: "Direction quality", weight: 20 },
+  { key: "verification", label: "Verification", weight: 15 },
+  { key: "iteration", label: "Iteration", weight: 10 },
+] as const;
+
+/** "Why this score" — surfaces the per-axis justifications the grader already
+ *  produces (each quotes the transcript) plus the deterministic anchors. This is
+ *  the explainable, judgment-not-usage evidence; nothing here is affect/personality. */
+function ScoreExplain({ score }: { score: ScoreResult }) {
+  const r = score.rubric;
+  return (
+    <div className="mt-5 w-full rounded-control border border-ink-700 bg-ink-900 p-4 text-left">
+      <div className="flex items-center gap-2">
+        <Scales size={15} className="text-indigo-bright" />
+        <span className="text-xs font-medium text-ink-100">Why this score</span>
+        <span className="font-data text-sm text-ink-50 ml-auto">{score.aiCollabScore}<span className="text-ink-500">/100</span></span>
+      </div>
+      <p className="mt-1 text-[0.7rem] leading-relaxed text-ink-500">
+        Judgment, not usage — every line is graded from your transcript. Tone, confidence and
+        &ldquo;cultural fit&rdquo; are never scored (EU AI Act Art 5(1)(f)).
+      </p>
+
+      <ul className="mt-3 space-y-2.5">
+        {AXES.map((ax) => {
+          const sub = r[ax.key] as number;
+          return (
+            <li key={ax.key}>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-ink-200">{ax.label}</span>
+                <span className="eyebrow text-ink-600">·{ax.weight}%</span>
+                <span className="ml-auto font-data text-ink-300">{sub}/5</span>
+              </div>
+              <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-ink-700">
+                <div className="h-full rounded-full bg-indigo-bright" style={{ width: `${(sub / 5) * 100}%` }} />
+              </div>
+              {r.justifications?.[ax.key] && (
+                <p className="mt-1 text-[0.7rem] leading-relaxed text-ink-400">
+                  &ldquo;{r.justifications[ax.key]}&rdquo;
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* deterministic anchors — the part no LLM opinion can move */}
+      <div className="mt-3.5 flex flex-wrap gap-1.5 border-t border-ink-700/70 pt-3 font-data text-[0.65rem]">
+        <span className={cn("rounded-full px-2 py-0.5", r.caughtPlantedError ? "bg-proof/15 text-proof" : "bg-ink-800 text-ink-400")}>
+          {r.caughtPlantedError ? "caught planted flaw" : "missed planted flaw"}
+        </span>
+        <span className="rounded-full bg-ink-800 px-2 py-0.5 text-ink-400">
+          similarity to AI {Math.round(score.signals.finalSimilarityToAi * 100)}%
+        </span>
+        {score.signals.acceptedVerbatim && (
+          <span className="rounded-full bg-warn-wash/15 px-2 py-0.5 text-warn">shipped AI answer · capped ≤40</span>
+        )}
+        {score.signals.promptInjectionSuspected && (
+          <span className="flex items-center gap-1 rounded-full bg-danger-wash/15 px-2 py-0.5 text-danger">
+            <Warning size={11} weight="fill" /> score-injection attempt · capped
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface MintResult {
   token: string;
@@ -26,7 +97,40 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [secretCopied, setSecretCopied] = useState(false);
+  const [erased, setErased] = useState(false);
+  const [erasing, setErasing] = useState(false);
   const started = useRef(false);
+
+  async function downloadReceipt() {
+    try {
+      const data = await fetch(`/api/consent-receipt?sessionId=${sessionId}`).then((r) => r.json());
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `hireproof-consent-receipt-${sessionId.slice(0, 8)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  async function eraseData() {
+    if (!cred || erasing) return;
+    if (!window.confirm("Erase your biometric data and revoke this credential? This cannot be undone (DPDP Section 12).")) return;
+    setErasing(true);
+    try {
+      const res = await fetch("/api/credential/erase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credentialId: cred.credentialId, secret: cred.holderSecret }),
+      });
+      if (res.ok) setErased(true);
+    } finally {
+      setErasing(false);
+    }
+  }
 
   useEffect(() => {
     if (started.current) return;
@@ -166,11 +270,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
         </a>
       </div>
 
-      <div className={cn("mt-5 w-full rounded-control border px-4 py-3 text-center text-xs",
-        score.rubric.caughtPlantedError ? "border-proof/30 text-proof" : "border-ink-700 text-ink-400")}>
-        AI-collaboration judgment score <span className="font-data text-ink-100">{score.aiCollabScore}</span>
-        {score.rubric.caughtPlantedError ? " · caught the planted flaw" : ""}
-      </div>
+      <ScoreExplain score={score} />
 
       {/* Holder secret — proof-of-possession, shown ONCE, never stored server-side */}
       {cred && (
@@ -199,6 +299,40 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
           </div>
         </div>
       )}
+
+      {/* DPDP data rights — working endpoints, not roadmap prose */}
+      <div className="mt-5 w-full rounded-control border border-ink-700 bg-ink-950 p-4">
+        <p className="eyebrow text-ink-400">Your data rights · India DPDP</p>
+        {erased ? (
+          <p className="mt-2 text-xs text-proof">
+            ✓ Erased — biometric descriptor deleted and credential revoked. Verifying its token now
+            shows <span className="font-data">Revoked</span>.
+          </p>
+        ) : (
+          <>
+            <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
+              Itemised consent and erasure are exercisable here — not a roadmap line.
+            </p>
+            <div className="mt-2.5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={downloadReceipt}
+                className="flex items-center justify-center gap-1.5 rounded-control border border-ink-700 px-3 py-2 text-xs font-medium text-ink-200 transition-colors hover:border-ink-500 hover:bg-ink-900"
+              >
+                <DownloadSimple size={14} /> Consent receipt
+              </button>
+              <button
+                type="button"
+                onClick={eraseData}
+                disabled={erasing}
+                className="flex items-center justify-center gap-1.5 rounded-control border border-danger/40 px-3 py-2 text-xs font-medium text-danger transition-colors hover:bg-danger-wash/10 disabled:opacity-50"
+              >
+                {erasing ? "Erasing…" : "Erase my data"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateTask } from "@/lib/ai/task";
 import { appendAudit } from "@/lib/audit";
+import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -11,6 +12,10 @@ const Body = z.object({ sessionId: z.string().uuid() });
 
 /** Generate a fresh, randomised AI-collaboration task (with a hidden planted error). */
 export async function POST(req: Request) {
+  // Unauthenticated + calls the paid AI Gateway — rate-limit to stop cost-drain/DoS.
+  const rl = limited(req, "task", 20, 60_000);
+  if (rl) return rl;
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 

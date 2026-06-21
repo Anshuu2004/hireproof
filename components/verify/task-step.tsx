@@ -16,6 +16,13 @@ export interface ScoreResult {
     iteration: number;
     final_correctness: number;
   };
+  signals: {
+    candidateTurns: number;
+    acceptedVerbatim: boolean;
+    finalSimilarityToAi: number;
+    divergedFromAi: boolean;
+    promptInjectionSuspected: boolean;
+  };
   capped: boolean;
   provider: string;
 }

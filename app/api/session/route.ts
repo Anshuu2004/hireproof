@@ -3,6 +3,8 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateChallenge, spokenPhrase, type Language } from "@/lib/liveness/challenge";
 import { appendAudit } from "@/lib/audit";
+import { limited } from "@/lib/ratelimit";
+import { bearer } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
@@ -18,6 +20,10 @@ const Body = z.object({
 
 /** Start a verification session: record itemised consent, issue a randomised challenge. */
 export async function POST(req: Request) {
+  // Unauthenticated session creation — rate-limit to stop session-spam/enumeration.
+  const rl = limited(req, "session", 30, 60_000);
+  if (rl) return rl;
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
@@ -50,6 +56,13 @@ export async function POST(req: Request) {
 
   if (error || !data) {
     return NextResponse.json({ error: error?.message ?? "Database error" }, { status: 500 });
+  }
+
+  // A re-verify started by an authenticated employer claims governance of that
+  // candidate (best-effort; scopes the candidate to this employer's console).
+  if (credentialId) {
+    const emp = bearer(req);
+    if (emp) await sb.from("credentials").update({ governed_by: emp.sub }).eq("id", credentialId).then(() => {}, () => {});
   }
 
   await appendAudit({

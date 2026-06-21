@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { scoreTranscript, type Turn } from "@/lib/ai/scorer";
 import type { TaskSpec } from "@/lib/ai/task";
 import { appendAudit } from "@/lib/audit";
+import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -19,6 +20,10 @@ const Body = z.object({
 
 /** Score the AI-collaboration transcript: deterministic signals + locked-rubric grader. */
 export async function POST(req: Request) {
+  // Unauthenticated + calls the paid AI Gateway — rate-limit to stop cost-drain/DoS.
+  const rl = limited(req, "score", 20, 60_000);
+  if (rl) return rl;
+
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   const { sessionId, taskId, finalAnswer } = parsed.data;
@@ -26,10 +31,24 @@ export async function POST(req: Request) {
   const sb = supabaseAdmin();
   const { data: task } = await sb
     .from("ai_tasks")
-    .select("prompt_seed")
+    .select("prompt_seed,session_id")
     .eq("id", taskId)
     .single();
   if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
+
+  // The task must belong to this session — stops cross-session task harvesting
+  // (grabbing a taskId and scoring it against an unrelated session).
+  if (task.session_id && task.session_id !== sessionId) {
+    return NextResponse.json({ error: "Task does not belong to this session" }, { status: 403 });
+  }
+
+  // Idempotency: a session is scored once. Re-posting is rejected (no score replay).
+  const { data: sess } = await sb.from("sessions").select("status").eq("id", sessionId).maybeSingle();
+  if (!sess) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  if (sess.status === "scored" || sess.status === "issued") {
+    return NextResponse.json({ error: "Session already scored" }, { status: 409 });
+  }
+
   const spec = (task.prompt_seed as { spec: TaskSpec }).spec;
 
   // Authoritative transcript: read the turns the SERVER recorded (in /assistant),
@@ -67,7 +86,7 @@ export async function POST(req: Request) {
     content: `FINAL ANSWER:\n${finalAnswer}`,
   });
 
-  await sb.from("scores").insert({
+  const scoreRow = {
     session_id: sessionId,
     error_detection: result.rubric.error_detection,
     direction_quality: result.rubric.direction_quality,
@@ -78,7 +97,12 @@ export async function POST(req: Request) {
     ai_collab_score: result.aiCollabScore,
     model_version: result.provider,
     prompt_version: "rubric-v1",
-  });
+  };
+  // Durable, auditable explanation: the per-axis justifications (each quotes the
+  // transcript) + caughtPlantedError, so the "why this score" is not lost. Falls
+  // back gracefully if the rubric_json column hasn't been migrated yet.
+  const ins = await sb.from("scores").insert({ ...scoreRow, rubric_json: result.rubric });
+  if (ins.error) await sb.from("scores").insert(scoreRow);
 
   await sb.from("sessions").update({ status: "scored" }).eq("id", sessionId);
 
@@ -90,6 +114,7 @@ export async function POST(req: Request) {
       bands: result.bands,
       caughtPlantedError: result.rubric.caughtPlantedError,
       capped: result.capped,
+      promptInjectionSuspected: result.signals.promptInjectionSuspected,
       subScores: {
         error_detection: result.rubric.error_detection,
         direction_quality: result.rubric.direction_quality,
@@ -97,6 +122,7 @@ export async function POST(req: Request) {
         iteration: result.rubric.iteration,
         final_correctness: result.rubric.final_correctness,
       },
+      justifications: result.rubric.justifications,
     },
     modelVersion: result.provider,
     promptVersion: "rubric-v1",

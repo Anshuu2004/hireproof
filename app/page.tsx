@@ -17,7 +17,7 @@ const CANDIDATE_STEPS = [
   {
     k: "02",
     t: "Show your judgment",
-    d: "You're handed an AI openly and scored on how you direct, judge, and correct it on a real task — not on what you memorised. The job in 2026.",
+    d: "You're handed an AI that's confidently wrong — and scored on whether you catch and correct its planted mistake. Ship its answer verbatim and you're hard-capped at 40. We measure AI judgment, not AI usage.",
   },
   {
     k: "03",
@@ -35,7 +35,7 @@ const EMPLOYER_STEPS = [
   {
     k: "02",
     t: "See the evidence",
-    d: "A verified-human + AI-judgment record with an auditable, bias-checked trail. No black-box fraud score — every line is explainable.",
+    d: "A verified-human + AI-judgment record with an auditable, hash-chained trail. No black-box fraud score — every score line quotes the transcript.",
   },
   {
     k: "03",
@@ -63,7 +63,7 @@ const COMPLIANCE = [
   { t: "India DPDP 2023 + Rules 2025", d: "Itemised consent · minimisation · candidate-held data · erasure-by-revocation" },
   { t: "EU AI Act", d: "No emotion AI — by law and by design. Scores judgment, never affect (Art 5(1)(f))." },
   { t: "W3C Verifiable Credentials 2.0", d: "Signed with Ed25519 · did:web issuer · offline-verifiable" },
-  { t: "ISO/IEC 30107-3 · NIST FATE-PAD", d: "Liveness measured against recognised presentation-attack standards" },
+  { t: "ISO/IEC 30107-3 · NIST FATE-PAD", d: "The PAD benchmarks we build toward — challenge-response liveness today, not certified PAD; iProov/Incode is the production swap-in" },
 ];
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -161,6 +161,42 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ---------- The mechanic no one else ships ---------- */}
+      <section className="border-b border-ink-700/60 bg-ink-900/30">
+        <div className="mx-auto max-w-6xl px-5 py-16">
+          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-14">
+            <div className="space-y-3">
+              <Eyebrow>AI judgment, not AI usage</Eyebrow>
+              <h2 className="text-3xl font-semibold tracking-[-0.02em] text-ink-50">
+                We hand you an AI that&apos;s <span className="text-proof">confidently wrong</span>.
+              </h2>
+              <p className="text-ink-300">
+                Everyone can prompt a model now. The skill that matters is catching it when it&apos;s
+                wrong. So our task plants a deliberate, hidden error in the AI&apos;s answer — and
+                scores whether <span className="text-ink-100">you</span> catch and correct it.
+              </p>
+            </div>
+            <div className="grid gap-px overflow-hidden rounded-card border border-ink-700 bg-ink-700 sm:grid-cols-3">
+              {[
+                ["Catch", "Spot the planted flaw the AI never tells you about.", "text-judge"],
+                ["Direct", "Steer it to the right approach — graded on quoted transcript lines.", "text-direct"],
+                ["Correct", "Ship the AI's flawed answer verbatim → hard-capped at 40.", "text-correct"],
+              ].map(([t, d]) => (
+                <div key={t} className="bg-ink-900 p-5">
+                  <p className="text-sm font-medium text-ink-50">{t}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-400">{d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="mt-6 text-xs leading-relaxed text-ink-500">
+            HackerRank, CodeSignal and others score whether you <em>used</em> an AI. No shipped product
+            scores whether you <em>out-judged</em> one — fused with live human-proof and a candidate-owned
+            credential. <Link href="#how" className="text-ink-300 underline-offset-4 hover:underline">See how it works ↓</Link>
+          </p>
         </div>
       </section>
 
