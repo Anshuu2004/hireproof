@@ -85,6 +85,10 @@ scoring.**
   regulatory wedge that US-centric incumbents handle weakly.
 - **Privacy architecture** (raw video never leaves the device) — a compliance and marketing
   differentiator versus surveil-everyone detection vendors.
+- **The unforgeable, execution-anchored answer to the fake-credential problem** — rather than joining
+  the detection arms race (catching fake certificates after the fact), HireProof makes the credential
+  impossible to forge AND anchors it to *execution under constraint* (catch + correct a planted AI
+  error), not résumé completeness. Reinforces the candidate-owned trust-rail framing above.
 
 ## Sources
 

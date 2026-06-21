@@ -26,6 +26,11 @@ Remote hiring no longer guarantees the person you interview is real, qualified, 
 - **India / "Built for Bharat":** AuthBridge 2025 (vendor-reported) — **9.46% discrepancy in IT/ITeS hiring**; **Infosys deferred tests for 20,000+** candidates over impersonation (press-reported); NASSCOM IT-BPM employs **~5.95M** people (FY26). *(The two India hiring-fraud figures are vendor/press-reported; we cite them as directional, not audited.)*
 - **Experian 2026 Future of Fraud:** "Deepfakes outsmart HR" is one of five named top fraud threats for 2026.
 
+**The deeper problem.** Fake certificates are only the visible symptom. The harder issue is that even *legitimate* credentials say almost nothing about how someone performs under real conditions — the signal that matters is **execution under constraint, not completeness of résumé**:
+
+> "Interviewed 60+ candidates last year — every one had the right credentials on paper. Maybe three could ship something functional from Day 1."
+> — *a hiring manager, reflecting on 60+ candidates interviewed last year*
+
 Today's tools either run a **detection arms race** (a costly, escalating game as injection attacks improve) or **surveil every applicant** (false positives, no candidate ownership). HireProof flips the model: **the candidate owns the proof, and we measure the one skill that matters now — directing AI well.**
 
 ---
@@ -39,6 +44,8 @@ No single pillar here is novel on its own (HackerRank scores AI-collaboration; C
 3. **cross-round biometric re-verification** (catch proxy / seat-swap rings),
 
 issued on open standards (**W3C VC 2.0**, **did:web**, **Ed25519**), India-first, and **compliant-by-design** with DPDP + the EU AI Act. *Integration is the innovation.*
+
+This is a two-part answer to the deeper problem in §1. (a) The candidate-owned, cryptographically-signed credential is the **unforgeable** reply to fake certificates — we don't *detect* forgeries after the fact (a detection arms race), we make the credential impossible to forge in the first place. (b) The planted-error judgment score measures **execution under constraint** — can the candidate catch and correct a confidently-wrong AI — not completeness of résumé. We don't issue a HIRE/REJECT verdict; we hand the employer an honest, human-review-gated **signal** (EU-AI-Act-safe by design).
 
 **Competitive landscape (honest):** we surveyed the 2025–2026 market and every pillar already has serious players — AI-collaboration scoring (HackerRank AI IDE / AI Interviewer, CodeSignal, Karat), deepfake/proxy interview-fraud detection (Cicero, Willo, InterviewGuard, Sherlock AI), candidate-owned W3C credentials (Velocity Network, Dock, Indicio), and certified liveness/IDV (iProov, Incode, Persona). **What no one ships is the fusion of all three in one candidate-owned, offline-verifiable credential** — and the market is converging on it *now*, so this is a timing window, not a moat. Full gap-table, named competitors, and risks: **[docs/market-landscape.md](docs/market-landscape.md)**.
 
