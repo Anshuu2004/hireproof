@@ -115,7 +115,7 @@ export default function MetricsPage() {
               real medians + the raw distribution the moment candidates complete the flow at{" "}
               <span className="font-data text-ink-200">/verify</span>. <span className="text-ink-200">N pending.</span>
             </p>
-            <p className="mt-4 font-data text-xs text-ink-600">
+            <p className="mt-4 font-data text-xs text-ink-400">
               {m.verifiedCandidates} credential{m.verifiedCandidates === 1 ? "" : "s"} issued to date ·{" "}
               {m.offlineVerifies} offline verification{m.offlineVerifies === 1 ? "" : "s"}
             </p>

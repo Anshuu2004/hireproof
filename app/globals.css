@@ -186,15 +186,16 @@ html[data-theme="light"] {
   --surface: #ffffff;
   --ink: #15171c;
   --ink-2: #565b66;
-  --verify: #0e9f6e;
-  --verify-press: #0b7c52;
-  --warm: #f0a04b;
-  --alert: #e5484d;
+  /* aligned to the app @theme tokens so landing↔app share one verified-green / red / amber */
+  --verify: #12b886;
+  --verify-press: #0e9c73;
+  --warm: #e8a93c;
+  --alert: #c4422c;
   --line: #e6e7e2;
   --lp-shadow: 0 1px 2px rgba(20, 22, 28, 0.06), 0 8px 30px rgba(20, 22, 28, 0.06);
   --lp-shadow-lift: 0 2px 4px rgba(20, 22, 28, 0.07), 0 16px 44px rgba(20, 22, 28, 0.1);
   --glass: rgba(255, 255, 255, 0.72);
-  --scan: rgba(14, 159, 110, 0.18);
+  --scan: rgba(18, 184, 134, 0.18);
 }
 
 html[data-theme="dark"] {
@@ -202,15 +203,16 @@ html[data-theme="dark"] {
   --surface: #14171d;
   --ink: #f2f3f0;
   --ink-2: #9aa0ac;
-  --verify: #2dd48a;
-  --verify-press: #25b676;
-  --warm: #f4b36a;
-  --alert: #ff5a5f;
+  /* same hues as the app, brightened for dark legibility (proof-bright / proof / amber / danger) */
+  --verify: #34d3a0;
+  --verify-press: #12b886;
+  --warm: #e8a93c;
+  --alert: #d6543b;
   --line: rgba(255, 255, 255, 0.09);
   --lp-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 30px rgba(0, 0, 0, 0.45);
   --lp-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 46px rgba(0, 0, 0, 0.55);
   --glass: rgba(20, 23, 29, 0.62);
-  --scan: rgba(45, 212, 138, 0.22);
+  --scan: rgba(52, 211, 160, 0.22);
 }
 
 .lp {

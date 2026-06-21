@@ -416,7 +416,7 @@ export default function Home() {
               <Link href="/verify" className="lp-ulink">Prove you&apos;re real</Link>
             </nav>
             <div className="lp-row" style={{ gap: "0.8rem" }}>
-              <span className="lp-mono" style={{ fontSize: "0.72rem" }}>Prototype — see honest limitations in the demo.</span>
+              <span className="lp-mono" style={{ fontSize: "0.72rem" }}>Candidate-owned · offline-verifiable hiring proof.</span>
               <button type="button" className="lp-icon-btn" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
                 {theme === "dark" ? <Sun /> : <Moon />}
               </button>

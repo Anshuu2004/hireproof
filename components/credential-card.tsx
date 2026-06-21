@@ -14,6 +14,8 @@ export interface CredentialCardProps {
   qrSeed?: string;
   /** a real, scannable QR data URL (set once minted) */
   qrDataUrl?: string;
+  /** show the scan-to-verify QR — true at mint/wallet, false when inspecting on /v or /employer */
+  showQr?: boolean;
 }
 
 /** Deterministic faux-QR — a 21×21 grid driven by the seed, with quiet-zone keyline. */
@@ -86,6 +88,7 @@ export function CredentialCard({
   verifyUrl = "hireproof.app/v/8f2c49a1",
   qrSeed = "8f2c-49a1-7dd0",
   qrDataUrl,
+  showQr = true,
   className,
 }: CredentialCardProps) {
   return (
@@ -140,20 +143,28 @@ export function CredentialCard({
           <ScoreBar label="Correct" value={scores.correct} />
         </div>
 
-        {/* QR + verify url */}
+        {/* provenance + (optional) scannable QR */}
         <div className="flex items-end gap-3 border-t border-ink-700 pt-4">
-          <div className="w-20 shrink-0 rounded-[3px] p-[3px] ring-1 ring-proof/60">
-            {qrDataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={qrDataUrl} alt="HireProof verification QR" className="aspect-square w-full rounded-[2px]" />
-            ) : (
-              <FauxQR seed={qrSeed} />
-            )}
-          </div>
+          {showQr && (
+            <div className="w-20 shrink-0 rounded-[3px] p-[3px] ring-1 ring-proof/60">
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qrDataUrl} alt="HireProof verification QR" className="aspect-square w-full rounded-[2px]" />
+              ) : (
+                <FauxQR seed={qrSeed} />
+              )}
+            </div>
+          )}
           <div className="min-w-0 flex-1 space-y-1 pb-0.5">
-            <p className="eyebrow text-ink-400">Scan to verify · no login</p>
-            <p className="truncate font-data text-[0.7rem] text-ink-200">{verifyUrl}</p>
-            <p className="font-data text-[0.6rem] text-ink-400">exp {expiresAt} · Ed25519 · did:web</p>
+            {showQr ? (
+              <>
+                <p className="eyebrow text-ink-400">Scan to verify · no login</p>
+                {verifyUrl && <p className="truncate font-data text-[0.7rem] text-ink-200">{verifyUrl}</p>}
+              </>
+            ) : (
+              <p className="eyebrow text-ink-300">Offline-verifiable credential</p>
+            )}
+            <p className="font-data text-[0.7rem] text-ink-300">exp {expiresAt} · Ed25519 · did:web</p>
           </div>
         </div>
       </div>

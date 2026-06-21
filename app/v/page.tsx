@@ -154,8 +154,7 @@ export default function VerifyPage() {
                     issuedAt={result.payload.iat ? new Date(result.payload.iat * 1000).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : ""}
                     expiresAt={result.payload.exp ? new Date(result.payload.exp * 1000).toLocaleDateString("en-IN", { dateStyle: "medium" }) : ""}
                     scores={hp.aiCollaboration}
-                    qrSeed={result.payload.sub}
-                    verifyUrl=""
+                    showQr={false}
                   />
                 </div>
 

@@ -32,7 +32,7 @@ function StepRail({ current }: { current: Step }) {
     <div className="flex items-center gap-2">
       {STEPS.map((s, i) => (
         <div key={s.key} className="flex items-center gap-2">
-          <span className={cn("eyebrow transition-colors", i <= activeIdx ? "text-ink-200" : "text-ink-600")}>
+          <span className={cn("eyebrow transition-colors", i <= activeIdx ? "text-ink-200" : "text-ink-500")}>
             {s.label}
           </span>
           {i < STEPS.length - 1 && <span className={cn("h-px w-5", i < activeIdx ? "bg-ink-400" : "bg-ink-700")} />}

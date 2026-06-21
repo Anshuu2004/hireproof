@@ -134,9 +134,9 @@ export function ConsentStep({
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-ink-50">{item.title}</p>
                   {item.required ? (
-                    <span className="eyebrow text-ink-500">Required</span>
+                    <span className="eyebrow text-ink-400">Required</span>
                   ) : (
-                    <span className="eyebrow text-ink-600">Optional</span>
+                    <span className="eyebrow text-ink-400">Optional</span>
                   )}
                 </div>
                 <p className="mt-1 text-sm leading-relaxed text-ink-400">{item.desc}</p>

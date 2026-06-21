@@ -220,8 +220,8 @@ export default function EmployerPage() {
             >
               Sign in as demo employer
             </button>
-            <p className="mt-3 text-center font-data text-[0.65rem] text-ink-600">
-              demo · demo@hireproof.app / demo1234
+            <p className="mt-3 text-center text-xs text-ink-400">
+              No account needed — explore a verified candidate&apos;s record.
             </p>
           </form>
         </main>
@@ -267,7 +267,7 @@ export default function EmployerPage() {
               </div>
             ) : creds.length === 0 ? (
               <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-                <FileText size={22} className="text-ink-600" />
+                <FileText size={22} className="text-ink-500" />
                 <p className="text-sm text-ink-400">No credentials yet.</p>
                 <Link href="/verify" className="text-sm text-indigo-bright underline-offset-4 hover:underline">
                   Mint one at /verify
@@ -308,7 +308,7 @@ export default function EmployerPage() {
           {!sel ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
               <p className="text-ink-400">Select a candidate to see their verified record.</p>
-              <p className="max-w-sm text-xs text-ink-600">
+              <p className="max-w-sm text-xs text-ink-400">
                 Each credential is signed and re-verifiable. Re-verify identity each round to catch
                 proxy and seat-swap rings.
               </p>
@@ -322,8 +322,7 @@ export default function EmployerPage() {
                     issuedAt={new Date(sel.issued_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
                     expiresAt={new Date(sel.expires_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}
                     scores={sel.payload_json.aiCollaboration}
-                    qrSeed={sel.id}
-                    verifyUrl=""
+                    showQr={false}
                   />
                 </div>
 
@@ -333,7 +332,7 @@ export default function EmployerPage() {
                     <p className="eyebrow text-ink-400">Trust verdict</p>
                     <div className="mt-2 flex items-center gap-2">
                       <span className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-sm", sel.payload_json.humanVerified && !sel.revoked ? "bg-proof/15 text-proof" : "bg-danger-wash/15 text-danger")}>
-                        <Check size={14} weight="bold" /> {sel.revoked ? "Revoked" : "Real human · verified"}
+                        {sel.revoked ? <Prohibit size={14} weight="bold" /> : <Check size={14} weight="bold" />} {sel.revoked ? "Revoked" : "Real human · verified"}
                       </span>
                     </div>
                   </div>
@@ -396,7 +395,7 @@ export default function EmployerPage() {
                           </div>
                         </li>
                       ))}
-                      {audit.length === 0 && <li className="text-xs text-ink-600">no events</li>}
+                      {audit.length === 0 && <li className="text-xs text-ink-400">no events</li>}
                     </ol>
                   </div>
                 </div>

@@ -40,7 +40,7 @@ function ScoreExplain({ score }: { score: ScoreResult }) {
             <li key={ax.key}>
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-ink-200">{ax.label}</span>
-                <span className="eyebrow text-ink-600">·{ax.weight}%</span>
+                <span className="eyebrow text-ink-400">·{ax.weight}%</span>
                 <span className="ml-auto font-data text-ink-300">{sub}/5</span>
               </div>
               <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-ink-700">
