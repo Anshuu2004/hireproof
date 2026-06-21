@@ -123,7 +123,9 @@ See the honesty table in the top-level `README.md` and `SECURITY.md` /
 `COMPLIANCE.md` for the explicit working / partial / roadmap breakdown
 (rubric §6). In short: the candidate flow, signing, offline verify, cross-round
 match, hash-chained audit, **holder proof-of-possession, server-authoritative
-scoring, employer authentication, and credential revocation** are **real**. A
+scoring, employer authentication, credential revocation, a live `/metrics`
+evidence dashboard, the `/rings` cross-employer fraud-ring view, and the
+RAIR/RSR appropriate-reliance probe** are **real**. A
 packaged Action API, the W3C Bitstring **encoding** of revocation, ATS write-back,
 a KMS-backed issuer key, SSO/SCIM, and SOC 2 are **roadmap**. Certified ISO-30107-3
 PAD and a real (non-synthetic) bias audit are **honestly out of scope**, not faked.

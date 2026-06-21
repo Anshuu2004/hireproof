@@ -73,14 +73,16 @@ This is a two-part answer to the deeper problem in §1. (a) The candidate-owned,
         │  /api/mint       W3C VC 2.0 → Ed25519 sign (jose) + holder `cnf` → QR                          │
         │  /api/credential/{revoke,prove}   revoke (auth) · holder proof-of-possession                  │
         │  /api/employer/{login,credentials,audit}   scrypt password · HMAC-signed sessions             │
+        │  /api/reliance   appropriate-reliance probe (RAIR/RSR) · accept-correct + override-wrong       │
+        │  /api/metrics    live pilot metrics (real session data) · /api/rings   cross-employer ring view│
         │  /.well-known/did.json   publish issuer public key (did:web)                                   │
         └───────┬───────────────────────────────────────────────────┬───────────────────────────────────┘
                 ▼                                                     ▼
    ┌──────────────────────────┐                       ┌────────────────────────────────────┐
-   │  Supabase (Mumbai)       │                       │  Employer / verifier                │
+   │  Supabase (Mumbai)       │                       │  Employer / verifier · analytics    │
    │  Postgres + pgvector     │                       │  /employer  sign-in · revoke · re-vfy│
-   │  hash-chained audit_log  │                       │  /v  scan QR → verify Ed25519 vs    │
-   │  + verify_audit_chain()  │                       │      did:web key OFFLINE (jose)     │
+   │  hash-chained audit_log  │                       │  /v verify offline · /metrics live  │
+   │  + verify_audit_chain()  │                       │  /rings cross-employer fraud-ring   │
    └──────────────────────────┘                       └────────────────────────────────────┘
 ```
 
