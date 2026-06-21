@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PaperPlaneRight, Robot, User, Sparkle } from "@phosphor-icons/react";
+import { PaperPlaneRight, Robot, User, Sparkle, CheckCircle, XCircle, Scales } from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
+import type { RelianceResult } from "@/lib/ai/reliance";
 
 export interface ScoreResult {
   aiCollabScore: number;
@@ -25,7 +26,10 @@ export interface ScoreResult {
   };
   capped: boolean;
   provider: string;
+  reliance?: RelianceResult;
 }
+
+type PanelItem = { id: number; claim: string };
 
 type Msg = { role: "candidate" | "assistant"; content: string };
 type LedgerEntry = { t: string; label: string };
@@ -50,6 +54,8 @@ export function TaskStep({
   const [finalAnswer, setFinalAnswer] = useState("");
   const [sending, setSending] = useState(false);
   const [scoring, setScoring] = useState(false);
+  const [panel, setPanel] = useState<PanelItem[] | null>(null);
+  const [decisions, setDecisions] = useState<Record<string, boolean>>({});
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,6 +83,22 @@ export function TaskStep({
       cancelled = true;
     };
   }, [sessionId]);
+
+  // Generate the reliance probe once a task exists. Best-effort: if it fails,
+  // the panel simply doesn't appear and the main flow is unaffected.
+  useEffect(() => {
+    if (!task) return;
+    let cancelled = false;
+    fetch("/api/reliance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskId: task.taskId }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d?.items?.length) setPanel(d.items as PanelItem[]); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [task]);
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
@@ -120,8 +142,23 @@ export function TaskStep({
         body: JSON.stringify({ sessionId, taskId: task.taskId, turns: messages, finalAnswer: finalAnswer.trim() }),
       });
       const data = await res.json();
-      if (res.ok) onComplete(data as ScoreResult);
-      else setLoadErr(data.error ?? "Scoring failed");
+      if (!res.ok) {
+        setLoadErr(data.error ?? "Scoring failed");
+        return;
+      }
+      // Score the reliance probe too (best-effort — never blocks the main result).
+      let reliance: RelianceResult | undefined;
+      if (panel && Object.keys(decisions).length === panel.length) {
+        try {
+          const rr = await fetch("/api/reliance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ taskId: task.taskId, sessionId, decisions }),
+          });
+          if (rr.ok) reliance = (await rr.json()) as RelianceResult;
+        } catch { /* ignore — main score stands */ }
+      }
+      onComplete({ ...(data as ScoreResult), reliance });
     } catch {
       setLoadErr("Network error during scoring");
     } finally {
@@ -177,6 +214,48 @@ export function TaskStep({
           The AI may be confidently wrong. You&apos;re scored on judgment — catching, directing, and
           correcting it — not on using it.
         </p>
+
+        {/* Appropriate-reliance probe (RAIR/RSR): accept the correct AI claims, reject the wrong ones */}
+        {panel && panel.length > 0 && (
+          <div className="rounded-card border border-ink-700 bg-ink-900 p-5">
+            <div className="flex items-center gap-2">
+              <Scales size={15} className="text-indigo-bright" />
+              <p className="eyebrow text-indigo-bright">Calibrated AI-reliance check</p>
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
+              The AI made these claims about your task. <span className="text-ink-300">Accept the right ones, reject the wrong ones</span> — we measure appropriate reliance (accept-correct <em>and</em> override-wrong).
+            </p>
+            <ul className="mt-3 space-y-2.5">
+              {panel.map((s) => (
+                <li key={s.id} className="rounded-control border border-ink-700 bg-ink-950 p-3">
+                  <p className="text-sm leading-relaxed text-ink-200">{s.claim}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDecisions((d) => ({ ...d, [s.id]: true }))}
+                      className={cn(
+                        "flex items-center gap-1 rounded-control border px-2.5 py-1 text-xs transition-colors",
+                        decisions[s.id] === true ? "border-proof bg-proof/15 text-proof" : "border-ink-700 text-ink-400 hover:border-ink-500"
+                      )}
+                    >
+                      <CheckCircle size={13} weight={decisions[s.id] === true ? "fill" : "regular"} /> Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDecisions((d) => ({ ...d, [s.id]: false }))}
+                      className={cn(
+                        "flex items-center gap-1 rounded-control border px-2.5 py-1 text-xs transition-colors",
+                        decisions[s.id] === false ? "border-danger bg-danger-wash/15 text-danger" : "border-ink-700 text-ink-400 hover:border-ink-500"
+                      )}
+                    >
+                      <XCircle size={13} weight={decisions[s.id] === false ? "fill" : "regular"} /> Reject
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* RIGHT: the AI tool + final answer */}
@@ -254,10 +333,15 @@ export function TaskStep({
               placeholder="Write your corrected, final answer here…"
               className="w-full resize-y rounded-control border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-500 focus:border-indigo focus:outline-none"
             />
+            {panel && Object.keys(decisions).length < panel.length && (
+              <p className="text-center text-xs text-ink-500">
+                Decide all {panel.length} AI-reliance claims (left) before submitting.
+              </p>
+            )}
             <button
               type="button"
               onClick={submit}
-              disabled={!finalAnswer.trim() || scoring}
+              disabled={!finalAnswer.trim() || scoring || (!!panel && Object.keys(decisions).length < panel.length)}
               className="w-full rounded-control bg-proof px-4 py-3 text-sm font-medium text-ink-950 transition-colors hover:bg-proof-strong disabled:bg-ink-800 disabled:text-ink-500 active:translate-y-px"
             >
               {scoring ? "Scoring your judgment…" : "Submit for scoring"}

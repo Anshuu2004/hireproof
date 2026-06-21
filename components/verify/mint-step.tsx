@@ -272,6 +272,29 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
 
       <ScoreExplain score={score} />
 
+      {/* Appropriate-reliance (RAIR/RSR) — calibrated accept-correct AND override-wrong */}
+      {score.reliance && (
+        <div className="mt-3 w-full rounded-control border border-ink-700 bg-ink-900 p-4 text-left">
+          <div className="flex items-center gap-2">
+            <Scales size={15} className="text-indigo-bright" />
+            <span className="text-xs font-medium text-ink-100">Appropriate-reliance signal · RAIR/RSR</span>
+            <span className="ml-auto font-data text-sm text-ink-50">
+              {score.reliance.appropriateReliance}<span className="text-ink-500">/100</span>
+            </span>
+          </div>
+          <p className="mt-1 text-[0.7rem] leading-relaxed text-ink-500">
+            Calibrated reliance across {score.reliance.total} AI claims — accepted{" "}
+            {score.reliance.acceptedCorrect}/{score.reliance.correctCount} correct, rejected{" "}
+            {score.reliance.rejectedWrong}/{score.reliance.wrongCount} wrong. Grounded in Schemmer 2023;
+            small-N, not a psychometrically validated instrument.
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5 font-data text-[0.65rem]">
+            <span className="rounded-full bg-proof/15 px-2 py-0.5 text-proof">RAIR {Math.round(score.reliance.rair * 100)}% accept-correct</span>
+            <span className="rounded-full bg-indigo/15 px-2 py-0.5 text-indigo-bright">RSR {Math.round(score.reliance.rsr * 100)}% override-wrong</span>
+          </div>
+        </div>
+      )}
+
       {/* Holder secret — proof-of-possession, shown ONCE, never stored server-side */}
       {cred && (
         <div className="mt-5 w-full rounded-control border border-amber/30 bg-amber-wash/5 p-4">

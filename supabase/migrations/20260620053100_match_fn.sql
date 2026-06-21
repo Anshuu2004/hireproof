@@ -19,4 +19,4 @@ as $$
 $$;
 
 comment on function hp_cross_round_match is
-  'Returns the minimum cosine distance between p_embedding and all descriptors enrolled under p_credential_id (and the count of prior rounds). Threshold ~0.20 cosine = same person for face-api/human descriptors.';
+  'Returns the minimum cosine distance between p_embedding and all descriptors enrolled under p_credential_id (and the count of prior rounds). Threshold 0.30 cosine = same person (matches SAME_PERSON_THRESHOLD in /api/liveness and hp_face_ring; FAR/FRR unmeasured, human-review-gated).';
