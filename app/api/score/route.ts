@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { scoreTranscript, type Turn } from "@/lib/ai/scorer";
+import { scoreTranscript, deriveIntegrity, type Turn, type IntegritySignals } from "@/lib/ai/scorer";
 import type { TaskSpec } from "@/lib/ai/task";
 import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
@@ -16,6 +16,20 @@ const Body = z.object({
   // the graded transcript is read from the server-recorded turns below.
   turns: z.array(z.object({ role: z.enum(["candidate", "assistant"]), content: z.string() })).optional(),
   finalAnswer: z.string().min(1),
+  // Behavioural integrity telemetry from the (un-proctored) task surface. Optional,
+  // bounded, and never auto-rejects — derived into human-review reviewer flags.
+  integrity: z
+    .object({
+      elapsedMs: z.number().nonnegative().max(86_400_000),
+      timeToFirstActionMs: z.number().nonnegative().max(86_400_000),
+      pasteEvents: z.number().int().nonnegative().max(100_000),
+      pastedChars: z.number().int().nonnegative().max(10_000_000),
+      finalAnswerPastedChars: z.number().int().nonnegative().max(10_000_000),
+      finalAnswerLen: z.number().int().nonnegative().max(10_000_000),
+      awayEvents: z.number().int().nonnegative().max(100_000),
+      lockdownUsed: z.boolean(),
+    })
+    .optional(),
 });
 
 /** Score the AI-collaboration transcript: deterministic signals + locked-rubric grader. */
@@ -27,6 +41,9 @@ export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   const { sessionId, taskId, finalAnswer } = parsed.data;
+  const integrity: IntegritySignals | undefined = parsed.data.integrity
+    ? deriveIntegrity(parsed.data.integrity)
+    : undefined;
 
   const sb = supabaseAdmin();
   // Two independent gating reads in parallel, before the (expensive) LLM grade.
@@ -83,7 +100,7 @@ export async function POST(req: Request) {
     verification: result.rubric.verification,
     iteration: result.rubric.iteration,
     final_correctness: result.rubric.final_correctness,
-    deterministic_signals_json: result.signals,
+    deterministic_signals_json: { ...result.signals, integrity },
     ai_collab_score: result.aiCollabScore,
     model_version: result.provider,
     prompt_version: "rubric-v1",
@@ -114,6 +131,15 @@ export async function POST(req: Request) {
       caughtPlantedError: result.rubric.caughtPlantedError,
       capped: result.capped,
       promptInjectionSuspected: result.signals.promptInjectionSuspected,
+      integrity: integrity
+        ? {
+            pasteHeavy: integrity.pasteHeavy,
+            fastSolve: integrity.fastSolve,
+            finalAnswerPastedFraction: integrity.finalAnswerPastedFraction,
+            awayEvents: integrity.awayEvents,
+            elapsedMs: integrity.elapsedMs,
+          }
+        : null,
       subScores: {
         error_detection: result.rubric.error_detection,
         direction_quality: result.rubric.direction_quality,
@@ -132,6 +158,7 @@ export async function POST(req: Request) {
     bands: result.bands,
     rubric: result.rubric,
     signals: result.signals,
+    integrity: integrity ?? null,
     capped: result.capped,
     provider: result.provider,
   });

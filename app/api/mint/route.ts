@@ -65,12 +65,16 @@ export async function POST(req: Request) {
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + EXPIRY_DAYS * 86400_000);
 
-  // Start QR encoding now (depends only on the token) so it overlaps the DB writes below.
+  // QR encodes a SHORT, scannable URL (…/v?c=<id>) — NOT the full ~1.2 KB JWT,
+  // which produced a version-40 QR no webcam could read. /v resolves the token by
+  // id and still verifies its signature offline against did:web. `verifyUrl` keeps
+  // the full self-contained token for the copy/paste (fully-offline) path.
   const verifyUrl = `${env.siteUrl}/v#${token}`;
-  const qrPromise = QRCode.toDataURL(verifyUrl, {
+  const scanUrl = `${env.siteUrl}/v?c=${credentialId}`;
+  const qrPromise = QRCode.toDataURL(scanUrl, {
     errorCorrectionLevel: "M",
     margin: 1,
-    scale: 6,
+    scale: 8,
     color: { dark: "#0a0b0d", light: "#fcfcfd" },
   });
 

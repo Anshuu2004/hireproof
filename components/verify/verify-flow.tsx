@@ -8,6 +8,7 @@ import { BackLink } from "@/components/back-link";
 import { ConsentStep, type ConsentValue, type Demographics } from "./consent-step";
 import { type LivenessResult } from "./liveness-step";
 import { TaskStep, type ScoreResult } from "./task-step";
+import { ExplainStep, type ExplainResult } from "./explain-step";
 import { MintStep } from "./mint-step";
 import { Button } from "@/components/ui/button";
 import type { Language, LivenessAction } from "@/lib/liveness/challenge";
@@ -37,7 +38,7 @@ function warmLivenessAssets() {
   }
 }
 
-type Step = "consent" | "liveness" | "task" | "mint" | "fail";
+type Step = "consent" | "liveness" | "task" | "explain" | "mint" | "fail" | "taskfail";
 
 interface SessionData {
   sessionId: string;
@@ -53,7 +54,12 @@ const STEPS: { key: Step; label: string }[] = [
 ];
 
 function StepRail({ current }: { current: Step }) {
-  const cur = current === "fail" ? "liveness" : current;
+  const cur =
+    current === "fail"
+      ? "liveness"
+      : current === "explain" || current === "taskfail"
+        ? "task"
+        : current;
   const activeIdx = STEPS.findIndex((s) => s.key === cur);
   return (
     <div className="flex items-center gap-2">
@@ -105,11 +111,35 @@ function FailPanel({ result }: { result: LivenessResult }) {
   );
 }
 
+/** Shown when the secured test is interrupted (tab switch / left full-screen). */
+function IntegrityFailPanel({ reason }: { reason: string }) {
+  const msg =
+    reason === "camera"
+      ? "The secured test needs your camera on for proctoring, and it wasn't available. Allow camera access and start over."
+      : "You reached 3 warnings — face out of view, a second person, or repeatedly leaving the test.";
+  return (
+    <div className="mx-auto w-full max-w-md text-center">
+      <div className="mx-auto grid size-14 place-items-center rounded-full bg-danger text-white">
+        <X size={26} weight="bold" />
+      </div>
+      <h1 className="mt-5 text-2xl font-semibold tracking-[-0.01em] text-ink-50">Test ended</h1>
+      <p className="mt-2 text-ink-300">{msg}</p>
+      <p className="mx-auto mt-2 max-w-sm text-sm text-ink-500">
+        No credential is issued for an interrupted test. You can start over.
+      </p>
+      <Button variant="ghost" size="lg" onClick={() => location.reload()} className="mt-6">
+        Start over
+      </Button>
+    </div>
+  );
+}
+
 export function VerifyFlow() {
   const [step, setStep] = useState<Step>("consent");
   const [session, setSession] = useState<SessionData | null>(null);
   const [liveness, setLiveness] = useState<LivenessResult | null>(null);
   const [score, setScore] = useState<ScoreResult | null>(null);
+  const [integrityReason, setIntegrityReason] = useState("");
   const [prefetchedTask, setPrefetchedTask] = useState<{ taskId: string; title: string; brief: string } | null>(null);
 
   // Warm the on-device liveness assets the moment this flow mounts (consent screen).
@@ -201,6 +231,22 @@ export function VerifyFlow() {
             prefetchedTask={prefetchedTask}
             onComplete={(r) => {
               setScore(r);
+              setStep(r.taskId ? "explain" : "mint");
+            }}
+            onIntegrityFail={(reason) => {
+              setIntegrityReason(reason);
+              setStep("taskfail");
+            }}
+          />
+        )}
+
+        {step === "explain" && session && score?.taskId && (
+          <ExplainStep
+            sessionId={session.sessionId}
+            taskId={score.taskId}
+            language={session.challenge.language}
+            onComplete={(ex: ExplainResult) => {
+              setScore((s) => (s ? { ...s, explain: ex } : s));
               setStep("mint");
             }}
           />
@@ -209,6 +255,8 @@ export function VerifyFlow() {
         {step === "mint" && session && score && <MintStep sessionId={session.sessionId} score={score} />}
 
         {step === "fail" && liveness && <FailPanel result={liveness} />}
+
+        {step === "taskfail" && <IntegrityFailPanel reason={integrityReason} />}
       </main>
     </div>
   );

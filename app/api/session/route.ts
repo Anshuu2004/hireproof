@@ -13,6 +13,10 @@ const Body = z.object({
   consent: z.object({
     face: z.boolean(),
     voice: z.boolean(),
+    // In-task camera proctoring during the secured skill test (itemised consent,
+    // recorded in consent_json). Optional in the schema for backward-compatible
+    // payloads; the client requires it before the flow can start.
+    proctor: z.boolean().optional(),
     crossStage: z.boolean(),
     // Opt-in flag for aggregate-only fairness auditing. Never gates the flow and
     // never affects scoring; just authorises /api/audit-demographics to record.
