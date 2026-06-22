@@ -56,7 +56,7 @@ export function generateChallenge(language: Language): LivenessChallenge {
   return { nonce: crypto.randomUUID(), actions, digits, language };
 }
 
-/** The phrase the candidate must read aloud, in their chosen language. */
+/** The phrase the candidate reads aloud (English digit words). */
 export function spokenPhrase(challenge: Pick<LivenessChallenge, "digits" | "language">): string {
   return challenge.digits.map((d) => DIGIT_WORDS[challenge.language][d]).join(" ");
 }

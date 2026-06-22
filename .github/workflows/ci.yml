@@ -30,6 +30,12 @@ jobs:
       - name: Type-check
         run: npm run typecheck
 
+      - name: Build (catch route/server-boundary + module-eval breakage before deploy)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+
       - name: Unit tests (trust core — credential, audit chain, reliance scoring)
         run: npm test
 

@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   // re-check and advance its schedule — knowing a sessionId is not enough.
   // (The /start step is already holder-gated; this closes the matching gap.)
   const { data: cred } = session.credential_id
-    ? await sb.from("credentials").select("holder_secret_hash").eq("id", session.credential_id).maybeSingle()
+    ? await sb.from("credentials").select("holder_secret_hash,round_count").eq("id", session.credential_id).maybeSingle()
     : { data: null };
   const presented = createHash("sha256").update(parsed.data.secret).digest();
   let owned = false;
@@ -92,6 +92,17 @@ export async function POST(req: Request) {
   if (enrollment) {
     const nextDue = new Date(Date.now() + (enrollment.interval_days ?? 30) * 86400_000).toISOString();
     await sb.from("work_enrollments").update({ next_due: nextDue }).eq("id", enrollment.id);
+  }
+
+  // A passed re-check is a completed verification round — advance the credential's
+  // round counter so "Re-check rounds" actually grows (and the next /start derives
+  // the correct round_no). Per-session idempotent: a session can only complete once
+  // (guarded by the work-checked status above), so this never double-counts.
+  if (result === "pass" && session.credential_id) {
+    await sb
+      .from("credentials")
+      .update({ round_count: (cred?.round_count ?? 1) + 1 })
+      .eq("id", session.credential_id);
   }
 
   await sb.from("sessions").update({ status: "work-checked" }).eq("id", sessionId);
