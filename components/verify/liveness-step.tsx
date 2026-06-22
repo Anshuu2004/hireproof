@@ -343,6 +343,7 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let rec: any = null;
+    let sttRetried = false; // browser STT "network" errors are often transient — retry once
 
     (async () => {
       // 1) mic level meter — diagnostic ("is my mic working?") + fallback voice-present signal
@@ -397,7 +398,17 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rec.onerror = (ev: any) => {
           if (ev?.error === "not-allowed" || ev?.error === "service-not-allowed") setVoiceStatus("mic-blocked");
-          else if (ev?.error === "network") setVoiceStatus("stt-network");
+          else if (ev?.error === "network") {
+            setVoiceStatus("stt-network");
+            // Transient backend hiccup — restart the recognizer once before giving
+            // up to the (still-passing) voice-activity fallback.
+            if (!sttRetried && !cancelled) {
+              sttRetried = true;
+              window.setTimeout(() => {
+                if (!cancelled) try { rec.start(); } catch {}
+              }, 600);
+            }
+          }
         };
         try {
           rec.start();
@@ -539,7 +550,7 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
                 ) : voiceStatus === "stt-unsupported" ? (
                   <span className="text-ink-400">No speech-to-text here — your live voice still counts</span>
                 ) : voiceStatus === "stt-network" ? (
-                  <span className="text-warn">Speech service offline — your live voice still counts</span>
+                  <span className="text-ink-400">Catching your voice by sound — keep reading the numbers aloud</span>
                 ) : transcript ? (
                   <span className="text-ink-300">heard: {transcript}</span>
                 ) : (

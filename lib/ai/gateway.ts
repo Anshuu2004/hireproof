@@ -58,15 +58,19 @@ interface TextParams {
   messages?: ModelMessage[];
   temperature?: number;
   maxOutputTokens?: number;
+  // Per-call override of the failover timeout. The default (TIMEOUT_MS) suits the
+  // hot candidate paths; long code-generation (the assistant) passes a larger one.
+  timeoutMs?: number;
 }
 
 export async function genText(tier: Tier, params: TextParams): Promise<{ text: string; provider: Provider }> {
+  const { timeoutMs, ...rest } = params;
   let lastErr: unknown;
   for (const p of providerOrder()) {
     try {
       const extra = p === "gemini" && tier === "fast" ? GEMINI_FAST_OPTS : {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const r = await generateText({ model: modelFor(p, tier), ...(params as any), ...extra, abortSignal: AbortSignal.timeout(TIMEOUT_MS) });
+      const r = await generateText({ model: modelFor(p, tier), ...(rest as any), ...extra, abortSignal: AbortSignal.timeout(timeoutMs ?? TIMEOUT_MS) });
       return { text: r.text, provider: p };
     } catch (e) {
       lastErr = e;
