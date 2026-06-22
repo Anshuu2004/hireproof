@@ -79,7 +79,10 @@ export function transcriptMatchesDigits(transcript: string, digits: number[], la
     (DIGIT_WORDS[lng] ?? []).forEach((w, d) => wordToDigit.set(w.toLowerCase(), d))
   );
   for (const t of tokens) {
-    if (/^\d$/.test(t)) found.push(Number(t));
+    // STT (esp. en-IN) often renders three spoken digits as ONE numeral
+    // ("eight three nine" → "839"), so split any all-digit token into its
+    // individual digits; single digits and digit-words still work as before.
+    if (/^\d+$/.test(t)) for (const ch of t) found.push(Number(ch));
     else if (wordToDigit.has(t)) found.push(wordToDigit.get(t)!);
   }
   // subsequence check: the challenge digits must appear in order within `found`
