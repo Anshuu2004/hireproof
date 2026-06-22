@@ -36,6 +36,11 @@ const Check = () => (
     <path d="M5 12.5l4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const Chevron = () => (
+  <svg className="lp-faq-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 /* --------------------------------------------------------------- content */
 const STATS = [
@@ -76,6 +81,37 @@ const COMPLIANCE = [
 ];
 
 const STANDARDS = ["DPDP", "EU AI Act", "W3C VC 2.0", "Ed25519", "did:web", "ISO/IEC 30107-3", "NIST FATE-PAD"];
+
+const FAQS: [string, string][] = [
+  [
+    "What exactly is HireProof?",
+    "A credential the candidate owns and carries. In one short verification it proves three things at once: that you're a real, live human (not a deepfake or a stand-in), that you can actually direct and correct an AI on a real task, and — across interview rounds — that you're still the same person. It's cryptographically signed, so any employer can check it in seconds, even offline.",
+  ],
+  [
+    "What makes it different from a coding test or a proctoring tool?",
+    "Most tools either watch every applicant (surveillance) or chase fakes after the fact (an endless detection arms race). HireProof flips the model: the candidate owns the proof, and instead of asking “did you use an AI,” we measure “can you out-judge one.” Liveness, judgment scoring, and cross-round identity are fused into one portable credential — and that fusion is the part nothing else ships today.",
+  ],
+  [
+    "How do you measure “AI judgment” and not just AI usage?",
+    "We hand you an AI that is confidently wrong: your task contains a hidden, planted mistake. You're scored on whether you catch it, steer the AI to the right approach, and ship a correct answer. Submit the AI's flawed answer as-is and your score is hard-capped — because knowing how to prompt isn't the skill anymore; knowing when the AI is wrong is.",
+  ],
+  [
+    "Why can't an employer just reproduce this with a chatbot?",
+    "Because it's a protocol, not a single question. The proof lives in a live challenge-response loop, a voice-and-face binding to a moment generated seconds ago, and a signature checked against a published key. A generic AI assistant has none of that — it can't prove the actions happened live and in order, it can't remember you across rounds, and it can't mint a tamper-evident credential.",
+  ],
+  [
+    "How does an employer trust and verify it?",
+    "Every credential is signed with the issuer's Ed25519 key, published openly via did:web — so anyone can verify it offline in seconds, with no login and no call to our servers. Change a single field and the signature breaks. If a credential is revoked, the check shows it. The employer trusts the math, not a screenshot.",
+  ],
+  [
+    "Is it private and compliant?",
+    "Raw video never leaves your device — only a privacy-preserving math fingerprint and the derived signals are stored, and consent is itemised and erasable. It's built to India's DPDP Act and the EU AI Act by design: no emotion or personality is ever inferred, only task judgment — and the result is an explainable signal for a human to weigh, never an automated hire/reject verdict.",
+  ],
+  [
+    "Why is this the right approach in 2026?",
+    "Everyone can prompt an AI now, fake profiles and deepfake interviews are documented at scale, and a polished résumé says little about whether someone can ship under real conditions. The signal that matters has moved to execution under constraint — catching the AI when it's wrong — which is exactly what this verifies, and ties to an identity that can't be swapped mid-process.",
+  ],
+];
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
@@ -121,6 +157,7 @@ export default function Home() {
   const navRef = useRef<HTMLElement>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   // sync toggle state with whatever the no-FOUC script set
   useEffect(() => {
@@ -196,6 +233,7 @@ export default function Home() {
             <a href="#how" className="lp-navlink">How it works</a>
             <a href="#shift" className="lp-navlink">Why different</a>
             <a href="#compliance" className="lp-navlink">Compliance</a>
+            <a href="#faq" className="lp-navlink">FAQ</a>
           </nav>
           <div className="lp-row" style={{ gap: "0.55rem" }}>
             <Link href="/v" className="lp-btn lp-btn--ghost lp-cta-desktop">Verify a credential</Link>
@@ -388,6 +426,40 @@ export default function Home() {
                   <p className="lp-body" style={{ fontSize: "0.85rem", marginTop: "0.55rem", lineHeight: 1.5, color: "var(--ink-2)" }}>{d}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* --------------------------------------------------------- FAQ */}
+        <section id="faq" className="lp-section">
+          <div className="lp-container">
+            <div className="lp-section-head lp-measure lp-reveal">
+              <p className="lp-eyebrow">questions</p>
+              <h2 className="lp-h2">What teams ask before they trust it.</h2>
+            </div>
+            <div className="lp-faq lp-reveal" style={{ marginTop: "clamp(28px, 4vw, 48px)" }}>
+              {FAQS.map(([q, a], i) => {
+                const open = openFaq === i;
+                return (
+                  <div key={i} className="lp-faq-item" data-open={open}>
+                    <button
+                      type="button"
+                      className="lp-faq-q"
+                      aria-expanded={open}
+                      aria-controls={`faq-a-${i}`}
+                      onClick={() => setOpenFaq(open ? null : i)}
+                    >
+                      <span>{q}</span>
+                      <Chevron />
+                    </button>
+                    <div className="lp-faq-a" id={`faq-a-${i}`} role="region" aria-label={q}>
+                      <div>
+                        <p>{a}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
