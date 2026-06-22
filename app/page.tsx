@@ -266,7 +266,7 @@ export default function Home() {
           <div className="lp-container">
             <div className="lp-hero">
               <div className="lp-hero-copy">
-                <p className="lp-eyebrow lp-reveal">Trusted hiring checks · Built for India</p>
+                <p className="lp-eyebrow lp-reveal">Trusted hiring checks · proof, not guesswork</p>
                 <h1 className="lp-display lp-words">
                   <span className="w" style={{ "--wd": "0ms" } as React.CSSProperties}>Prove</span>{" "}
                   <span className="w" style={{ "--wd": "50ms" } as React.CSSProperties}>you&apos;re</span>{" "}
