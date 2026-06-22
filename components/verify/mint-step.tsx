@@ -104,8 +104,13 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
   const started = useRef(false);
 
   async function downloadReceipt() {
+    if (!cred?.holderSecret) return; // receipt is now holder-gated (POST + secret)
     try {
-      const data = await fetch(`/api/consent-receipt?sessionId=${sessionId}`).then((r) => r.json());
+      const data = await fetch(`/api/consent-receipt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, secret: cred.holderSecret }),
+      }).then((r) => r.json());
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

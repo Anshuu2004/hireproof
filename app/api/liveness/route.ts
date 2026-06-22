@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const sb = supabaseAdmin();
   const { data: session, error } = await sb
     .from("sessions")
-    .select("liveness_verdict,status,task_seed_json,created_at,language,credential_id,round_no")
+    .select("liveness_verdict,status,task_seed_json,created_at,language,credential_id,round_no,consent_json")
     .eq("id", sessionId)
     .single();
   if (error || !session) {
@@ -97,9 +97,13 @@ export async function POST(req: Request) {
 
   const vec = `[${faceDescriptor.join(",")}]`;
 
-  // Cross-round match BEFORE inserting this round's descriptor (so we compare to priors only).
+  // Cross-round match BEFORE inserting this round's descriptor (so we compare to
+  // priors only). Honours itemised consent: skip when crossStage consent was
+  // EXPLICITLY withheld (the re-verify/recheck paths send crossStage:true, so the
+  // normal flow is unaffected — this just makes the consent flag actually gate it).
+  const crossStageConsent = (session.consent_json as { crossStage?: boolean } | null)?.crossStage !== false;
   let crossRound: { distance: number; priorRounds: number; match: boolean } | null = null;
-  if (session.credential_id) {
+  if (session.credential_id && crossStageConsent) {
     const { data: m } = await sb.rpc("hp_cross_round_match", {
       p_credential_id: session.credential_id,
       p_embedding: vec,

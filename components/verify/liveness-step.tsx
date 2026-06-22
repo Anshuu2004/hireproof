@@ -16,22 +16,22 @@ const FACE_LANDMARKER_WASM = "/mediapipe/wasm";
 const FACE_LANDMARKER_MODEL = "/mediapipe/face_landmarker.task";
 const FACEAPI_MODELS = "/models";
 
-// MediaPipe/emscripten prints benign "INFO:" lines (e.g. the XNNPACK CPU delegate
-// notice) to stderr -> console.error, which Next's dev overlay shows as a red error.
-// They are not failures; filter just these lines so the UI stays clean.
-declare global {
-  interface Window {
-    __hpLogPatched?: boolean;
-  }
-}
-if (typeof window !== "undefined" && !window.__hpLogPatched) {
-  window.__hpLogPatched = true;
+// MediaPipe/emscripten prints benign "INFO:"/XNNPACK/TensorFlow-Lite lines to
+// console.error, which Next's dev overlay shows as red errors. Suppress them ONLY
+// while the model loads (see setup below), then restore — so genuine errors
+// elsewhere in the session are never swallowed by a process-wide override.
+async function withMediapipeLogFilter<T>(fn: () => Promise<T>): Promise<T> {
   const orig = console.error.bind(console);
   console.error = (...args: unknown[]) => {
     const s = typeof args[0] === "string" ? args[0] : "";
     if (s.startsWith("INFO:") || s.includes("XNNPACK") || s.includes("TensorFlow Lite")) return;
     orig(...args);
   };
+  try {
+    return await fn();
+  } finally {
+    console.error = orig;
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,20 +138,22 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
         }
-        const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
-        const fileset = await FilesetResolver.forVisionTasks(FACE_LANDMARKER_WASM);
-        const options = (delegate: "GPU" | "CPU") => ({
-          baseOptions: { modelAssetPath: FACE_LANDMARKER_MODEL, delegate },
-          outputFaceBlendshapes: true,
-          outputFacialTransformationMatrixes: true,
-          runningMode: "VIDEO" as const,
-          numFaces: 1,
+        landmarkerRef.current = await withMediapipeLogFilter(async () => {
+          const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
+          const fileset = await FilesetResolver.forVisionTasks(FACE_LANDMARKER_WASM);
+          const options = (delegate: "GPU" | "CPU") => ({
+            baseOptions: { modelAssetPath: FACE_LANDMARKER_MODEL, delegate },
+            outputFaceBlendshapes: true,
+            outputFacialTransformationMatrixes: true,
+            runningMode: "VIDEO" as const,
+            numFaces: 1,
+          });
+          try {
+            return await FaceLandmarker.createFromOptions(fileset, options("GPU"));
+          } catch {
+            return await FaceLandmarker.createFromOptions(fileset, options("CPU"));
+          }
         });
-        try {
-          landmarkerRef.current = await FaceLandmarker.createFromOptions(fileset, options("GPU"));
-        } catch {
-          landmarkerRef.current = await FaceLandmarker.createFromOptions(fileset, options("CPU"));
-        }
         if (!cancelled) {
           setPhase("ready");
           rafRef.current = requestAnimationFrame(tick);
