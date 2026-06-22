@@ -490,22 +490,60 @@ export default function Home() {
 
         {/* ------------------------------------------------------- footer */}
         <footer className="lp-footer">
-          <div className="lp-container lp-section--tight" style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "center", justifyContent: "space-between" }}>
-            <Link href="/" className="lp-wordmark" aria-label="HireProof — home">
-              <span className="lp-seal" aria-hidden="true"><Check /></span>HireProof
-            </Link>
-            <nav aria-label="Footer" className="lp-row" style={{ gap: "1.4rem", flexWrap: "wrap" }}>
-              <a href="#how" className="lp-ulink">How it works</a>
-              <a href="#compliance" className="lp-ulink">Compliance</a>
-              <Link href="/guide" className="lp-ulink">Guide</Link>
-              <Link href="/v" className="lp-ulink">Verify a credential</Link>
-              <Link href="/verify" className="lp-ulink">Prove you&apos;re real</Link>
-            </nav>
-            <div className="lp-row" style={{ gap: "0.8rem" }}>
-              <span className="lp-mono" style={{ fontSize: "0.72rem" }}>Candidate-owned · offline-verifiable hiring proof.</span>
-              <button type="button" className="lp-icon-btn" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
-                {theme === "dark" ? <Sun /> : <Moon />}
-              </button>
+          <div className="lp-container">
+            <div className="lp-foot-grid">
+              {/* brand */}
+              <div className="lp-foot-brandcol">
+                <Link href="/" className="lp-wordmark" aria-label="HireProof — home">
+                  <span className="lp-seal" aria-hidden="true"><Check /></span>HireProof
+                </Link>
+                <p className="lp-foot-tagline">
+                  A candidate-owned, cryptographically-signed credential — proof you&apos;re a real, live
+                  human with real AI judgment, verifiable by any employer in seconds.
+                </p>
+                <p className="lp-foot-deva" lang="hi">आपका प्रमाण, आपके पास।</p>
+              </div>
+
+              {/* explore */}
+              <nav className="lp-foot-col" aria-label="Explore">
+                <p className="lp-foot-h">Explore</p>
+                <a href="#how" className="lp-foot-link">How it works</a>
+                <a href="#shift" className="lp-foot-link">Why different</a>
+                <a href="#compliance" className="lp-foot-link">Compliance</a>
+                <a href="#faq" className="lp-foot-link">FAQ</a>
+                <Link href="/guide" className="lp-foot-link">Guide</Link>
+              </nav>
+
+              {/* use it */}
+              <nav className="lp-foot-col" aria-label="Use HireProof">
+                <p className="lp-foot-h">Use it</p>
+                <Link href="/verify" className="lp-foot-link">Prove you&apos;re real</Link>
+                <Link href="/v" className="lp-foot-link">Verify a credential</Link>
+                <Link href="/employer" className="lp-foot-link">For employers</Link>
+              </nav>
+
+              {/* built on */}
+              <div className="lp-foot-col">
+                <p className="lp-foot-h">Built on open standards</p>
+                <div className="lp-foot-stds">
+                  {["Ed25519", "did:web", "W3C VC 2.0", "DPDP 2023", "EU AI Act"].map((s) => (
+                    <span key={s} className="lp-foot-std">{s}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* bottom bar */}
+            <div className="lp-foot-bottom">
+              <p className="lp-mono" style={{ fontSize: "0.7rem" }}>
+                Prototype — calibrated claims over absolutes. See the honest-status notes in the demo.
+              </p>
+              <div className="lp-row" style={{ gap: "0.7rem" }}>
+                <span className="lp-mono" style={{ fontSize: "0.7rem", color: "var(--ink-2)" }}>Theme</span>
+                <button type="button" className="lp-icon-btn" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+                  {theme === "dark" ? <Sun /> : <Moon />}
+                </button>
+              </div>
             </div>
           </div>
         </footer>

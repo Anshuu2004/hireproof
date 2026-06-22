@@ -253,21 +253,25 @@ html[data-theme="dark"] {
   border-radius: 6px;
 }
 
-/* ---- a quiet ambient wash behind the hero (the one allowed background motion) ---- */
+/* ---- ambient: a soft, slow-drifting coloured light behind everything (both
+   modes). Pure radial gradients + a transform/opacity drift — no blur, GPU-only,
+   deliberately faint. Sits above the paper base, below all content (z-index). ---- */
 .lp-ambient {
-  position: absolute;
-  inset: 0 0 auto 0;
-  block-size: 720px;
+  position: fixed;
+  inset: -12%;
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(60% 50% at 78% 8%, color-mix(in srgb, var(--verify) 9%, transparent), transparent 70%),
-    radial-gradient(50% 40% at 8% 0%, color-mix(in srgb, var(--warm) 7%, transparent), transparent 70%);
-  animation: lp-wash 22s ease-in-out infinite alternate;
+    radial-gradient(36% 30% at 16% 12%, color-mix(in srgb, var(--verify) 16%, transparent), transparent 70%),
+    radial-gradient(32% 28% at 86% 18%, color-mix(in srgb, var(--info) 14%, transparent), transparent 70%),
+    radial-gradient(44% 38% at 60% 96%, color-mix(in srgb, var(--warm) 12%, transparent), transparent 72%);
+  animation: lp-aurora 26s ease-in-out infinite alternate;
+  will-change: transform, opacity;
 }
-@keyframes lp-wash {
-  0% { transform: translate3d(0, 0, 0); opacity: 0.85; }
-  100% { transform: translate3d(0, 14px, 0); opacity: 1; }
+@keyframes lp-aurora {
+  0%   { transform: translate3d(0, 0, 0) scale(1); opacity: 0.8; }
+  50%  { transform: translate3d(1.4%, -2.2%, 0) scale(1.06); opacity: 1; }
+  100% { transform: translate3d(-1.6%, 1.6%, 0) scale(1.03); opacity: 0.85; }
 }
 
 /* ============================ layout primitives ============================ */
@@ -291,7 +295,7 @@ html[data-theme="dark"] {
   font-family: var(--lp-display);
   font-weight: 650;
   font-size: clamp(2.4rem, 5.2vw, 4.4rem);
-  line-height: 1.03;
+  line-height: 1.08;
   letter-spacing: -0.02em;
   color: var(--ink);
   text-wrap: balance;
@@ -334,27 +338,19 @@ html[data-theme="dark"] {
   font-weight: 500;
 }
 
-/* warm underline under "human" — hand-drawn-ish, sparing */
+/* warm underline under "human" — a real text underline, offset clearly BELOW the
+   glyphs (never on top), per-line correct, fading in after the word lands. */
 .lp-warm {
-  position: relative;
   color: inherit;
   white-space: nowrap;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+  text-decoration-skip-ink: none;
+  animation: lp-underline 420ms ease 760ms both;
 }
-.lp-warm::after {
-  content: "";
-  position: absolute;
-  left: -0.04em;
-  right: -0.04em;
-  bottom: 0.04em;
-  height: 0.16em;
-  border-radius: 999px;
-  background: var(--warm);
-  opacity: 0.85;
-  transform: scaleX(0);
-  transform-origin: left;
-  animation: lp-underline var(--reveal) 520ms both;
-}
-@keyframes lp-underline { to { transform: scaleX(1); } }
+@keyframes lp-underline { to { text-decoration-color: var(--warm); } }
 
 /* hero headline — words load in, staggered (the one premium entrance; restrained) */
 .lp-words .w {
@@ -644,7 +640,32 @@ html[data-theme="dark"] {
 @keyframes lp-marquee { to { transform: translateX(-50%); } }
 
 /* =============================== footer ================================== */
-.lp-footer { border-top: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 50%, var(--paper)); }
+.lp-footer { border-top: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 55%, var(--paper)); position: relative; z-index: 1; }
+.lp-foot-grid {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1fr 1.1fr;
+  gap: clamp(28px, 4vw, 56px);
+  padding-block: clamp(44px, 6vw, 68px);
+}
+.lp-foot-brandcol { display: flex; flex-direction: column; gap: 0.9rem; max-width: 36ch; }
+.lp-foot-tagline { font-size: 0.92rem; color: var(--ink-2); line-height: 1.55; }
+.lp-foot-deva { font-family: var(--lp-deva); color: var(--warm); font-size: 0.95rem; }
+.lp-foot-col { display: flex; flex-direction: column; gap: 0.65rem; }
+.lp-foot-h { font-family: var(--lp-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-2); font-weight: 600; margin-bottom: 0.25rem; }
+.lp-foot-link { color: var(--ink); font-size: 0.9rem; text-decoration: none; width: fit-content; transition: color var(--micro); }
+.lp-foot-link:hover { color: var(--verify); }
+.lp-foot-bottom {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
+  padding-block: 1.1rem; border-top: 1px solid var(--line);
+}
+.lp-foot-stds { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+.lp-foot-std { font-family: var(--lp-mono); font-size: 0.66rem; color: var(--ink-2); display: inline-flex; align-items: center; gap: 0.4rem; }
+.lp-foot-std::before { content: ""; width: 4px; height: 4px; border-radius: 999px; background: var(--verify); opacity: 0.7; }
+@media (max-width: 900px) {
+  .lp-foot-grid { grid-template-columns: 1fr 1fr; }
+  .lp-foot-brandcol { grid-column: 1 / -1; max-width: none; }
+}
+@media (max-width: 560px) { .lp-foot-grid { grid-template-columns: 1fr; } }
 
 /* =============================== FAQ accordion =========================== */
 .lp-faq { border-top: 1px solid var(--line); }
@@ -801,7 +822,7 @@ html[data-theme="dark"] {
 @media (prefers-reduced-motion: reduce) {
   .lp-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
   .lp-ambient, .vc-shimmer, .lp-marquee-track { animation: none !important; }
-  .lp-warm::after { animation: none !important; transform: scaleX(1); }
+  .lp-warm { animation: none !important; text-decoration-color: var(--warm) !important; }
   .lp-words .w { animation: none !important; opacity: 1 !important; transform: none !important; }
   .vc-scan { display: none !important; }
   .vc-stroke { stroke-dashoffset: 0 !important; animation: none !important; }
