@@ -46,4 +46,11 @@ export const env = {
   // Vercel AI Gateway (OIDC token is injected automatically on Vercel;
   // AI_GATEWAY_API_KEY is only needed for local dev without a pulled token)
   aiGatewayKey: process.env.AI_GATEWAY_API_KEY,
+
+  // DigiLocker demo sandbox. Defaults let the demo run with zero config; in
+  // production these are the APISetu partner org id + the shared HMAC API key.
+  digilockerOrgId: process.env.DIGILOCKER_ORG_ID ?? "HP-DEMO-ORG",
+  get digilockerSecret() {
+    return process.env.DIGILOCKER_DEMO_SECRET ?? "hireproof-digilocker-demo-shared-secret";
+  },
 } as const;

@@ -14,6 +14,9 @@ const Body = z.object({
     face: z.boolean(),
     voice: z.boolean(),
     crossStage: z.boolean(),
+    // Opt-in flag for aggregate-only fairness auditing. Never gates the flow and
+    // never affects scoring; just authorises /api/audit-demographics to record.
+    demographicsForAudit: z.boolean().optional(),
   }),
   credentialId: z.string().uuid().optional(), // present on re-verify rounds
 });

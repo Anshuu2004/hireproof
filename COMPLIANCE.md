@@ -24,10 +24,19 @@ before relying on any single date.
     (e.g. their verification records) under their instructions.
 - **Data minimization:** raw video never persists; only a 128-D descriptor
   (server-side) and a salted one-way hash (in the credential). Erasure = revoke
-  credential + delete descriptor.
+  credential + delete descriptor **+ delete any opt-in fairness-audit demographics**
+  for that credential's sessions (`/api/credential/erase`).
+- **Opt-in fairness-audit demographics:** purpose-limited and decoupled — stored in
+  a separate table (`audit_demographics`) behind a **separate consent flag**, keyed
+  only to a session (never to a name or the credential), **never read by the scoring
+  path**, and used **only in aggregate** (cell-suppressed). Covered by the erasure flow.
 - **Consent:** itemized DPDP consent receipt captured per session
   (`sessions.consent_json`).
 - **Residency:** primary data store is Supabase in **Mumbai (`ap-south-1`)**.
+- **DigiLocker issuance (demo):** the credential can be issued into DigiLocker via a
+  **sandbox that mirrors the real Issued-Documents pull contract** (OAuth-style link +
+  HMAC-signed pull → DocDetails embedding the credential JWS). **No real DigiLocker /
+  Aadhaar call is made**; production requires Meri-Pehchaan / APISetu partner onboarding.
 - **Note:** DPDP grants **no statutory data-portability right** — credential
   portability is **candidate-controlled cryptographic sharing**, not a legal
   portability claim. The credential is now **holder-bound** (a secret committed in
@@ -54,11 +63,16 @@ before relying on any single date.
 
 ## AI hiring fairness (US + general)
 
-- **Bias-audit method:** AI-derived hiring signals are high-risk. We document an
-  **adverse-impact (four-fifths rule) methodology** for the AI-collaboration
-  score (see `bias_audit_runs` table; current data is **seeded/synthetic —
-  methodology demonstration**, clearly labeled). Aligns with **NYC Local Law 144**
-  intent and **EEOC** four-fifths guidance.
+- **Bias-audit method:** AI-derived hiring signals are high-risk. We run an
+  **adverse-impact (four-fifths rule) audit** over real scored sessions
+  (`/api/bias-audit/run` → `bias_audit_runs`), using **opt-in, aggregate-only**
+  self-declared demographics **plus** a language proxy cohort; groups below the
+  minimum cell size are **suppressed** (k-anonymity). The result is published at
+  `/fairness` with an **Ed25519-signed, did:web-verifiable certificate**. Demographics
+  are collected behind a **separate consent flag**, stored in a **separate table**, and
+  **never read by the scoring path** or written into the credential. Aligns with **NYC
+  Local Law 144** intent and **EEOC** four-fifths guidance. Honest scope: small-N pilot,
+  **not** a third-party-certified audit.
 - Note: the **Colorado AI Act was repealed** — we reference NYC LL144, Texas
   CUBI, and EEOC rather than treating it as live.
 

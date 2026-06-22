@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowsClockwise, X, Check, Warning, FileText, SignOut, Prohibit, LockKey } from "@phosphor-icons/react";
+import { ArrowsClockwise, X, Check, Warning, FileText, SignOut, Prohibit, LockKey, Scales, ShieldCheck, Copy } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,16 @@ interface SessionData {
   challenge: { actions: LivenessAction[]; digits: number[]; language: Language };
   spokenPhrase: string;
 }
+interface Enrollment {
+  id: string;
+  credentialId: string;
+  intervalDays: number;
+  nextDue: string;
+  status: string;
+  overdue: boolean;
+  lastResult: string | null;
+  lastCheckedAt: string | null;
+}
 
 const TOKEN_KEY = "hp_employer_token";
 
@@ -56,6 +66,11 @@ export default function EmployerPage() {
   const [reverifyResult, setReverifyResult] = useState<LivenessResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [revoking, setRevoking] = useState(false);
+  const [auditing, setAuditing] = useState(false);
+  const [auditNote, setAuditNote] = useState("");
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [enrolling, setEnrolling] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // restore an existing session on load
   useEffect(() => {
@@ -119,6 +134,19 @@ export default function EmployerPage() {
     if (token) load();
   }, [token, load]);
 
+  const loadEnrollments = useCallback(async () => {
+    if (!token) return;
+    const res = await fetch("/api/work/enrollments", { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) {
+      const d = await res.json();
+      setEnrollments(d.enrollments ?? []);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) loadEnrollments();
+  }, [token, loadEnrollments]);
+
   useEffect(() => {
     setReverifyResult(null);
     setReverify(null);
@@ -146,6 +174,60 @@ export default function EmployerPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function runFairnessAudit() {
+    if (auditing) return;
+    setAuditing(true);
+    setAuditNote("");
+    try {
+      const res = await fetch("/api/bias-audit/run", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ passThreshold: 60, minCell: 10 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuditNote(data.error ?? "Audit failed");
+        return;
+      }
+      const pass = data.report?.overallPass;
+      setAuditNote(
+        pass === null
+          ? "Run — not enough data to evaluate yet"
+          : pass
+          ? "Run — passes four-fifths"
+          : "Run — adverse impact flagged"
+      );
+      window.open("/fairness", "_blank");
+    } catch {
+      setAuditNote("Network error");
+    } finally {
+      setAuditing(false);
+    }
+  }
+
+  async function enroll() {
+    if (!sel || enrolling) return;
+    setEnrolling(true);
+    try {
+      const res = await fetch("/api/work/enroll", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ credentialId: sel.id, intervalDays: 30 }),
+      });
+      if (res.ok) await loadEnrollments();
+    } finally {
+      setEnrolling(false);
+    }
+  }
+
+  function copyRecheckLink(credId: string) {
+    const link = `${window.location.origin}/recheck?cred=${credId}`;
+    navigator.clipboard?.writeText(link).then(() => {
+      setCopiedLink(true);
+      window.setTimeout(() => setCopiedLink(false), 1600);
+    });
   }
 
   async function revoke() {
@@ -234,12 +316,22 @@ export default function EmployerPage() {
             <span className="hidden h-4 w-px bg-ink-700 sm:block" />
             <span className="hidden eyebrow text-ink-500 sm:block">Verify console</span>
           </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-1.5 rounded-full border border-ink-700 px-3 py-1 eyebrow text-ink-400 transition-colors hover:border-ink-500 hover:text-ink-200"
-          >
-            <SignOut size={13} /> Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            {auditNote && <span className="hidden font-data text-[0.65rem] text-ink-500 sm:inline">{auditNote}</span>}
+            <button
+              onClick={runFairnessAudit}
+              disabled={auditing}
+              className="flex items-center gap-1.5 rounded-full border border-ink-700 px-3 py-1 eyebrow text-ink-400 transition-colors hover:border-indigo/50 hover:text-indigo-bright disabled:opacity-50"
+            >
+              <Scales size={13} /> {auditing ? "Running…" : "Fairness audit"}
+            </button>
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 rounded-full border border-ink-700 px-3 py-1 eyebrow text-ink-400 transition-colors hover:border-ink-500 hover:text-ink-200"
+            >
+              <SignOut size={13} /> Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -358,6 +450,74 @@ export default function EmployerPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Continuous work verification — enrol + re-check status */}
+                  {(() => {
+                    const enrollment = enrollments.find((e) => e.credentialId === sel.id);
+                    return (
+                      <div className="rounded-card border border-ink-700/70 bg-ink-900/40 p-4">
+                        <div className="flex items-center justify-between">
+                          <p className="eyebrow text-ink-400">Continuous work verification</p>
+                          {enrollment && (
+                            <span
+                              className={cn(
+                                "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 eyebrow",
+                                enrollment.lastResult === "mismatch"
+                                  ? "bg-danger-wash/15 text-danger"
+                                  : enrollment.overdue
+                                  ? "bg-warn-wash/15 text-warn"
+                                  : "bg-proof/15 text-proof"
+                              )}
+                            >
+                              {enrollment.lastResult === "mismatch"
+                                ? "mismatch flagged"
+                                : enrollment.overdue
+                                ? "re-check due"
+                                : "verified"}
+                            </span>
+                          )}
+                        </div>
+                        {enrollment ? (
+                          <div className="mt-3 space-y-2.5">
+                            <p className="text-xs text-ink-400">
+                              Every {enrollment.intervalDays} days · next due{" "}
+                              {new Date(enrollment.nextDue).toLocaleDateString("en-IN", { dateStyle: "medium" })}
+                              {enrollment.lastCheckedAt && (
+                                <>
+                                  {" "}
+                                  · last {enrollment.lastResult} on{" "}
+                                  {new Date(enrollment.lastCheckedAt).toLocaleDateString("en-IN", { dateStyle: "medium" })}
+                                </>
+                              )}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => copyRecheckLink(sel.id)}
+                              className="flex items-center gap-1.5 rounded-control border border-ink-700 px-3 py-2 text-xs font-medium text-ink-200 transition-colors hover:border-ink-500 hover:bg-ink-900"
+                            >
+                              {copiedLink ? <Check size={14} className="text-proof" /> : <Copy size={14} />}{" "}
+                              {copiedLink ? "Copied" : "Copy re-check link for candidate"}
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
+                              Re-verify this person on a schedule after hiring — catches the post-hire
+                              seat-swap, not just the interview.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={enroll}
+                              disabled={enrolling || sel.revoked}
+                              className="mt-2.5 flex items-center gap-2 rounded-control bg-indigo px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-deep disabled:bg-ink-800 disabled:text-ink-500"
+                            >
+                              <ShieldCheck size={15} /> {enrolling ? "Enrolling…" : "Enrol in continuous verification"}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* audit trail */}
                   <div>

@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   const sb = supabaseAdmin();
   const { data: cred } = await sb
     .from("credentials")
-    .select("id,holder_secret_hash")
+    .select("id,holder_secret_hash,session_id")
     .eq("id", parsed.data.credentialId)
     .maybeSingle();
   if (!cred) return NextResponse.json({ error: "Credential not found" }, { status: 404 });
@@ -48,10 +48,30 @@ export async function POST(req: Request) {
     .delete({ count: "exact" })
     .eq("credential_id", cred.id);
 
+  // Also erase any opt-in fairness-audit demographics tied to this credential's
+  // sessions, so erasure covers ALL personal data, not just the biometric.
+  const { data: sess } = await sb.from("sessions").select("id").eq("credential_id", cred.id);
+  const sessionIds = new Set<string>((sess ?? []).map((s) => s.id as string));
+  if (cred.session_id) sessionIds.add(cred.session_id as string);
+  let demographicsDeleted = 0;
+  if (sessionIds.size) {
+    const { count: dcount } = await sb
+      .from("audit_demographics")
+      .delete({ count: "exact" })
+      .in("session_id", [...sessionIds]);
+    demographicsDeleted = dcount ?? 0;
+  }
+
   await appendAudit({
     eventType: "erasure",
-    output: { credentialId: cred.id, revoked: true, descriptorsDeleted: count ?? null, basis: "DPDP s.12 holder request" },
+    output: {
+      credentialId: cred.id,
+      revoked: true,
+      descriptorsDeleted: count ?? null,
+      demographicsDeleted,
+      basis: "DPDP s.12 holder request",
+    },
   });
 
-  return NextResponse.json({ erased: true, descriptorsDeleted: count ?? 0 });
+  return NextResponse.json({ erased: true, descriptorsDeleted: count ?? 0, demographicsDeleted });
 }

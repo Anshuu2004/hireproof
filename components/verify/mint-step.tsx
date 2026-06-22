@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DownloadSimple, Copy, ArrowSquareOut, Check, Key, Scales, Warning } from "@phosphor-icons/react";
+import { DownloadSimple, Copy, ArrowSquareOut, Check, Key, Scales, Warning, Vault } from "@phosphor-icons/react";
 import { CredentialCard } from "@/components/credential-card";
 import { Button, buttonClass } from "@/components/ui/button";
 import type { ScoreResult } from "./task-step";
@@ -258,6 +258,20 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
           <ArrowSquareOut size={15} /> Verify it
         </a>
       </div>
+
+      {/* Save into DigiLocker — India's govt wallet (demo sandbox; real API contract) */}
+      {cred && (
+        <button
+          type="button"
+          onClick={() => {
+            window.sessionStorage.setItem("hp_dl_secret", cred.holderSecret);
+            window.location.href = `/api/digilocker/authorize?credentialId=${cred.credentialId}`;
+          }}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-control border border-proof/30 bg-proof/5 px-4 py-2.5 text-sm font-medium text-proof-bright transition-colors hover:bg-proof/15 active:translate-y-px"
+        >
+          <Vault size={16} weight="fill" /> Save to DigiLocker <span className="eyebrow text-proof-bright/70">demo</span>
+        </button>
+      )}
 
       <ScoreExplain score={score} />
 

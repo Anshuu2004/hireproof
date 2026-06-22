@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, X, Warning } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/wordmark";
-import { ConsentStep, type ConsentValue } from "./consent-step";
+import { ConsentStep, type ConsentValue, type Demographics } from "./consent-step";
 import { LivenessStep, type LivenessResult } from "./liveness-step";
 import { TaskStep, type ScoreResult } from "./task-step";
 import { MintStep } from "./mint-step";
@@ -87,7 +87,7 @@ export function VerifyFlow() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleProceed(language: Language, consent: ConsentValue) {
+  async function handleProceed(language: Language, consent: ConsentValue, demographics?: Demographics) {
     setStarting(true);
     setError("");
     try {
@@ -100,6 +100,15 @@ export function VerifyFlow() {
       if (!res.ok) {
         setError(data.error ?? "Couldn't start a session");
         return;
+      }
+      // Opt-in fairness-audit demographics — separate, aggregate-only, fire-and-forget.
+      // Never blocks the flow; a failure here must not stop verification.
+      if (consent.demographicsForAudit && demographics) {
+        fetch("/api/audit-demographics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: data.sessionId, ...demographics }),
+        }).catch(() => {});
       }
       setSession(data as SessionData);
       setStep("liveness");
