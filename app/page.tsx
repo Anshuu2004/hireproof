@@ -234,6 +234,7 @@ export default function Home() {
             <a href="#shift" className="lp-navlink">Why different</a>
             <a href="#compliance" className="lp-navlink">Compliance</a>
             <a href="#faq" className="lp-navlink">FAQ</a>
+            <Link href="/guide" className="lp-navlink">Guide</Link>
           </nav>
           <div className="lp-row" style={{ gap: "0.55rem" }}>
             <Link href="/v" className="lp-btn lp-btn--ghost lp-cta-desktop">Verify a credential</Link>
@@ -251,6 +252,7 @@ export default function Home() {
             <a href="#how" onClick={() => setMenuOpen(false)}>How it works</a>
             <a href="#shift" onClick={() => setMenuOpen(false)}>Why different</a>
             <a href="#compliance" onClick={() => setMenuOpen(false)}>Compliance</a>
+            <Link href="/guide" onClick={() => setMenuOpen(false)}>Guide</Link>
             <Link href="/v" onClick={() => setMenuOpen(false)}>Verify a credential</Link>
           </div>
         )}
@@ -493,6 +495,7 @@ export default function Home() {
             <nav aria-label="Footer" className="lp-row" style={{ gap: "1.4rem", flexWrap: "wrap" }}>
               <a href="#how" className="lp-ulink">How it works</a>
               <a href="#compliance" className="lp-ulink">Compliance</a>
+              <Link href="/guide" className="lp-ulink">Guide</Link>
               <Link href="/v" className="lp-ulink">Verify a credential</Link>
               <Link href="/verify" className="lp-ulink">Prove you&apos;re real</Link>
             </nav>

@@ -193,6 +193,7 @@ html[data-theme="light"] {
   --verify-press: #0e9c73;
   --warm: #e8a93c;
   --alert: #c4422c;
+  --info: #3a6ea5;
   --line: #e6e7e2;
   --lp-shadow: 0 1px 2px rgba(20, 22, 28, 0.06), 0 8px 30px rgba(20, 22, 28, 0.06);
   --lp-shadow-lift: 0 2px 4px rgba(20, 22, 28, 0.07), 0 16px 44px rgba(20, 22, 28, 0.1);
@@ -210,6 +211,7 @@ html[data-theme="dark"] {
   --verify-press: #12b886;
   --warm: #e8a93c;
   --alert: #d6543b;
+  --info: #5b8fd0;
   --line: rgba(255, 255, 255, 0.09);
   --lp-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 30px rgba(0, 0, 0, 0.45);
   --lp-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 46px rgba(0, 0, 0, 0.55);
@@ -397,6 +399,44 @@ html[data-theme="dark"] {
 .lp-btn--ghost:hover { border-color: var(--ink-2); transform: translateY(-2px); }
 .lp-btn svg { transition: transform var(--micro); }
 .lp-btn:hover svg.lp-arrow { transform: translateX(3px); }
+
+/* back button — used on every sub-page so the site reads as navigable, not one scroll */
+.lp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color var(--micro), border-color var(--micro), transform var(--micro);
+}
+.lp-back:hover { color: var(--ink); border-color: var(--ink-2); transform: translateX(-2px); }
+.lp-back svg { transition: transform var(--micro); }
+.lp-back:hover svg { transform: translateX(-2px); }
+
+/* guide page — coloured section cards (the "mixed colour" pass, kept calm) */
+.lp-guide-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ga, var(--verify));
+  border-radius: var(--r-card);
+  box-shadow: var(--lp-shadow);
+  padding: clamp(1.3rem, 2.4vw, 2rem);
+}
+.lp-guide-eyebrow { font-family: var(--lp-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600; color: var(--ga, var(--verify)); }
+.lp-guide-step { display: flex; gap: 0.9rem; padding: 0.7rem 0; }
+.lp-guide-step + .lp-guide-step { border-top: 1px solid var(--line); }
+.lp-guide-num {
+  flex: none; width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center;
+  font-family: var(--lp-mono); font-size: 0.72rem; font-weight: 600;
+  color: var(--ga, var(--verify)); background: color-mix(in srgb, var(--ga, var(--verify)) 14%, transparent);
+}
 
 /* chips / pills */
 .lp-chip {
