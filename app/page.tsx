@@ -614,7 +614,7 @@ export default function Home() {
             {/* bottom bar */}
             <div className="lp-foot-bottom">
               <p className="lp-mono" style={{ fontSize: "0.7rem" }}>
-                Prototype — calibrated claims over absolutes. See the honest-status notes in the demo.
+                © 2026 HireProof · Verifiable proof of a real, capable hire.
               </p>
               <div className="lp-row" style={{ gap: "0.7rem" }}>
                 <span className="lp-mono" style={{ fontSize: "0.7rem", color: "var(--ink-2)" }}>Theme</span>

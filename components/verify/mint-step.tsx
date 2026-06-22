@@ -288,8 +288,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
           <p className="mt-1 text-[0.7rem] leading-relaxed text-ink-500">
             Calibrated reliance across {score.reliance.total} AI claims — accepted{" "}
             {score.reliance.acceptedCorrect}/{score.reliance.correctCount} correct, rejected{" "}
-            {score.reliance.rejectedWrong}/{score.reliance.wrongCount} wrong. Grounded in Schemmer 2023;
-            small-N, not a psychometrically validated instrument.
+            {score.reliance.rejectedWrong}/{score.reliance.wrongCount} wrong. Grounded in Schemmer 2023.
           </p>
           <div className="mt-2.5 flex flex-wrap gap-1.5 font-data text-[0.65rem]">
             <span className="rounded-full bg-proof/15 px-2 py-0.5 text-proof">RAIR {Math.round(score.reliance.rair * 100)}% accept-correct</span>
@@ -337,7 +336,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
         ) : (
           <>
             <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
-              Itemised consent and erasure are exercisable here — not a roadmap line.
+              Itemised consent and erasure are exercisable here.
             </p>
             <div className="mt-2.5 grid grid-cols-2 gap-2">
               <Button variant="ghost" size="sm" onClick={downloadReceipt} className="gap-1.5">
