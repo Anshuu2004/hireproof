@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Camera, Microphone, ArrowsClockwise, Trash, Check, Scales } from "@phosphor-icons/react";
+import { Camera, Microphone, ArrowsClockwise, Trash, Check, Scales, Eye } from "@phosphor-icons/react";
 import type { Language } from "@/lib/liveness/challenge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 export interface ConsentValue {
   face: boolean;
   voice: boolean;
+  proctor: boolean;
   crossStage: boolean;
   demographicsForAudit?: boolean;
 }
@@ -85,6 +86,13 @@ const ITEMS = [
     required: true,
   },
   {
+    key: "proctor" as const,
+    icon: Eye,
+    title: "Secured-test monitoring",
+    desc: "During the skill task your camera stays on to confirm you're present and alone. The video stays on your device — only a present/absent signal and a warning count are recorded.",
+    required: true,
+  },
+  {
     key: "crossStage" as const,
     icon: ArrowsClockwise,
     title: "Cross-round match",
@@ -137,6 +145,7 @@ export function ConsentStep({
   const [consent, setConsent] = useState<ConsentValue>({
     face: false,
     voice: false,
+    proctor: false,
     crossStage: true,
     demographicsForAudit: false,
   });
@@ -146,7 +155,7 @@ export function ConsentStep({
     region: "undisclosed",
     category: "undisclosed",
   });
-  const ready = consent.face && consent.voice;
+  const ready = consent.face && consent.voice && consent.proctor;
   const demoOn = consent.demographicsForAudit === true;
 
   return (
@@ -241,7 +250,7 @@ export function ConsentStep({
       {/* what we never do — the DPDP / EU-AI-Act guarantees, stated plainly */}
       <ul className="mt-5 space-y-2">
         {[
-          "Your camera feed never leaves your device. We keep only a privacy-safe math summary of your face.",
+          "Your camera feed never leaves your device — including the in-task check. We keep only a privacy-safe math summary and a present/absent signal.",
           "No emotion, confidence, or personality is ever inferred. By law and by design.",
           "Delete everything anytime by revoking your badge.",
         ].map((t) => (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DownloadSimple, Copy, ArrowSquareOut, Check, Key, Scales, Warning, Vault } from "@phosphor-icons/react";
+import { DownloadSimple, Copy, ArrowSquareOut, Check, Key, Scales, Warning, Vault, LockKey, Microphone } from "@phosphor-icons/react";
 import { CredentialCard } from "@/components/credential-card";
 import { Button, buttonClass } from "@/components/ui/button";
 import type { ScoreResult } from "./task-step";
@@ -299,6 +299,80 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
             <span className="rounded-full bg-proof/15 px-2 py-0.5 text-proof">RAIR {Math.round(score.reliance.rair * 100)}% accept-correct</span>
             <span className="rounded-full bg-indigo/15 px-2 py-0.5 text-indigo-bright">RSR {Math.round(score.reliance.rsr * 100)}% override-wrong</span>
           </div>
+        </div>
+      )}
+
+      {/* Oral explain-back — binds the WORK to the live person (anti-outsourcing) */}
+      {score.explain?.done && (
+        <div className="mt-3 w-full rounded-control border border-ink-700 bg-ink-900 p-4 text-left">
+          <div className="flex items-center gap-2">
+            <Microphone size={15} className="text-indigo-bright" weight="fill" />
+            <span className="text-xs font-medium text-ink-100">Oral explain-back</span>
+            <span
+              className={cn(
+                "ml-auto rounded-full px-2 py-0.5 font-data text-[0.65rem]",
+                score.explain.verdict === "consistent"
+                  ? "bg-proof/15 text-proof"
+                  : score.explain.verdict === "inconsistent"
+                    ? "bg-danger-wash/15 text-danger"
+                    : "bg-ink-800 text-ink-400"
+              )}
+            >
+              {score.explain.verdict}
+            </span>
+          </div>
+          <p className="mt-1.5 text-[0.7rem] leading-relaxed text-ink-500">
+            You explained your answer live, on the clock — it was{" "}
+            {score.explain.verdict === "consistent"
+              ? "consistent with"
+              : score.explain.verdict === "inconsistent"
+                ? "inconsistent with"
+                : "weakly aligned to"}{" "}
+            your submission
+            {typeof score.explain.consistency === "number"
+              ? ` (${Math.round(score.explain.consistency * 100)}% match)`
+              : ""}
+            . Binds the work to the verified person.
+          </p>
+        </div>
+      )}
+
+      {/* Session integrity — secured-test reviewer signals (never an auto-reject) */}
+      {score.integrity && (
+        <div className="mt-3 w-full rounded-control border border-ink-700 bg-ink-900 p-4 text-left">
+          <div className="flex items-center gap-2">
+            <LockKey size={15} className="text-indigo-bright" weight="fill" />
+            <span className="text-xs font-medium text-ink-100">Session integrity</span>
+            <span className="eyebrow ml-auto text-ink-500">secured test</span>
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-1.5 font-data text-[0.65rem]">
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5",
+                score.integrity.pasteHeavy ? "bg-warn-wash/15 text-warn" : "bg-proof/15 text-proof"
+              )}
+            >
+              {score.integrity.pasteHeavy ? "large pasted answer" : "typed answer"}
+            </span>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5",
+                score.integrity.fastSolve ? "bg-warn-wash/15 text-warn" : "bg-ink-800 text-ink-400"
+              )}
+            >
+              {score.integrity.elapsedMs > 0
+                ? `solved in ${Math.round(score.integrity.elapsedMs / 1000)}s${score.integrity.fastSolve ? " · fast" : ""}`
+                : "timing unavailable"}
+            </span>
+            {score.integrity.awayEvents > 0 && (
+              <span className="rounded-full bg-ink-800 px-2 py-0.5 text-ink-400">
+                {score.integrity.awayEvents} focus leave{score.integrity.awayEvents === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-[0.65rem] leading-relaxed text-ink-500">
+            Behavioural signals for a human reviewer — never an automatic reject.
+          </p>
         </div>
       )}
 

@@ -46,7 +46,7 @@ export default function VerifyPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
 
-  const verify = useCallback(async (token: string) => {
+  const verify = useCallback(async (token: string, expectedSub?: string) => {
     if (!token || token.split(".").length !== 3) {
       setState("invalid");
       setResult({ state: "invalid", took: 0, reason: "Not a credential token" });
@@ -76,6 +76,11 @@ export default function VerifyPage() {
         }
       }
       if (!payload) throw expiredErr ?? otherErr ?? new Error("Signature invalid");
+      // When resolved by id (short QR), bind the verified token back to that id so a
+      // swapped same-origin token-endpoint response can't show the wrong credential.
+      if (expectedSub && (payload.sub as string | undefined) !== expectedSub) {
+        throw new Error("Credential id mismatch");
+      }
       let status: Result["status"];
       let statusReachable = true;
       try {
@@ -122,11 +127,49 @@ export default function VerifyPage() {
     }
   }, []);
 
+  // Resolve a SHORT QR (…/v?c=<id>) → fetch the token, then verify it offline.
+  const verifyById = useCallback(
+    async (id: string) => {
+      setState("verifying");
+      setResult(null);
+      try {
+        const { token } = await fetch(`/api/credential/token?id=${encodeURIComponent(id)}`).then((r) => r.json());
+        if (token) return verify(token, id);
+        setState("invalid");
+        setResult({ state: "invalid", took: 0, reason: "Credential not found" });
+      } catch {
+        setState("invalid");
+        setResult({ state: "invalid", took: 0, reason: "Couldn't resolve that QR" });
+      }
+    },
+    [verify]
+  );
+
+  // A scanned/opened value may be a short scan URL (?c=<id>), a verify URL
+  // (…/v#<token>), or a raw token. Route each to the right path.
+  const handleScan = useCallback(
+    (text: string) => {
+      try {
+        const u = new URL(text);
+        const c = u.searchParams.get("c");
+        if (c) return verifyById(c);
+        if (u.hash.length > 1) return verify(u.hash.slice(1));
+      } catch {
+        /* not a URL — fall through to raw token */
+      }
+      verify(tokenFromScan(text));
+    },
+    [verify, verifyById]
+  );
+
   useEffect(() => {
-    const h = typeof window !== "undefined" ? window.location.hash.slice(1) : "";
+    if (typeof window === "undefined") return;
+    const h = window.location.hash.slice(1);
+    const c = new URLSearchParams(window.location.search).get("c");
     if (h) verify(h);
+    else if (c) verifyById(c);
     return () => window.clearInterval(timer.current);
-  }, [verify]);
+  }, [verify, verifyById]);
 
   const stopScan = useCallback(() => {
     controlsRef.current?.stop();
@@ -146,11 +189,11 @@ export default function VerifyPage() {
           videoRef.current!,
           (res, _err, ctrl) => {
             if (res && !cancelled) {
-              const tok = tokenFromScan(res.getText());
+              const text = res.getText();
               ctrl?.stop();
               controlsRef.current = null;
               setScanning(false);
-              verify(tok);
+              handleScan(text);
             }
           }
         );
@@ -167,7 +210,7 @@ export default function VerifyPage() {
       controlsRef.current?.stop();
       controlsRef.current = null;
     };
-  }, [scanning, verify]);
+  }, [scanning, handleScan]);
 
   const took = state === "verifying" ? elapsed : (result?.took ?? 0);
   const hp = result?.payload?.hp;

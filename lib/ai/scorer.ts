@@ -77,6 +77,55 @@ export interface DeterministicSignals {
   promptInjectionSuspected: boolean;
 }
 
+/**
+ * Behavioural integrity signals captured CLIENT-side during the (un-proctored)
+ * skill task and validated server-side. These do NOT prove outsourcing — they
+ * surface its tell-tales (a large pasted answer, an implausibly fast solve, focus
+ * leaving the window) as honest, human-review reviewer flags. Never auto-reject.
+ */
+export interface IntegritySignals {
+  elapsedMs: number;
+  timeToFirstActionMs: number;
+  pasteEvents: number;
+  pastedChars: number;
+  finalAnswerPastedChars: number;
+  finalAnswerLen: number;
+  finalAnswerPastedFraction: number;
+  awayEvents: number;
+  pasteHeavy: boolean;
+  fastSolve: boolean;
+  lockdownUsed: boolean;
+}
+
+/** Raw, untrusted integrity telemetry as POSTed by the client. */
+export interface RawIntegrity {
+  elapsedMs: number;
+  timeToFirstActionMs: number;
+  pasteEvents: number;
+  pastedChars: number;
+  finalAnswerPastedChars: number;
+  finalAnswerLen: number;
+  awayEvents: number;
+  lockdownUsed: boolean;
+}
+
+/** A large paste into a non-trivial final answer is the strongest cheap tell. */
+const PASTE_HEAVY_FRACTION = 0.5;
+const PASTE_HEAVY_MIN_LEN = 80;
+/** A multi-step judgment task solved in under this is implausibly fast. */
+const FAST_SOLVE_MS = 25_000;
+
+/** Derive non-gating reviewer flags from raw client telemetry. */
+export function deriveIntegrity(raw: RawIntegrity): IntegritySignals {
+  const frac = raw.finalAnswerLen > 0 ? Math.min(1, raw.finalAnswerPastedChars / raw.finalAnswerLen) : 0;
+  return {
+    ...raw,
+    finalAnswerPastedFraction: Math.round(frac * 100) / 100,
+    pasteHeavy: frac > PASTE_HEAVY_FRACTION && raw.finalAnswerLen >= PASTE_HEAVY_MIN_LEN,
+    fastSolve: raw.elapsedMs > 0 && raw.elapsedMs < FAST_SOLVE_MS,
+  };
+}
+
 /** Process signals computed in code (no LLM) — anchors the score against a chatty
  *  or talked-into grader. These cannot be moved by the model's output. */
 export function deterministicSignals(turns: Turn[], finalAnswer: string): DeterministicSignals {
