@@ -568,9 +568,9 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
                 <div className="h-full w-1/2 animate-[pulse-soft_1.2s_ease-in-out_infinite] rounded-full bg-indigo-bright" />
               </div>
               <p className="font-data text-xs text-ink-300">
-                {phase === "loading" && "loading face engine…"}
-                {phase === "capturing" && "computing 128-d face fingerprint…"}
-                {phase === "submitting" && "verifying signals on the server…"}
+                {phase === "loading" && "starting the camera check…"}
+                {phase === "capturing" && "taking your live face snapshot…"}
+                {phase === "submitting" && "confirming your checks…"}
               </p>
             </div>
           </div>
@@ -579,11 +579,11 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
 
       {/* signal pills */}
       <div className="mt-5 flex w-full items-center justify-center gap-2">
-        {(["Face", "Voice", "Reasoning"] as const).map((s) => {
+        {(["Face", "Voice", "Skill"] as const).map((s) => {
           const active =
             (s === "Face" && ["running", "confirm", "speaking", "capturing", "submitting", "done"].includes(phase)) ||
             (s === "Voice" && ["speaking", "capturing", "submitting", "done"].includes(phase)) ||
-            (s === "Reasoning" && phase === "done");
+            (s === "Skill" && phase === "done");
           return (
             <div
               key={s}

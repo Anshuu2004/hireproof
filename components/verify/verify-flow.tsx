@@ -48,8 +48,8 @@ interface SessionData {
 const STEPS: { key: Step; label: string }[] = [
   { key: "consent", label: "Consent" },
   { key: "liveness", label: "Live check" },
-  { key: "task", label: "Skill" },
-  { key: "mint", label: "Credential" },
+  { key: "task", label: "AI task" },
+  { key: "mint", label: "Your badge" },
 ];
 
 function StepRail({ current }: { current: Step }) {
@@ -81,7 +81,7 @@ function FailPanel({ result }: { result: LivenessResult }) {
         <X size={26} weight="bold" />
       </div>
       <h1 className="mt-5 text-2xl font-semibold tracking-[-0.01em] text-ink-50">Live check didn&apos;t pass</h1>
-      <p className="mt-2 text-ink-300">One or more signals didn&apos;t complete. You can retry.</p>
+      <p className="mt-2 text-ink-300">One or more checks didn&apos;t finish. You can try again.</p>
       <div className="mt-7 divide-y divide-ink-700/70 overflow-hidden rounded-card border border-ink-700 bg-ink-900 text-left">
         {rows.map(([label, ok]) => (
           <div key={label} className="flex items-center justify-between px-4 py-3">

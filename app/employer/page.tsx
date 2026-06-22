@@ -417,7 +417,7 @@ export default function EmployerPage() {
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-6xl flex-1 gap-px overflow-hidden bg-ink-700/40 md:grid-cols-[340px_1fr]">
+      <main className="mx-auto grid w-full max-w-6xl flex-1 gap-px overflow-hidden bg-ink-700/40 lg:grid-cols-[minmax(280px,340px)_1fr]">
         {/* LEFT: credential list */}
         <div className="flex flex-col bg-ink-950">
           <div className="flex items-center justify-between border-b border-ink-700/70 px-4 py-3">
@@ -434,9 +434,9 @@ export default function EmployerPage() {
             ) : creds.length === 0 ? (
               <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
                 <FileText size={22} className="text-ink-500" />
-                <p className="text-sm text-ink-400">No credentials yet.</p>
+                <p className="text-sm text-ink-400">No badges yet.</p>
                 <Link href="/verify" className="text-sm text-indigo-bright underline-offset-4 hover:underline">
-                  Mint one at /verify
+                  Create one at /verify
                 </Link>
               </div>
             ) : (
@@ -475,8 +475,8 @@ export default function EmployerPage() {
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
               <p className="text-ink-400">Select a candidate to see their verified record.</p>
               <p className="max-w-sm text-xs text-ink-400">
-                Each credential is signed and re-verifiable. Re-verify identity each round to catch
-                proxy and seat-swap rings.
+                Each badge is signed and can be re-checked. Re-check identity each round to catch
+                stand-ins and seat-swaps.
               </p>
             </div>
           ) : (
@@ -495,7 +495,7 @@ export default function EmployerPage() {
                 <div className="space-y-5">
                   {/* verdict + actions */}
                   <div>
-                    <p className="eyebrow text-ink-400">Trust verdict</p>
+                    <p className="eyebrow text-ink-400">Result</p>
                     <div className="mt-2 flex items-center gap-2">
                       <span className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-sm", sel.payload_json.humanVerified && !sel.revoked ? "bg-proof/15 text-proof" : "bg-danger-wash/15 text-danger")}>
                         {sel.revoked ? <Prohibit size={14} weight="bold" /> : <Check size={14} weight="bold" />} {sel.revoked ? "Revoked" : "Real human · verified"}
@@ -503,7 +503,7 @@ export default function EmployerPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <Button onClick={startReverify} disabled={busy} className="w-full">
                       <ArrowsClockwise size={16} /> Re-verify (next round)
                     </Button>
@@ -584,8 +584,8 @@ export default function EmployerPage() {
                         ) : (
                           <>
                             <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
-                              Re-verify this person on a schedule after hiring — catches the post-hire
-                              seat-swap, not just the interview.
+                              Re-check this person on a schedule after hiring. Catches a swap after the
+                              interview, not just during it.
                             </p>
                             <button
                               type="button"
@@ -603,7 +603,7 @@ export default function EmployerPage() {
 
                   {/* audit trail */}
                   <div>
-                    <p className="eyebrow text-ink-400">Auditable trail · hash-chained</p>
+                    <p className="eyebrow text-ink-400">Activity log · tamper-proof</p>
                     <ol className="mt-3 space-y-0">
                       {audit.map((e, i) => (
                         <li key={e.id} className="flex gap-3">
@@ -613,7 +613,7 @@ export default function EmployerPage() {
                           </div>
                           <div className="pb-4">
                             <p className="text-sm text-ink-200">{e.event_type}</p>
-                            <p className="font-data text-[0.65rem] text-ink-500">
+                            <p className="break-all font-data text-[0.65rem] text-ink-500">
                               {new Date(e.created_at).toLocaleTimeString("en-IN", { hour12: false })} · {e.row_hash.slice(0, 16)}…
                             </p>
                           </div>

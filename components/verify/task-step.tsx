@@ -66,7 +66,7 @@ export function TaskStep({
     // the "generating a fresh task…" spinner never shows.
     if (prefetchedTask) {
       setTask(prefetchedTask);
-      setLedger([{ t: now(), label: "Task generated · planted flaw hidden" }]);
+      setLedger([{ t: now(), label: "Task ready · the AI may slip up" }]);
       return;
     }
     let cancelled = false;
@@ -84,7 +84,7 @@ export function TaskStep({
           return;
         }
         setTask(data);
-        setLedger([{ t: now(), label: "Task generated · planted flaw hidden" }]);
+        setLedger([{ t: now(), label: "Task ready · the AI may slip up" }]);
       } catch {
         if (!cancelled) setLoadErr("Network error generating task");
       }
@@ -207,10 +207,10 @@ export function TaskStep({
         <div className="rounded-card border border-ink-700 bg-ink-900 p-5">
           <p className="eyebrow text-indigo-bright">Your task</p>
           <h2 className="mt-1.5 text-base font-semibold text-ink-50">{task.title}</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-300">{task.brief}</p>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-300">{task.brief}</p>
         </div>
         <div className="rounded-card border border-ink-700 bg-ink-900 p-5">
-          <p className="eyebrow text-ink-400">Thinking ledger · auditable</p>
+          <p className="eyebrow text-ink-400">Your steps · logged</p>
           <ul className="mt-3 space-y-2">
             {ledger.map((e, i) => (
               <li key={i} className="flex items-start gap-2.5 text-xs">
@@ -221,8 +221,8 @@ export function TaskStep({
           </ul>
         </div>
         <p className="px-1 text-xs leading-relaxed text-ink-500">
-          The AI may be confidently wrong. You&apos;re scored on judgment — catching, directing, and
-          correcting it — not on using it.
+          The AI can sound confident but be wrong. You&apos;re scored on how you catch and fix its
+          mistakes, not on just using it.
         </p>
 
         {/* Appropriate-reliance probe (RAIR/RSR): accept the correct AI claims, reject the wrong ones */}
@@ -230,10 +230,10 @@ export function TaskStep({
           <div className="rounded-card border border-ink-700 bg-ink-900 p-5">
             <div className="flex items-center gap-2">
               <Scales size={15} className="text-indigo-bright" />
-              <p className="eyebrow text-indigo-bright">Calibrated AI-reliance check</p>
+              <p className="eyebrow text-indigo-bright">Trust the AI only when it&apos;s right</p>
             </div>
             <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
-              The AI made these claims about your task. <span className="text-ink-300">Accept the right ones, reject the wrong ones</span> — we measure appropriate reliance (accept-correct <em>and</em> override-wrong).
+              The AI made these claims about your task. <span className="text-ink-300">Accept the ones that are right and reject the ones that are wrong.</span>
             </p>
             <ul className="mt-3 space-y-2.5">
               {panel.map((s) => (
@@ -276,7 +276,7 @@ export function TaskStep({
           <span className="eyebrow ml-auto text-ink-500">authorship is labelled</span>
         </div>
 
-        <div ref={chatRef} className="max-h-[300px] min-h-[180px] flex-1 space-y-3 overflow-y-auto p-4">
+        <div ref={chatRef} className="max-h-[min(50vh,420px)] min-h-[180px] flex-1 space-y-3 overflow-y-auto p-4">
           {messages.length === 0 && (
             <p className="py-8 text-center text-sm text-ink-500">
               Ask the AI to help with the task. Then judge its answer.
@@ -345,7 +345,7 @@ export function TaskStep({
             />
             {panel && Object.keys(decisions).length < panel.length && (
               <p className="text-center text-xs text-ink-500">
-                Decide all {panel.length} AI-reliance claims (left) before submitting.
+                Decide all {panel.length} AI claims (left) before submitting.
               </p>
             )}
             <Button
@@ -355,7 +355,7 @@ export function TaskStep({
               disabled={!finalAnswer.trim() || scoring || (!!panel && Object.keys(decisions).length < panel.length)}
               className="w-full"
             >
-              {scoring ? "Scoring your judgment…" : "Submit for scoring"}
+              {scoring ? "Scoring your answer…" : "Submit for scoring"}
             </Button>
           </div>
         </div>

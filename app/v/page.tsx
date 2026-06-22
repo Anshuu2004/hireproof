@@ -231,10 +231,10 @@ export default function VerifyPage() {
 
                 <div className="mt-6 divide-y divide-ink-700/70 overflow-hidden rounded-card border border-ink-700 bg-ink-900">
                   {[
-                    ["Ed25519 signature", "valid"],
+                    ["Tamper-proof signature", "valid"],
                     ["Issued by", result.payload.iss ?? ""],
-                    ["Re-verification rounds", String(result.status?.rounds ?? hp.rounds)],
-                    ["AI-collaboration score", String(hp.aiCollaboration.score)],
+                    ["Re-check rounds", String(result.status?.rounds ?? hp.rounds)],
+                    ["AI-handling score", String(hp.aiCollaboration.score)],
                   ].map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between px-4 py-2.5">
                       <span className="text-sm text-ink-300">{k}</span>
@@ -247,10 +247,10 @@ export default function VerifyPage() {
                 <div className="mt-4 rounded-card border border-ink-700 bg-ink-900 p-4 text-sm">
                   <p className="eyebrow text-ink-400">What this proves / does not prove</p>
                   <ul className="mt-2 space-y-1.5 text-ink-400">
-                    <li>✓ A live human passed a randomised liveness check at issuance.</li>
-                    <li>✓ A measured AI-collaboration judgment score (not affect/personality).</li>
-                    <li>✗ Not a legal-identity / KYC document.</li>
-                    <li>✗ Challenge-response liveness — not certified anti-deepfake PAD.</li>
+                    <li>✓ A live person passed a real-time check when this was issued.</li>
+                    <li>✓ A score for how well they handled the AI (not mood or personality).</li>
+                    <li>✗ Not an official ID or KYC document.</li>
+                    <li>✗ A live-person check, not a certified anti-deepfake test.</li>
                   </ul>
                 </div>
               </>

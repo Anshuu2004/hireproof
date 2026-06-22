@@ -131,16 +131,16 @@ export function CredentialCard({
           </span>
           <div>
             <p className="text-base font-bold leading-tight tracking-[-0.01em] text-ink-50">{subject}</p>
-            <p className="eyebrow text-proof">Liveness passed · Identity continuous</p>
+            <p className="eyebrow text-proof">Live person confirmed · same face each round</p>
           </div>
         </div>
 
-        {/* AI-collaboration skill band: three judgment axes (never a vanity number) */}
+        {/* How the candidate handled the AI: three axes (never a vanity number) */}
         <div className="space-y-2.5">
-          <p className="eyebrow text-ink-400">AI-collaboration · judgment</p>
-          <ScoreBar label="Direct" value={scores.direct} />
-          <ScoreBar label="Judge" value={scores.judge} />
-          <ScoreBar label="Correct" value={scores.correct} />
+          <p className="eyebrow text-ink-400">How they handled the AI</p>
+          <ScoreBar label="Steered it" value={scores.direct} />
+          <ScoreBar label="Caught errors" value={scores.judge} />
+          <ScoreBar label="Got it right" value={scores.correct} />
         </div>
 
         {/* provenance + (optional) scannable QR */}
@@ -162,7 +162,7 @@ export function CredentialCard({
                 {verifyUrl && <p className="truncate font-data text-[0.7rem] text-ink-200">{verifyUrl}</p>}
               </>
             ) : (
-              <p className="eyebrow text-ink-300">Offline-verifiable credential</p>
+              <p className="eyebrow text-ink-300">Checkable even offline</p>
             )}
             <p className="font-data text-[0.7rem] text-ink-300">exp {expiresAt} · Ed25519 · did:web</p>
           </div>

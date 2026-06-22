@@ -56,13 +56,13 @@ const SHIFT = [
 ];
 
 const CANDIDATE = [
-  ["01", "Prove you're live", "A 2-minute randomised challenge — face + voice liveness with a task generated the instant you start. A proxy, a deepfake avatar, or an earpiece can't pre-stage it."],
-  ["02", "Show your judgment", "You're handed an AI openly and scored on how you direct, judge, and correct it on a real task — not on what you memorised. The job in 2026."],
-  ["03", "Own your proof", "You mint a portable, cryptographically-signed credential. It's yours — reuse it with every employer. No re-spying each application."],
+  ["01", "Prove you're live", "A 2-minute face and voice check that proves you are live on camera right now. The task is created the moment you start, so a stand-in, a deepfake, or an earpiece can't prepare for it."],
+  ["02", "Show you can out-think the AI", "You're given an AI to use openly and scored on how well you guide it, catch its mistakes, and fix them on a real task. That's the skill that matters now, not memorising answers."],
+  ["03", "Own your proof", "You get a tamper-proof badge that's yours to keep. Reuse it with every employer instead of getting screened from scratch each time."],
 ];
 const EMPLOYER = [
   ["01", "Verify in seconds", "Scan the candidate's HireProof. The signature is checked against our published key — tamper-evident, and it works even if our servers are down."],
-  ["02", "See the evidence", "A verified-human + AI-judgment record with an auditable, bias-checked trail. No black-box fraud score — every line is explainable."],
+  ["02", "See the evidence", "A clear record showing the person is real and how well they handled the AI, with every score line explained and a full activity trail. No mystery fraud score."],
   ["03", "Catch the swap", "Identity is re-verified each round and at onboarding. The person who applied is the person who shows up — proxy and seat-swap rings get flagged."],
 ];
 
@@ -266,30 +266,31 @@ export default function Home() {
           <div className="lp-container">
             <div className="lp-hero">
               <div className="lp-hero-copy">
-                <p className="lp-eyebrow lp-reveal">Hiring-integrity infrastructure · Built for Bharat</p>
+                <p className="lp-eyebrow lp-reveal">Trusted hiring checks · Built for India</p>
                 <h1 className="lp-display lp-words">
                   <span className="w" style={{ "--wd": "0ms" } as React.CSSProperties}>Prove</span>{" "}
                   <span className="w" style={{ "--wd": "50ms" } as React.CSSProperties}>you&apos;re</span>{" "}
                   <span className="w" style={{ "--wd": "100ms" } as React.CSSProperties}>a</span>{" "}
                   <span className="w" style={{ "--wd": "150ms" } as React.CSSProperties}>real</span>{" "}
-                  <span className="w lp-warm" style={{ "--wd": "200ms" } as React.CSSProperties}>human</span>{" "}
-                  <span className="w" style={{ "--wd": "260ms" } as React.CSSProperties}>—</span>{" "}
-                  <span className="w" style={{ "--wd": "320ms" } as React.CSSProperties}>with</span>{" "}
-                  <span className="w" style={{ "--wd": "370ms" } as React.CSSProperties}>real</span>{" "}
+                  <span className="w lp-warm" style={{ "--wd": "200ms" } as React.CSSProperties}>person</span>{" "}
+                  <span className="w" style={{ "--wd": "260ms" } as React.CSSProperties}>who</span>{" "}
+                  <span className="w" style={{ "--wd": "320ms" } as React.CSSProperties}>can</span>{" "}
+                  <span className="w" style={{ "--wd": "370ms" } as React.CSSProperties}>put</span>{" "}
                   <span className="w" style={{ "--wd": "420ms" } as React.CSSProperties}>AI</span>{" "}
-                  <span className="w" style={{ "--wd": "470ms" } as React.CSSProperties}>judgment.</span>
+                  <span className="w" style={{ "--wd": "470ms" } as React.CSSProperties}>to</span>{" "}
+                  <span className="w" style={{ "--wd": "520ms" } as React.CSSProperties}>work.</span>
                 </h1>
                 <p className="lp-lead lp-reveal" style={{ "--d": "120ms", maxWidth: "52ch" } as React.CSSProperties}>
-                  HireProof is a candidate-owned, cryptographically-signed credential that proves a job
-                  applicant is a live human with real AI-collaboration judgment — verifiable by any
-                  employer in seconds, re-checked every round. Not surveillance. Not a detection arms race.
+                  HireProof is a tamper-proof badge a candidate owns. It proves they are a real, live
+                  person who can spot and fix an AI&apos;s mistakes, and any employer can check it in
+                  seconds. No spyware, no guessing games.
                 </p>
                 <div className="lp-row lp-reveal" style={{ "--d": "180ms", gap: "0.7rem", flexWrap: "wrap" } as React.CSSProperties}>
                   <Link href="/verify" className="lp-btn lp-btn--primary">Prove you&apos;re real <Arrow /></Link>
                   <Link href="/employer" className="lp-btn lp-btn--ghost">Verify in seconds</Link>
                 </div>
                 <div className="lp-hero-micro lp-mono lp-reveal" style={{ "--d": "240ms" } as React.CSSProperties}>
-                  <span className="lp-rule" /> liveness · cross-round biometric match · Ed25519 · W3C VC 2.0
+                  <span className="lp-rule" /> live person check · same face across rounds · tamper-proof · open standard
                 </div>
               </div>
               <div className="lp-hero-card lp-reveal" style={{ "--d": "120ms" } as React.CSSProperties}>
@@ -338,9 +339,10 @@ export default function Home() {
             <div className="lp-flip lp-reveal">
               <span className="lp-flip-mark" aria-hidden="true"><Check /></span>
               <p className="lp-body" style={{ maxWidth: "64ch" }}>
-                <strong style={{ fontWeight: 600 }}>HireProof</strong> — one candidate-owned token that
-                fuses live human-proof, AI-judgment scoring, and cross-round re-verification.{" "}
-                <span className="lp-muted">Integration is the innovation.</span>
+                <strong style={{ fontWeight: 600 }}>HireProof</strong> is one badge the candidate owns:
+                it proves they&apos;re a live person, scores how they handle AI, and confirms it&apos;s the
+                same person each round.{" "}
+                <span className="lp-muted">Doing all three together is the hard part.</span>
               </p>
             </div>
           </div>

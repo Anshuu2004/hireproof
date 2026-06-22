@@ -169,11 +169,11 @@ export function VerificationCard({
         </svg>
       </div>
 
-      {/* AI-collaboration · judgment */}
-      <div className="vc-gauges" role="group" aria-label="AI-collaboration judgment scores">
+      {/* How they handled the AI */}
+      <div className="vc-gauges" role="group" aria-label="AI handling scores">
         {[
-          ["Direct", direct, SCORES.direct],
-          ["Judge", judge, SCORES.judge],
+          ["Steered", direct, SCORES.direct],
+          ["Caught", judge, SCORES.judge],
           ["Correct", correct, SCORES.correct],
         ].map(([lbl, shown, target]) => (
           <div key={lbl as string}>

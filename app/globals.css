@@ -796,6 +796,9 @@ html[data-theme="dark"] {
 
 /* ============================ responsive ================================= */
 @media (max-width: 900px) {
+  /* collapse the nav to the mobile sheet here, not at 680 — the full link row +
+     CTAs are too crowded across the whole 681-900 tablet band. */
+  .lp-nav-links, .lp-cta-desktop { display: none; }
   .lp-hero { grid-template-columns: 1fr; }
   .lp-hero-card { justify-self: center; }
   .lp-tracks { grid-template-columns: 1fr; }
@@ -803,12 +806,11 @@ html[data-theme="dark"] {
   .lp-cols-4 { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 680px) {
-  .lp-nav-links, .lp-cta-desktop { display: none; }
   .lp-stats { grid-template-columns: 1fr; }
   .lp-cols-3 { grid-template-columns: 1fr; }
   .lp-cols-4 { grid-template-columns: 1fr; }
 }
-@media (min-width: 681px) { .lp-menu-btn { display: none; } }
+@media (min-width: 901px) { .lp-menu-btn { display: none; } }
 
 /* ============================ reduced motion ============================= */
 @media (prefers-reduced-motion: reduce) {
