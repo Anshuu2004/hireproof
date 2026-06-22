@@ -7,6 +7,7 @@ import { QrCode, SealCheck, XCircle, Clock } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
 import { Button } from "@/components/ui/button";
+import { BackLink } from "@/components/back-link";
 import { shortId } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
@@ -91,8 +92,11 @@ export default function VerifyPage() {
     <div className="flex min-h-[100dvh] flex-col bg-ink-950">
       <header className="border-b border-ink-700/70">
         <div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-5">
-          <Wordmark />
-          <span className="eyebrow text-ink-500">Public credential verify</span>
+          <div className="flex items-center gap-3">
+            <BackLink />
+            <Wordmark />
+          </div>
+          <span className="hidden eyebrow text-ink-500 sm:block">Public credential verify</span>
         </div>
       </header>
 

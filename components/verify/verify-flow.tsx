@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, X, Warning } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/wordmark";
+import { BackLink } from "@/components/back-link";
 import { ConsentStep, type ConsentValue, type Demographics } from "./consent-step";
 import { LivenessStep, type LivenessResult } from "./liveness-step";
 import { TaskStep, type ScoreResult } from "./task-step";
@@ -123,7 +124,10 @@ export function VerifyFlow() {
     <div className="flex min-h-[100dvh] flex-col bg-ink-950">
       <header className="border-b border-ink-700/70">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
-          <Wordmark />
+          <div className="flex items-center gap-3">
+            <BackLink />
+            <Wordmark />
+          </div>
           <StepRail current={step} />
         </div>
       </header>

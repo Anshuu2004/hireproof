@@ -6,6 +6,7 @@ import { ArrowsClockwise, X, Check, Warning, FileText, SignOut, Prohibit, LockKe
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
 import { Button } from "@/components/ui/button";
+import { BackLink } from "@/components/back-link";
 import { LivenessStep, type LivenessResult } from "@/components/verify/liveness-step";
 import type { Language, LivenessAction } from "@/lib/liveness/challenge";
 import { shortId } from "@/lib/format";
@@ -255,6 +256,7 @@ export default function EmployerPage() {
         <header className="border-b border-ink-700/70">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
             <div className="flex items-center gap-3">
+              <BackLink />
               <Wordmark />
               <span className="hidden h-4 w-px bg-ink-700 sm:block" />
               <span className="hidden eyebrow text-ink-500 sm:block">Verify console</span>
@@ -312,6 +314,7 @@ export default function EmployerPage() {
       <header className="border-b border-ink-700/70">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <div className="flex items-center gap-3">
+            <BackLink />
             <Wordmark />
             <span className="hidden h-4 w-px bg-ink-700 sm:block" />
             <span className="hidden eyebrow text-ink-500 sm:block">Verify console</span>
