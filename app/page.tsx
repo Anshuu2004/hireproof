@@ -65,7 +65,7 @@ const PILLARS = [
   ["Live challenge-response", "A server-issued random action sequence + nonce, verified against real-time landmark dynamics. No chatbot has this loop.", "server.nonce · landmark.dynamics"],
   ["Bound to the moment", "Your voice is tied to a sentence generated <2 min ago. A generic LLM would happily score a pre-recorded proxy.", "utterance.ts < now − 120s"],
   ["Stateful across rounds", "128-D face descriptors compared round-to-round catch seat-swaps. An LLM is stateless per call.", "cosine(descriptor[r], descriptor[r−1])"],
-  ["Cryptographically owned", "An employer trusts the issuer key, not a screenshot. ChatGPT can't mint a signed credential against a did:web key.", "Ed25519.verify(vc, did:web)"],
+  ["Cryptographically owned", "An employer trusts the issuer key, not a screenshot. A generic AI assistant can't mint a signed credential against a did:web key.", "Ed25519.verify(vc, did:web)"],
 ];
 
 const COMPLIANCE = [
@@ -337,7 +337,7 @@ export default function Home() {
           <div className="lp-container">
             <div className="lp-section-head lp-measure lp-reveal">
               <p className="lp-eyebrow">why it can&apos;t be faked</p>
-              <h2 className="lp-h2">You can&apos;t reproduce this by pasting into ChatGPT.</h2>
+              <h2 className="lp-h2">You can&apos;t reproduce this by pasting into a chatbot.</h2>
               <p className="lp-lead">
                 HireProof is a protocol, not a single inference. The proof lives in the
                 challenge-response loop, the live binding, and the signature — none of which a chatbot
