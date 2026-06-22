@@ -1,6 +1,6 @@
-import { createHash } from "crypto";
 import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { auditRowHash } from "@/lib/audit-hash";
 
 /**
  * Append a row to the hash-chained audit log — the explainability trail
@@ -45,17 +45,10 @@ export async function appendAudit(params: {
   const prevHash = last?.row_hash ?? "GENESIS";
   const createdAt = new Date().toISOString();
 
-  // Canonical over every persisted application field, in a fixed order.
-  const canonical = [
-    params.sessionId ?? "",
-    params.eventType,
-    params.inputHash ?? "",
-    JSON.stringify(params.output ?? null),
-    params.modelVersion ?? "",
-    params.promptVersion ?? "",
-    createdAt,
-  ].join("|");
-  const rowHash = createHash("sha256").update(`${prevHash}|${canonical}`).digest("hex");
+  // Canonical hash over every persisted application field, in a fixed order
+  // (see lib/audit-hash.ts — shared with the unit tests; must match the
+  // Postgres trigger's canonicalisation exactly).
+  const rowHash = auditRowHash(prevHash, params, createdAt);
 
   // Insert with the app-computed chain. If the DB trigger is present it will
   // override prev_hash / row_hash (and set seq) atomically; we read back

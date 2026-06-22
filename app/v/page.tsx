@@ -60,9 +60,22 @@ export default function VerifyPage() {
 
     try {
       const did = await fetch("/.well-known/did.json").then((r) => r.json());
-      const jwk = did.verificationMethod[0].publicKeyJwk;
-      const key = await importJWK(jwk, "EdDSA");
-      const { payload } = await jwtVerify(token, key, { issuer: did.id });
+      // Try every published issuer key (active + retired during a rotation
+      // window); accept on the first that verifies, prefer an expiry reason.
+      const methods: Array<{ publicKeyJwk: Parameters<typeof importJWK>[0] }> = did.verificationMethod ?? [];
+      let payload: Awaited<ReturnType<typeof jwtVerify>>["payload"] | undefined;
+      let expiredErr: unknown, otherErr: unknown;
+      for (const m of methods) {
+        try {
+          const key = await importJWK(m.publicKeyJwk, "EdDSA");
+          ({ payload } = await jwtVerify(token, key, { issuer: did.id }));
+          break;
+        } catch (err) {
+          if ((err as { code?: string })?.code === "ERR_JWT_EXPIRED") expiredErr = err;
+          else otherErr = err;
+        }
+      }
+      if (!payload) throw expiredErr ?? otherErr ?? new Error("Signature invalid");
       let status: Result["status"];
       try {
         // Pass the token so the server confirms the signature too (and records a

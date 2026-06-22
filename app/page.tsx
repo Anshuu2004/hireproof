@@ -282,8 +282,7 @@ export default function Home() {
                 <p className="lp-lead lp-reveal" style={{ "--d": "120ms", maxWidth: "52ch" } as React.CSSProperties}>
                   HireProof is a candidate-owned, cryptographically-signed credential that proves a job
                   applicant is a live human with real AI-collaboration judgment — verifiable by any
-                  employer in seconds, re-checked every round. Not surveillance. Not a detection arms race.{" "}
-                  <span className="lp-deva" lang="hi" style={{ color: "var(--warm)", whiteSpace: "nowrap" }}>आपका प्रमाण, आपके पास।</span>
+                  employer in seconds, re-checked every round. Not surveillance. Not a detection arms race.
                 </p>
                 <div className="lp-row lp-reveal" style={{ "--d": "180ms", gap: "0.7rem", flexWrap: "wrap" } as React.CSSProperties}>
                   <Link href="/verify" className="lp-btn lp-btn--primary">Prove you&apos;re real <Arrow /></Link>
@@ -501,7 +500,6 @@ export default function Home() {
                   A candidate-owned, cryptographically-signed credential — proof you&apos;re a real, live
                   human with real AI judgment, verifiable by any employer in seconds.
                 </p>
-                <p className="lp-foot-deva" lang="hi">आपका प्रमाण, आपके पास।</p>
               </div>
 
               {/* explore */}

@@ -5,14 +5,13 @@
   A precision-instrument / tamper-evident-document language.
   Ink-on-paper neutrals (faint warm bias) · Proof Green ONLY at verification ·
   Bharat Indigo for structure · Ceremonial Amber ONLY on the credential seal.
-  One superfamily: IBM Plex Sans + Plex Sans Devanagari + Plex Mono.
+  One superfamily: IBM Plex Sans + Plex Mono.
 */
 
 @theme {
   /* ---- Type ---- */
   --font-sans: var(--font-ibm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-ibm-mono), ui-monospace, "SF Mono", monospace;
-  --font-deva: var(--font-ibm-deva), var(--font-ibm-sans), sans-serif;
 
   /* ---- Neutrals: ink-on-paper, faint warm bias (NOT cold blue-gray) ---- */
   --color-paper: #fcfcfd;
@@ -106,10 +105,6 @@ body {
   font-family: var(--font-mono);
   font-feature-settings: "tnum" 1, "lnum" 1, "zero" 1;
   letter-spacing: -0.01em;
-}
-
-.font-deva {
-  font-family: var(--font-deva);
 }
 
 /* All-caps eyebrow / status label */
@@ -224,7 +219,6 @@ html[data-theme="dark"] {
   --lp-display: "General Sans", var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
   --lp-body: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
   --lp-mono: var(--font-jet), ui-monospace, "SF Mono", monospace;
-  --lp-deva: var(--font-tiro), serif;
   /* geometry */
   --r-card: 16px;
   --r-btn: 10px;
@@ -319,7 +313,6 @@ html[data-theme="dark"] {
 .lp-lead { font-size: 1.0625rem; color: var(--ink-2); line-height: 1.6; }
 .lp-body { color: var(--ink); }
 .lp-muted { color: var(--ink-2); }
-.lp-deva { font-family: var(--lp-deva); font-weight: 400; }
 .lp-verify-ink { color: var(--verify); }
 
 .lp-mono, .lp-data {
@@ -649,7 +642,6 @@ html[data-theme="dark"] {
 }
 .lp-foot-brandcol { display: flex; flex-direction: column; gap: 0.9rem; max-width: 36ch; }
 .lp-foot-tagline { font-size: 0.92rem; color: var(--ink-2); line-height: 1.55; }
-.lp-foot-deva { font-family: var(--lp-deva); color: var(--warm); font-size: 0.95rem; }
 .lp-foot-col { display: flex; flex-direction: column; gap: 0.65rem; }
 .lp-foot-h { font-family: var(--lp-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-2); font-weight: 600; margin-bottom: 0.25rem; }
 .lp-foot-link { color: var(--ink); font-size: 0.9rem; text-decoration: none; width: fit-content; transition: color var(--micro); }

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   verify:
-    name: lint · typecheck · offline-verifier
+    name: lint · typecheck · unit tests · offline-verifier
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +29,9 @@ jobs:
 
       - name: Type-check
         run: npm run typecheck
+
+      - name: Unit tests (trust core — credential, audit chain, reliance scoring)
+        run: npm test
 
       - name: Offline credential verifier (signature + tamper rejection)
         run: npm run verify:demo

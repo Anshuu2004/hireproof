@@ -480,7 +480,7 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
               <p className="eyebrow text-indigo-bright">
                 Challenge {idx + 1} / {challenge.actions.length}
               </p>
-              <p className={cn("mt-0.5 text-base font-medium text-ink-50", challenge.language !== "en" && "font-deva")}>
+              <p className="mt-0.5 text-base font-medium text-ink-50">
                 {prompt}
               </p>
               <div className="mt-2 flex items-center gap-2">
@@ -515,7 +515,7 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
                 <p className="eyebrow text-indigo-bright">Listening · {listenLeft}s</p>
               </div>
               <p className="mt-1 text-xs text-ink-400">Read these numbers aloud</p>
-              <p className={cn("mt-1 font-data text-2xl tracking-[0.15em] text-ink-50", challenge.language !== "en" && "font-deva")}>
+              <p className="mt-1 font-data text-2xl tracking-[0.15em] text-ink-50">
                 {spokenPhrase}
               </p>
 

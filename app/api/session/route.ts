@@ -9,7 +9,7 @@ import { getEmployer } from "@/lib/auth/employer";
 export const runtime = "nodejs";
 
 const Body = z.object({
-  language: z.enum(["en", "hi", "te"]).default("en"),
+  language: z.enum(["en"]).default("en"),
   consent: z.object({
     face: z.boolean(),
     voice: z.boolean(),

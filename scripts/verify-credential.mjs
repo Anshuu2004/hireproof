@@ -8,9 +8,14 @@
  * alone, and any tampering is rejected.
  *
  *   node scripts/verify-credential.mjs
- *       Self-contained demo: mint a sample credential with a throwaway key,
- *       verify it (accepted), tamper one claim, verify again (rejected).
- *       Exits non-zero if either behaves wrong — so it doubles as a CI smoke test.
+ *       Self-contained demo + CI smoke test. Mints a sample credential with a
+ *       throwaway key and asserts the credential's security properties:
+ *         1. a genuine credential verifies,
+ *         2. a tampered claim is rejected,
+ *         3. an expired credential is rejected,
+ *         4. a wrong-issuer credential is rejected,
+ *         5. the holder binding (cnf) is present and tamper-evident.
+ *       Exits non-zero if any property fails.
  *
  *   node scripts/verify-credential.mjs <token>
  *       Verify a real HireProof credential token offline against the issuer
@@ -20,6 +25,7 @@
  * Mirrors lib/credential/issuer.ts (same VC shape, alg, did:web issuer, kid).
  */
 import { SignJWT, jwtVerify, generateKeyPair, importJWK } from "jose";
+import { createHash } from "crypto";
 
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
@@ -49,20 +55,22 @@ function hexToBytes(hex) {
 }
 const b64url = (b) => Buffer.from(b).toString("base64url");
 
-async function sign(claims, key, credentialId) {
+async function sign(claims, key, credentialId, { expiration = "180d", holderCommit } = {}) {
   const vc = {
     "@context": ["https://www.w3.org/ns/credentials/v2"],
     type: ["VerifiableCredential", "HireProofCredential"],
     issuer: ISSUER_DID,
     credentialSubject: claims,
   };
-  return new SignJWT({ vc, hp: claims })
+  const payload = { vc, hp: claims };
+  if (holderCommit) payload.cnf = { "x-hp-holder": holderCommit };
+  return new SignJWT(payload)
     .setProtectedHeader({ alg: "EdDSA", typ: "JWT", kid: KEY_ID })
     .setIssuer(ISSUER_DID)
     .setSubject(credentialId)
     .setJti(credentialId)
     .setIssuedAt()
-    .setExpirationTime("180d")
+    .setExpirationTime(expiration)
     .sign(key);
 }
 
@@ -82,7 +90,8 @@ async function selfTest() {
   const { publicKey, privateKey } = await generateKeyPair("EdDSA", { extractable: true });
 
   head("1. Mint a credential (issuer holds the private key)");
-  const token = await sign(SAMPLE_CLAIMS, privateKey, "HP-DEMO-0001");
+  const holderCommit = createHash("sha256").update("demo-holder-secret").digest("hex");
+  const token = await sign(SAMPLE_CLAIMS, privateKey, "HP-DEMO-0001", { holderCommit });
   ok(`signed ${token.length}-char JWT-VC · score ${SAMPLE_CLAIMS.aiCollaboration.score}/100`);
 
   head("2. Employer verifies offline (public key only, no DB, no network)");
@@ -110,9 +119,56 @@ async function selfTest() {
     ok("tampered credential REJECTED — signature no longer matches the payload");
   }
 
-  const pass = genuineAccepted && tamperRejected;
+  head("4. An expired credential is rejected (past its expiry)");
+  const expiredToken = await sign(SAMPLE_CLAIMS, privateKey, "HP-DEMO-EXP", {
+    expiration: Math.floor(Date.now() / 1000) - 60, // expired one minute ago
+  });
+  let expiryRejected = false;
+  try {
+    await jwtVerify(expiredToken, publicKey, { issuer: ISSUER_DID });
+    bad("expired credential was ACCEPTED — this is a failure");
+  } catch (e) {
+    if (e.code === "ERR_JWT_EXPIRED") {
+      expiryRejected = true;
+      ok("expired credential REJECTED — exp claim is enforced");
+    } else {
+      bad(`expired credential rejected for the wrong reason: ${e.message}`);
+    }
+  }
+
+  head("5. A credential presented under the wrong issuer is rejected");
+  let issuerMismatchRejected = false;
+  try {
+    await jwtVerify(token, publicKey, { issuer: "did:web:attacker.example" });
+    bad("wrong-issuer credential was ACCEPTED — this is a failure");
+  } catch {
+    issuerMismatchRejected = true;
+    ok("issuer mismatch REJECTED — iss claim is enforced");
+  }
+
+  head("6. Holder binding (cnf) is present and tamper-evident");
+  const { payload: genuine } = await jwtVerify(token, publicKey, { issuer: ISSUER_DID });
+  const hasHolderCommit = genuine.cnf?.["x-hp-holder"] === holderCommit;
+  const reboundToken = tamper(token, (pl) => {
+    pl.cnf = { "x-hp-holder": "attacker-controlled-commit" };
+  });
+  let holderRebindRejected = false;
+  try {
+    await jwtVerify(reboundToken, publicKey, { issuer: ISSUER_DID });
+    bad("re-bound holder commit was ACCEPTED — this is a failure");
+  } catch {
+    holderRebindRejected = true;
+  }
+  const holderBindingOk = hasHolderCommit && holderRebindRejected;
+  if (holderBindingOk) ok("cnf holder commit present and bound into the signature");
+  else bad(`holder binding check failed (present=${hasHolderCommit}, rebind rejected=${holderRebindRejected})`);
+
+  const pass =
+    genuineAccepted && tamperRejected && expiryRejected && issuerMismatchRejected && holderBindingOk;
   head(pass ? `${GREEN}RESULT: PASS${RESET}` : `${RED}RESULT: FAIL${RESET}`);
-  console.log(`${DIM}  genuine accepted=${genuineAccepted} · tamper rejected=${tamperRejected}${RESET}\n`);
+  console.log(
+    `${DIM}  genuine=${genuineAccepted} · tamper rejected=${tamperRejected} · expiry rejected=${expiryRejected} · issuer enforced=${issuerMismatchRejected} · holder binding=${holderBindingOk}${RESET}\n`
+  );
   return pass;
 }
 

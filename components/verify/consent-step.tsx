@@ -69,12 +69,6 @@ const DEMO_FIELDS: { key: keyof Demographics; label: string; options: { v: strin
   },
 ];
 
-const LANGS: { code: Language; label: string; native: string }[] = [
-  { code: "en", label: "English", native: "English" },
-  { code: "hi", label: "Hindi", native: "हिंदी" },
-  { code: "te", label: "Telugu", native: "తెలుగు" },
-];
-
 const ITEMS = [
   {
     key: "face" as const,
@@ -139,7 +133,7 @@ export function ConsentStep({
 }: {
   onProceed: (language: Language, consent: ConsentValue, demographics?: Demographics) => void;
 }) {
-  const [language, setLanguage] = useState<Language>("en");
+  const language: Language = "en";
   const [consent, setConsent] = useState<ConsentValue>({
     face: false,
     voice: false,
@@ -157,26 +151,7 @@ export function ConsentStep({
 
   return (
     <div className="mx-auto w-full max-w-lg">
-      {/* language selector */}
-      <div className="mb-8 flex items-center justify-between">
-        <p className="eyebrow text-indigo-bright">Before we begin</p>
-        <div className="flex items-center gap-1 rounded-full border border-ink-700 bg-ink-900 p-0.5">
-          {LANGS.map((l) => (
-            <button
-              key={l.code}
-              type="button"
-              onClick={() => setLanguage(l.code)}
-              className={cn(
-                "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                language === l.code ? "bg-ink-700 text-ink-50" : "text-ink-400 hover:text-ink-200",
-                l.code !== "en" && "font-deva"
-              )}
-            >
-              {l.native}
-            </button>
-          ))}
-        </div>
-      </div>
+      <p className="eyebrow mb-8 text-indigo-bright">Before we begin</p>
 
       <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink-50 sm:text-3xl">
         This proof is yours.

@@ -1,13 +1,17 @@
 import { createHash } from "crypto";
-import { SignJWT, jwtVerify, importJWK, type JWK, type JWTPayload } from "jose";
+import { jwtVerify, importJWK, type JWK, type JWTPayload } from "jose";
 import { env } from "@/lib/env";
+import { getSigner } from "./signer";
 
 /**
  * HireProof credential issuance & verification.
  * A credential is an EdDSA (Ed25519) compact JWS (JWT-VC shape, W3C VC 2.0
  * context) signed by the HireProof issuer key. It is self-contained and
- * verifiable offline against the public key published at /.well-known/did.json
+ * verifiable offline against the public key(s) published at /.well-known/did.json
  * (did:web). No DB lookup is required to prove authenticity.
+ *
+ * Signing is delegated to a single Signer (lib/credential/signer.ts) so the
+ * private key lives in exactly one place; verification uses only public keys.
  */
 
 function hexToBytes(hex: string): Uint8Array {
@@ -18,16 +22,21 @@ function hexToBytes(hex: string): Uint8Array {
 }
 const b64url = (b: Uint8Array) => Buffer.from(b).toString("base64url");
 
-function privateJwk(): JWK {
-  return {
-    kty: "OKP",
-    crv: "Ed25519",
-    d: b64url(hexToBytes(env.issuerPrivateKeyHex)),
-    x: b64url(hexToBytes(env.issuerPublicKeyHex)),
-  };
-}
+const pubJwk = (hex: string): JWK => ({ kty: "OKP", crv: "Ed25519", x: b64url(hexToBytes(hex)) });
+
+/** The active issuer public key (the one new credentials are signed against). */
 export function publicJwk(): JWK {
-  return { kty: "OKP", crv: "Ed25519", x: b64url(hexToBytes(env.issuerPublicKeyHex)) };
+  return pubJwk(env.issuerPublicKeyHex);
+}
+
+/**
+ * Every public key a verifier should trust: the active key plus any retired keys
+ * still published during a rotation window. Outstanding 180-day credentials keep
+ * verifying after the active key changes, because did:web publishes both and a
+ * credential is accepted if it validates against ANY published key.
+ */
+export function publicJwks(): JWK[] {
+  return [publicJwk(), ...env.issuerRetiredPublicKeysHex.map(pubJwk)];
 }
 
 export interface CredentialClaims {
@@ -43,15 +52,12 @@ export function descriptorHash(descriptor: number[], salt: string): string {
   return createHash("sha256").update(salt + "|" + descriptor.map((x) => x.toFixed(4)).join(",")).digest("hex");
 }
 
-const KEY_ID = `${env.issuerDid}#key-1`;
-
 export async function signCredential(
   claims: CredentialClaims,
   credentialId: string,
   expiresInDays = 180,
   holderCommit?: string
 ): Promise<string> {
-  const key = await importJWK(privateJwk(), "EdDSA");
   const vc = {
     "@context": ["https://www.w3.org/ns/credentials/v2"],
     type: ["VerifiableCredential", "HireProofCredential"],
@@ -64,14 +70,12 @@ export async function signCredential(
   const payload: Record<string, unknown> = { vc, hp: claims };
   if (holderCommit) payload.cnf = { "x-hp-holder": holderCommit };
 
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "EdDSA", typ: "JWT", kid: KEY_ID })
-    .setIssuer(env.issuerDid)
-    .setSubject(credentialId)
-    .setJti(credentialId)
-    .setIssuedAt()
-    .setExpirationTime(`${expiresInDays}d`)
-    .sign(key);
+  return getSigner().sign(payload, {
+    issuer: env.issuerDid,
+    subject: credentialId,
+    jti: credentialId,
+    expiresIn: `${expiresInDays}d`,
+  });
 }
 
 /**
@@ -81,13 +85,7 @@ export async function signCredential(
  * key as a credential.
  */
 export async function signDetached(payload: Record<string, unknown>, expiresIn = "365d"): Promise<string> {
-  const key = await importJWK(privateJwk(), "EdDSA");
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "EdDSA", typ: "JWT", kid: KEY_ID })
-    .setIssuer(env.issuerDid)
-    .setIssuedAt()
-    .setExpirationTime(expiresIn)
-    .sign(key);
+  return getSigner().sign(payload, { issuer: env.issuerDid, expiresIn });
 }
 
 export interface VerifiedCredential {
@@ -97,23 +95,44 @@ export interface VerifiedCredential {
 }
 
 export async function verifyCredential(token: string): Promise<VerifiedCredential> {
-  try {
-    const key = await importJWK(publicJwk(), "EdDSA");
-    const { payload } = await jwtVerify(token, key, { issuer: env.issuerDid });
-    return { valid: true, payload };
-  } catch (e) {
-    return { valid: false, reason: e instanceof Error ? e.message : "signature invalid" };
+  let reason = "signature invalid";
+  // Accept the credential if it verifies against any currently-published issuer
+  // key (active or, during rotation, a still-trusted retired key). The token's
+  // `kid` is a hint; trust is the published key set, so this is robust to a kid
+  // that doesn't map 1:1 after a rotation.
+  for (const jwk of publicJwks()) {
+    try {
+      const key = await importJWK(jwk, "EdDSA");
+      const { payload } = await jwtVerify(token, key, { issuer: env.issuerDid });
+      return { valid: true, payload };
+    } catch (e) {
+      // Surface an expiry reason over a generic signature failure from other keys.
+      const next = e instanceof Error ? e.message : "signature invalid";
+      if (reason === "signature invalid" || (e as { code?: string })?.code === "ERR_JWT_EXPIRED") reason = next;
+    }
   }
+  return { valid: false, reason };
 }
 
 /** The did:web document published at /.well-known/did.json. */
 export function didDocument() {
+  const active = {
+    id: env.issuerKid,
+    type: "JsonWebKey2020",
+    controller: env.issuerDid,
+    publicKeyJwk: publicJwk(),
+  };
+  const retired = env.issuerRetiredPublicKeysHex.map((hex, i) => ({
+    id: `${env.issuerDid}#retired-${i + 1}`,
+    type: "JsonWebKey2020",
+    controller: env.issuerDid,
+    publicKeyJwk: pubJwk(hex),
+  }));
+  const methods = [active, ...retired];
   return {
     "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/suites/jws-2020/v1"],
     id: env.issuerDid,
-    verificationMethod: [
-      { id: KEY_ID, type: "JsonWebKey2020", controller: env.issuerDid, publicKeyJwk: publicJwk() },
-    ],
-    assertionMethod: [KEY_ID],
+    verificationMethod: methods,
+    assertionMethod: methods.map((m) => m.id),
   };
 }

@@ -13,6 +13,13 @@ function required(name: string): string {
   return value;
 }
 
+/** Resolve the issuer DID once; the production domain wins on Vercel. */
+function resolveIssuerDid(): string {
+  if (process.env.ISSUER_DID) return process.env.ISSUER_DID;
+  const host = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  return host ? `did:web:${host}` : "did:web:hireproof.app";
+}
+
 export const env = {
   // Supabase
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
@@ -25,9 +32,12 @@ export const env = {
   // from the production domain so the QR + did:web are correct with no manual
   // config; both stay internally consistent (token iss === did.json id).
   get issuerDid() {
-    if (process.env.ISSUER_DID) return process.env.ISSUER_DID;
-    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-    return host ? `did:web:${host}` : "did:web:hireproof.app";
+    return resolveIssuerDid();
+  },
+  // The active key id (JWS `kid` + did:web verificationMethod id). Bump
+  // ISSUER_KEY_ID on rotation; old keys move to ISSUER_RETIRED_PUBLIC_KEYS.
+  get issuerKid() {
+    return `${resolveIssuerDid()}#${process.env.ISSUER_KEY_ID ?? "key-1"}`;
   },
   get issuerPrivateKeyHex() {
     return required("ISSUER_PRIVATE_KEY_HEX");
@@ -35,6 +45,17 @@ export const env = {
   get issuerPublicKeyHex() {
     return required("ISSUER_PUBLIC_KEY_HEX");
   },
+  // Previously-active public keys still trusted during a rotation window, so
+  // outstanding 180-day credentials keep verifying. Comma-separated 32-byte hex.
+  get issuerRetiredPublicKeysHex(): string[] {
+    return (process.env.ISSUER_RETIRED_PUBLIC_KEYS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  },
+  // Which signer backs issuance: "env" (key in env var, current) or "kms"
+  // (HSM-backed, roadmap stub). Verification never needs the private key.
+  signerKind: (process.env.ISSUER_SIGNER ?? "env") as "env" | "kms",
 
   // Public site origin (verify URLs, did:web)
   get siteUrl() {

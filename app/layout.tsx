@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import {
   IBM_Plex_Sans,
   IBM_Plex_Mono,
-  IBM_Plex_Sans_Devanagari,
   Hanken_Grotesk,
   JetBrains_Mono,
-  Tiro_Devanagari_Hindi,
 } from "next/font/google";
 import "./globals.css";
 
@@ -24,14 +22,7 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-const plexDevanagari = IBM_Plex_Sans_Devanagari({
-  variable: "--font-ibm-deva",
-  subsets: ["devanagari"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
-/* ---- Landing voices: body (Hanken), machine/data (JetBrains Mono), Hindi (Tiro).
+/* ---- Landing voices: body (Hanken), machine/data (JetBrains Mono).
        Display = General Sans (Fontshare), loaded via <link> below — Fontshare is
        not in next/font/google, so we link its swap-display stylesheet directly. ---- */
 const hanken = Hanken_Grotesk({
@@ -45,13 +36,6 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jet",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const tiroDevanagari = Tiro_Devanagari_Hindi({
-  variable: "--font-tiro",
-  subsets: ["devanagari"],
-  weight: ["400"],
   display: "swap",
 });
 
@@ -84,7 +68,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plexSans.variable} ${plexMono.variable} ${plexDevanagari.variable} ${hanken.variable} ${jetbrains.variable} ${tiroDevanagari.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${plexMono.variable} ${hanken.variable} ${jetbrains.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />

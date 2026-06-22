@@ -24,7 +24,7 @@ const Tick = () => (
 );
 
 const CANDIDATE_STEPS: [string, string][] = [
-  ["Give consent", "Pick your language (English / हिंदी / తెలుగు) and allow camera + mic. Consent is itemised — you see exactly what's captured and nothing is bundled or hidden."],
+  ["Give consent", "Allow camera + mic. Consent is itemised — you see exactly what's captured and nothing is bundled or hidden."],
   ["Prove you're live", "A 2-minute randomised face + voice challenge, generated the instant you start. Because it's random and live, a photo, a recording, a deepfake avatar, or a stand-in can't pre-stage it."],
   ["Show your judgment", "You're handed an AI that is confidently wrong — your task has a hidden, planted mistake. You're scored on whether you catch it and correct it. Ship the AI's flawed answer as-is and your score is capped."],
   ["Mint your credential", "You get a portable, cryptographically-signed credential plus a private holder key — shown once, so save it. The key proves the credential is yours, not just whoever holds the QR."],

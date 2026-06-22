@@ -9,7 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "verify:demo": "node scripts/verify-credential.mjs",
-    "test": "node scripts/verify-credential.mjs"
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.133",
@@ -40,6 +42,7 @@
     "eslint-config-next": "16.2.9",
     "playwright": "^1.61.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }

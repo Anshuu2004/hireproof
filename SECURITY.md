@@ -15,7 +15,7 @@ within 72 hours. Do not file public issues for vulnerabilities.
 
 | Asset | Where it lives | If compromised |
 |---|---|---|
-| Issuer signing key (Ed25519) | env var today → **KMS/HSM is roadmap** | every credential can be forged |
+| Issuer signing key (Ed25519) | env var today, isolated behind a single `Signer` boundary → **KMS/HSM is roadmap** | every credential can be forged |
 | Face descriptors (128-D) | pgvector, server-side; never the raw video | biometric exposure; re-identification |
 | Audit chain | `audit_log`, hash-chained, server-computed | loss of tamper-evidence / explainability |
 | Employer/session data | Supabase Postgres (RLS on, service-role server-side) | data leak |
@@ -24,19 +24,24 @@ within 72 hours. Do not file public issues for vulnerabilities.
 
 The Ed25519 issuer key is the crown jewel (a leak forges every credential), so we
 state its handling plainly. **Current = honest prototype posture; target = what
-production requires.** KMS/HSM is **roadmap, not yet implemented.**
+production requires.** The live KMS/HSM provider is **roadmap, not yet wired** —
+but the architecture around it (a single signer boundary + key rotation) is in
+place today, so the remaining work is wiring one module, not a refactor.
 
 | Aspect | Current | Target (roadmap) |
 |---|---|---|
 | Key storage | Ed25519 private key in an env var (`ISSUER_PRIVATE_KEY_HEX`), Vercel-encrypted at rest | KMS/HSM-held key — never leaves the HSM (AWS KMS added Ed25519 / `ECC_NIST_EDWARDS25519` in Nov 2025; sign via `ED25519_SHA_512`, `MessageType: RAW`) |
-| Signing path | local `jose` `importJWK` + `SignJWT.sign()` | remote `kms:Sign`; JWS assembled around the returned signature |
-| Rotation | manual env update (invalidates outstanding credentials) | `kid`-versioned keys; did:web publishes current + previous so live 180-day credentials keep verifying |
+| Signing path | **isolated behind one `Signer` boundary** ([lib/credential/signer.ts](lib/credential/signer.ts)): an `EnvSigner` reads the key lazily, only when signing | swap in the `KmsSigner` (labelled stub today) — `kms:Sign`, JWS assembled around the returned signature — a one-file change, no call sites move |
+| Key exposure surface | the private key is needed **only** for issuance; verification (`/v`, `did.json`, `/api/credential-status`) uses public keys alone, so a verify-only deploy never holds the secret | unchanged — least secret, least surface |
+| Rotation | **supported**: did:web publishes the active key + any `ISSUER_RETIRED_PUBLIC_KEYS`; a credential verifies against *any* published key, so bumping `ISSUER_KEY_ID` and retiring the old public key keeps live 180-day credentials valid | hardware-backed keys with the same `kid`-versioned did:web rotation |
 | Access control | deploy-environment access | IAM least-privilege + MFA on the signer role |
 | Key-use audit | none | KMS / CloudTrail usage logs |
 
-**Honest note:** migrating is *not* a drop-in — KMS cannot import an existing
-Ed25519 private key, so it requires a fresh KMS key, a custom signer, and a
-did:web key rotation. Until that lands, the key is an env var (see T1).
+**Honest note:** wiring KMS is *not* a drop-in at the provider level — KMS cannot
+import an existing Ed25519 private key, so it needs a fresh KMS key and a did:web
+rotation. The point of the `Signer` boundary + rotation support above is that
+HireProof can now *do* that rotation; until the `KmsSigner` is wired, the active
+key is still an env var (see T1).
 
 ## Threat model
 
@@ -46,10 +51,13 @@ A forged or altered credential must never verify.
   uses the public key alone (`/.well-known/did.json`, did:web). Any change to the
   payload breaks the signature. Demonstrated by `npm run verify:demo` (mint →
   verify → tamper → reject) and exercised in CI on every push.
-- **Residual risk (disclosed):** the issuer **private key currently lives in an
+- **Residual risk (disclosed):** the active issuer **private key still lives in an
   environment variable** (`ISSUER_PRIVATE_KEY_HEX`). A leaked env var forges all
-  credentials. **Production requires a KMS/HSM-held key with rotation and a
-  published issuer-trust statement** — tracked as the top hardening item
+  credentials. We have reduced the blast radius — the key is isolated behind one
+  `Signer` boundary, absent from all verify-only surfaces, and key **rotation is
+  supported** (did:web publishes active + retired keys; see the table above) — but
+  the key is still software-held. **Production requires a KMS/HSM-held key**, i.e.
+  wiring the labelled `KmsSigner` stub; this is the top hardening item
   (see [docs/adr/0002](docs/adr/0002-single-jose-jwt-vc.md) and the roadmap).
 
 ### T2 — Audit-log tampering / repudiation

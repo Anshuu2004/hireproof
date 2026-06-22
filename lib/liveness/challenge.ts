@@ -5,7 +5,7 @@
  * avatar, or a late-joining proxy cannot pre-stage it.
  */
 
-export type Language = "en" | "hi" | "te";
+export type Language = "en";
 
 export type LivenessAction = "blink" | "turn" | "mouth_open" | "smile";
 
@@ -18,12 +18,12 @@ export interface LivenessChallenge {
 
 const ACTION_POOL: LivenessAction[] = ["blink", "turn", "mouth_open", "smile"];
 
-/** Instruction copy per action, per language (equal-weight, not a bolted-on translation). */
+/** Instruction copy per action. */
 export const ACTION_COPY: Record<LivenessAction, Record<Language, string>> = {
-  blink: { en: "Blink twice", hi: "दो बार पलक झपकाएँ", te: "రెండుసార్లు కనురెప్ప వేయండి" },
-  turn: { en: "Turn your head to the side", hi: "अपना सिर एक तरफ़ घुमाएँ", te: "మీ తలను పక్కకు తిప్పండి" },
-  mouth_open: { en: "Open your mouth", hi: "मुँह खोलें", te: "నోరు తెరవండి" },
-  smile: { en: "Smile", hi: "मुस्कुराएँ", te: "నవ్వండి" },
+  blink: { en: "Blink twice" },
+  turn: { en: "Turn your head to the side" },
+  mouth_open: { en: "Open your mouth" },
+  smile: { en: "Smile" },
 };
 
 export const ACTION_SHORT: Record<LivenessAction, string> = {
@@ -33,14 +33,12 @@ export const ACTION_SHORT: Record<LivenessAction, string> = {
   smile: "Smile",
 };
 
-/** Digit words for the spoken phrase, per language. */
+/** Digit words for the spoken phrase. */
 export const DIGIT_WORDS: Record<Language, string[]> = {
   en: ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
-  hi: ["शून्य", "एक", "दो", "तीन", "चार", "पाँच", "छह", "सात", "आठ", "नौ"],
-  te: ["సున్నా", "ఒకటి", "రెండు", "మూడు", "నాలుగు", "ఐదు", "ఆరు", "ఏడు", "ఎనిమిది", "తొమ్మిది"],
 };
 
-export const SPEECH_LANG: Record<Language, string> = { en: "en-IN", hi: "hi-IN", te: "te-IN" };
+export const SPEECH_LANG: Record<Language, string> = { en: "en-IN" };
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -76,9 +74,9 @@ export function transcriptMatchesDigits(transcript: string, digits: number[], la
   const found: number[] = [];
   const tokens = lower.split(/[\s,.-]+/).filter(Boolean);
   const wordToDigit = new Map<string, number>();
-  const langs: Language[] = language ? [language] : ["en", "hi", "te"];
+  const langs: Language[] = language ? [language] : ["en"];
   langs.forEach((lng) =>
-    DIGIT_WORDS[lng].forEach((w, d) => wordToDigit.set(w.toLowerCase(), d))
+    (DIGIT_WORDS[lng] ?? []).forEach((w, d) => wordToDigit.set(w.toLowerCase(), d))
   );
   for (const t of tokens) {
     if (/^\d$/.test(t)) found.push(Number(t));

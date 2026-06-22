@@ -20,7 +20,7 @@ create table if not exists employers (
 create table if not exists sessions (
   id                 uuid primary key default gen_random_uuid(),
   created_at         timestamptz not null default now(),
-  language           text not null default 'en',          -- en | hi | te
+  language           text not null default 'en',          -- en
   consent_json       jsonb,                                -- itemised DPDP consent receipt
   nonce              text not null,                        -- server-issued, binds the live challenge
   task_seed_json     jsonb,                                -- liveness action order + spoken sentence

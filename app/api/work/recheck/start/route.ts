@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 const Body = z.object({
   credentialId: z.string().uuid(),
   secret: z.string().min(1), // holder proof-of-possession — only the holder can re-check
-  language: z.enum(["en", "hi", "te"]).optional(),
+  language: z.enum(["en"]).optional(),
 });
 
 /**
