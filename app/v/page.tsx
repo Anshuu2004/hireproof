@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { importJWK, jwtVerify } from "jose";
-import { QrCode, SealCheck, XCircle, Clock } from "@phosphor-icons/react";
+import { QrCode, SealCheck, XCircle, Clock, X } from "@phosphor-icons/react";
+import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
 import { Button } from "@/components/ui/button";
@@ -28,12 +29,22 @@ interface Result {
   status?: { revoked?: boolean; rounds?: number };
 }
 
+/** A QR encodes the verify URL (…/v#<token>); accept a raw token too. */
+function tokenFromScan(text: string): string {
+  const hash = text.indexOf("#");
+  return (hash >= 0 ? text.slice(hash + 1) : text).trim();
+}
+
 export default function VerifyPage() {
   const [state, setState] = useState<State>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<Result | null>(null);
   const [pasted, setPasted] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scanErr, setScanErr] = useState("");
   const timer = useRef<number>(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
 
   const verify = useCallback(async (token: string) => {
     if (!token || token.split(".").length !== 3) {
@@ -84,6 +95,47 @@ export default function VerifyPage() {
     if (h) verify(h);
     return () => window.clearInterval(timer.current);
   }, [verify]);
+
+  const stopScan = useCallback(() => {
+    controlsRef.current?.stop();
+    controlsRef.current = null;
+    setScanning(false);
+  }, []);
+
+  // Live QR scan via the rear camera (zxing). On decode → verify the token.
+  useEffect(() => {
+    if (!scanning) return;
+    let cancelled = false;
+    const reader = new BrowserQRCodeReader();
+    (async () => {
+      try {
+        const controls = await reader.decodeFromConstraints(
+          { video: { facingMode: "environment" } },
+          videoRef.current!,
+          (res, _err, ctrl) => {
+            if (res && !cancelled) {
+              const tok = tokenFromScan(res.getText());
+              ctrl?.stop();
+              controlsRef.current = null;
+              setScanning(false);
+              verify(tok);
+            }
+          }
+        );
+        controlsRef.current = controls;
+      } catch {
+        if (!cancelled) {
+          setScanErr("Couldn't open the camera. Allow camera access, or paste the token below.");
+          setScanning(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controlsRef.current?.stop();
+      controlsRef.current = null;
+    };
+  }, [scanning, verify]);
 
   const took = state === "verifying" ? elapsed : (result?.took ?? 0);
   const hp = result?.payload?.hp;
@@ -193,8 +245,23 @@ export default function VerifyPage() {
           </div>
         )}
 
-        {/* paste box */}
+        {/* scan or paste */}
         <div className="mt-10 w-full max-w-md">
+          <button
+            type="button"
+            onClick={() => { setScanErr(""); setScanning(true); }}
+            className="flex w-full items-center justify-center gap-2 rounded-control border border-ink-700 bg-ink-900 px-4 py-3 text-sm font-medium text-ink-100 transition-colors hover:border-indigo/50 active:translate-y-px"
+          >
+            <QrCode size={18} /> Scan QR with camera
+          </button>
+          {scanErr && <p className="mt-2 text-center text-xs text-danger">{scanErr}</p>}
+
+          <div className="my-4 flex items-center gap-3 text-ink-600">
+            <span className="h-px flex-1 bg-ink-700" />
+            <span className="eyebrow">or paste</span>
+            <span className="h-px flex-1 bg-ink-700" />
+          </div>
+
           <label className="eyebrow text-ink-400">Paste a credential token</label>
           <textarea
             value={pasted}
@@ -212,6 +279,25 @@ export default function VerifyPage() {
           HireProof
         </Link>
       </main>
+
+      {/* camera QR scanner overlay */}
+      {scanning && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink-950/90 p-5 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-sheet border border-ink-700 bg-ink-950 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-medium text-ink-100">Scan the candidate&apos;s QR</p>
+              <button type="button" onClick={stopScan} className="text-ink-400 transition-colors hover:text-ink-100" aria-label="Cancel scan">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="relative aspect-square overflow-hidden rounded-card border border-ink-700 bg-black">
+              <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+              <div className="pointer-events-none absolute inset-6 rounded-lg border-2 border-proof/70" />
+            </div>
+            <p className="mt-3 text-center font-data text-xs text-ink-500">Point the camera at the HireProof QR code.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -238,6 +238,7 @@ export default function Home() {
           </nav>
           <div className="lp-row" style={{ gap: "0.55rem" }}>
             <Link href="/v" className="lp-btn lp-btn--ghost lp-cta-desktop">Verify a credential</Link>
+            <Link href="/employer" className="lp-btn lp-btn--ghost lp-cta-desktop">For employers</Link>
             <Link href="/verify" className="lp-btn lp-btn--primary">Prove you&apos;re real</Link>
             <button type="button" className="lp-icon-btn" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
               {theme === "dark" ? <Sun /> : <Moon />}
@@ -254,6 +255,7 @@ export default function Home() {
             <a href="#compliance" onClick={() => setMenuOpen(false)}>Compliance</a>
             <Link href="/guide" onClick={() => setMenuOpen(false)}>Guide</Link>
             <Link href="/v" onClick={() => setMenuOpen(false)}>Verify a credential</Link>
+            <Link href="/employer" onClick={() => setMenuOpen(false)}>For employers</Link>
           </div>
         )}
       </header>
