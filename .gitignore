@@ -49,3 +49,7 @@ next-env.d.ts
 # pdf build artifacts (kept local)
 _pdf/
 _capture*.mjs
+
+# agent-generated audit docs (kept local — AUDIT_FINDINGS lists weaknesses; do not publish)
+/AUDIT_FINDINGS.md
+/TESTING_GUIDE.md
