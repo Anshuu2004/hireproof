@@ -74,14 +74,14 @@ const ITEMS = [
   {
     key: "face" as const,
     icon: Camera,
-    title: "Face liveness",
+    title: "Live face check",
     desc: "We check you are a live person on camera right now — never your emotions, age, or any other trait.",
     required: true,
   },
   {
     key: "voice" as const,
     icon: Microphone,
-    title: "Voice liveness",
+    title: "Live voice check",
     desc: "You read a short phrase generated this instant, so a recording or a stand-in can't pass for you.",
     required: true,
   },
@@ -166,8 +166,8 @@ export function ConsentStep({
         This proof is yours.
       </h1>
       <p className="mt-3 text-pretty leading-relaxed text-ink-300">
-        You&apos;ll do a short live check, then own a portable credential you reuse with any employer.
-        Here is exactly what we capture — and what we never keep.
+        You&apos;ll do a short live check, then own a badge you can reuse with any employer.
+        Here is exactly what we capture, and what we never keep.
       </p>
 
       {/* itemised consent — DPDP affirmative action, nothing pre-bundled */}
@@ -250,9 +250,9 @@ export function ConsentStep({
       {/* what we never do — the DPDP / EU-AI-Act guarantees, stated plainly */}
       <ul className="mt-5 space-y-2">
         {[
-          "Your camera feed never leaves your device — including the in-task check; only math fingerprints and presence signals do.",
+          "Your camera feed never leaves your device — including the in-task check. We keep only a privacy-safe math summary and a present/absent signal.",
           "No emotion, confidence, or personality is ever inferred. By law and by design.",
-          "Delete everything anytime by revoking your credential.",
+          "Delete everything anytime by revoking your badge.",
         ].map((t) => (
           <li key={t} className="flex items-start gap-2.5 text-sm text-ink-300">
             <Check size={16} weight="bold" className="mt-0.5 shrink-0 text-proof" />
@@ -270,7 +270,7 @@ export function ConsentStep({
         {ready ? "I'm ready — start the live check" : "Turn on face & voice to continue"}
       </Button>
       <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-500">
-        <Trash size={13} /> You can stop anytime. Nothing is stored until you mint.
+        <Trash size={13} /> You can stop anytime. Nothing is stored until you finish.
       </p>
     </div>
   );

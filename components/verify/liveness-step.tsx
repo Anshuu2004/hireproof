@@ -16,22 +16,22 @@ const FACE_LANDMARKER_WASM = "/mediapipe/wasm";
 const FACE_LANDMARKER_MODEL = "/mediapipe/face_landmarker.task";
 const FACEAPI_MODELS = "/models";
 
-// MediaPipe/emscripten prints benign "INFO:" lines (e.g. the XNNPACK CPU delegate
-// notice) to stderr -> console.error, which Next's dev overlay shows as a red error.
-// They are not failures; filter just these lines so the UI stays clean.
-declare global {
-  interface Window {
-    __hpLogPatched?: boolean;
-  }
-}
-if (typeof window !== "undefined" && !window.__hpLogPatched) {
-  window.__hpLogPatched = true;
+// MediaPipe/emscripten prints benign "INFO:"/XNNPACK/TensorFlow-Lite lines to
+// console.error, which Next's dev overlay shows as red errors. Suppress them ONLY
+// while the model loads (see setup below), then restore — so genuine errors
+// elsewhere in the session are never swallowed by a process-wide override.
+async function withMediapipeLogFilter<T>(fn: () => Promise<T>): Promise<T> {
   const orig = console.error.bind(console);
   console.error = (...args: unknown[]) => {
     const s = typeof args[0] === "string" ? args[0] : "";
     if (s.startsWith("INFO:") || s.includes("XNNPACK") || s.includes("TensorFlow Lite")) return;
     orig(...args);
   };
+  try {
+    return await fn();
+  } finally {
+    console.error = orig;
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,20 +138,22 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
         }
-        const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
-        const fileset = await FilesetResolver.forVisionTasks(FACE_LANDMARKER_WASM);
-        const options = (delegate: "GPU" | "CPU") => ({
-          baseOptions: { modelAssetPath: FACE_LANDMARKER_MODEL, delegate },
-          outputFaceBlendshapes: true,
-          outputFacialTransformationMatrixes: true,
-          runningMode: "VIDEO" as const,
-          numFaces: 1,
+        landmarkerRef.current = await withMediapipeLogFilter(async () => {
+          const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
+          const fileset = await FilesetResolver.forVisionTasks(FACE_LANDMARKER_WASM);
+          const options = (delegate: "GPU" | "CPU") => ({
+            baseOptions: { modelAssetPath: FACE_LANDMARKER_MODEL, delegate },
+            outputFaceBlendshapes: true,
+            outputFacialTransformationMatrixes: true,
+            runningMode: "VIDEO" as const,
+            numFaces: 1,
+          });
+          try {
+            return await FaceLandmarker.createFromOptions(fileset, options("GPU"));
+          } catch {
+            return await FaceLandmarker.createFromOptions(fileset, options("CPU"));
+          }
         });
-        try {
-          landmarkerRef.current = await FaceLandmarker.createFromOptions(fileset, options("GPU"));
-        } catch {
-          landmarkerRef.current = await FaceLandmarker.createFromOptions(fileset, options("CPU"));
-        }
         if (!cancelled) {
           setPhase("ready");
           rafRef.current = requestAnimationFrame(tick);
@@ -300,7 +302,16 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
           .detectSingleFace(videoRef.current!, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
-        const descriptor = det ? Array.from(det.descriptor) : new Array(128).fill(0);
+        // L2-normalise the descriptor so the stored vector is unit-length, matching
+        // the documented schema (init.sql / ADR-0003 / SECURITY.md). Cosine distance
+        // is magnitude-invariant, so this changes NO match result vs previously-stored
+        // un-normalised vectors — it just makes the embedding canonical. A no-face
+        // capture stays all-zeros so the server's norm check can reject it.
+        let descriptor = det ? Array.from(det.descriptor) : new Array(128).fill(0);
+        if (det) {
+          const norm = Math.sqrt(descriptor.reduce((s, x) => s + x * x, 0)) || 1;
+          descriptor = descriptor.map((x) => x / norm);
+        }
 
         setPhase("submitting");
         const res = await fetch("/api/liveness", {
@@ -343,6 +354,7 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let rec: any = null;
+    let sttRetried = false; // browser STT "network" errors are often transient — retry once
 
     (async () => {
       // 1) mic level meter — diagnostic ("is my mic working?") + fallback voice-present signal
@@ -397,7 +409,17 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rec.onerror = (ev: any) => {
           if (ev?.error === "not-allowed" || ev?.error === "service-not-allowed") setVoiceStatus("mic-blocked");
-          else if (ev?.error === "network") setVoiceStatus("stt-network");
+          else if (ev?.error === "network") {
+            setVoiceStatus("stt-network");
+            // Transient backend hiccup — restart the recognizer once before giving
+            // up to the (still-passing) voice-activity fallback.
+            if (!sttRetried && !cancelled) {
+              sttRetried = true;
+              window.setTimeout(() => {
+                if (!cancelled) try { rec.start(); } catch {}
+              }, 600);
+            }
+          }
         };
         try {
           rec.start();
@@ -539,7 +561,7 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
                 ) : voiceStatus === "stt-unsupported" ? (
                   <span className="text-ink-400">No speech-to-text here — your live voice still counts</span>
                 ) : voiceStatus === "stt-network" ? (
-                  <span className="text-warn">Speech service offline — your live voice still counts</span>
+                  <span className="text-ink-400">Catching your voice by sound — keep reading the numbers aloud</span>
                 ) : transcript ? (
                   <span className="text-ink-300">heard: {transcript}</span>
                 ) : (
@@ -557,9 +579,9 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
                 <div className="h-full w-1/2 animate-[pulse-soft_1.2s_ease-in-out_infinite] rounded-full bg-indigo-bright" />
               </div>
               <p className="font-data text-xs text-ink-300">
-                {phase === "loading" && "loading face engine…"}
-                {phase === "capturing" && "computing 128-d face fingerprint…"}
-                {phase === "submitting" && "verifying signals on the server…"}
+                {phase === "loading" && "starting the camera check…"}
+                {phase === "capturing" && "taking your live face snapshot…"}
+                {phase === "submitting" && "confirming your checks…"}
               </p>
             </div>
           </div>
@@ -568,11 +590,11 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
 
       {/* signal pills */}
       <div className="mt-5 flex w-full items-center justify-center gap-2">
-        {(["Face", "Voice", "Reasoning"] as const).map((s) => {
+        {(["Face", "Voice", "Skill"] as const).map((s) => {
           const active =
             (s === "Face" && ["running", "confirm", "speaking", "capturing", "submitting", "done"].includes(phase)) ||
             (s === "Voice" && ["speaking", "capturing", "submitting", "done"].includes(phase)) ||
-            (s === "Reasoning" && phase === "done");
+            (s === "Skill" && phase === "done");
           return (
             <div
               key={s}

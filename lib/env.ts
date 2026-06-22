@@ -28,6 +28,11 @@ export const env = {
     return required("SUPABASE_SERVICE_ROLE_KEY");
   },
 
+  // Dedicated HMAC secret for employer session tokens. Set this in production so
+  // the session-forgery key is NOT the same root as the RLS-bypassing service-role
+  // DB key. Falls back to the service-role key for zero-config dev (lib/auth/session.ts).
+  employerSessionSecret: process.env.EMPLOYER_SESSION_SECRET,
+
   // Credential issuer (Ed25519). On Vercel the issuer DID and site URL derive
   // from the production domain so the QR + did:web are correct with no manual
   // config; both stay internally consistent (token iss === did.json id).

@@ -38,6 +38,11 @@ export async function POST(req: Request) {
 
   // ── SCORE mode ──────────────────────────────────────────────────────────────
   if (decisions) {
+    // The task must belong to the supplied session — stops attaching a reliance
+    // result to a session the caller doesn't own (mirrors /api/score's guard).
+    if (sessionId && task.session_id && task.session_id !== sessionId) {
+      return NextResponse.json({ error: "Task does not belong to this session" }, { status: 403 });
+    }
     const items = (task.reliance_json as PanelItem[] | null) ?? [];
     if (!items.length) return NextResponse.json({ error: "No reliance panel for this task" }, { status: 400 });
     const result = scoreReliance(items, decisions);

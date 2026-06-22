@@ -1,28 +1,52 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { createHash, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { signDetached } from "@/lib/credential/issuer";
+import { limited } from "@/lib/ratelimit";
 import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
 
+const Body = z.object({
+  sessionId: z.string().uuid(),
+  secret: z.string().min(1), // holder proof-of-possession
+});
+
 /**
  * Portable DPDP consent receipt. Itemised consent is captured at session start;
  * here we hand the candidate a signed, independently-verifiable record of exactly
- * what they consented to, when, and for what purpose — re-derivable from
- * sessions.consent_json and verifiable against the issuer key like any credential.
- * Makes "itemised consent" provable and portable, not just stored.
+ * what they consented to. Holder-gated (POST {sessionId, secret}) + rate-limited:
+ * it is NOT an open signing oracle on the issuer key, nor a consent-data leak by
+ * UUID — only the data principal who owns the credential can mint their receipt.
  */
-export async function GET(req: Request) {
-  const sessionId = new URL(req.url).searchParams.get("sessionId");
-  if (!sessionId) return NextResponse.json({ error: "missing sessionId" }, { status: 400 });
+export async function POST(req: Request) {
+  const rl = limited(req, "consent-receipt", 20, 60_000);
+  if (rl) return rl;
+
+  const parsed = Body.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  const { sessionId, secret } = parsed.data;
 
   const sb = supabaseAdmin();
   const { data: session } = await sb
     .from("sessions")
-    .select("id,language,consent_json,created_at")
+    .select("id,language,consent_json,created_at,credential_id")
     .eq("id", sessionId)
     .maybeSingle();
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+
+  // Holder proof-of-possession against the session's credential.
+  const { data: cred } = session.credential_id
+    ? await sb.from("credentials").select("holder_secret_hash").eq("id", session.credential_id).maybeSingle()
+    : { data: null };
+  const presented = createHash("sha256").update(secret).digest();
+  let owned = false;
+  if (cred?.holder_secret_hash) {
+    const stored = Buffer.from(cred.holder_secret_hash, "hex");
+    owned = stored.length === presented.length && timingSafeEqual(stored, presented);
+  }
+  if (!owned) return NextResponse.json({ error: "Holder key does not match" }, { status: 403 });
 
   const consent = (session.consent_json ?? {}) as Record<string, unknown>;
   const receipt = {

@@ -90,7 +90,7 @@ export function TaskStep({
     // the "generating a fresh task…" spinner never shows.
     if (prefetchedTask) {
       setTask(prefetchedTask);
-      setLedger([{ t: now(), label: "Task generated · planted flaw hidden" }]);
+      setLedger([{ t: now(), label: "Task ready · the AI may slip up" }]);
       return;
     }
     let cancelled = false;
@@ -108,7 +108,7 @@ export function TaskStep({
           return;
         }
         setTask(data);
-        setLedger([{ t: now(), label: "Task generated · planted flaw hidden" }]);
+        setLedger([{ t: now(), label: "Task ready · the AI may slip up" }]);
       } catch {
         if (!cancelled) setLoadErr("Network error generating task");
       }
@@ -444,7 +444,7 @@ export function TaskStep({
           <div className="rounded-card border border-ink-700 bg-ink-900 p-5 shadow-card">
             <p className="eyebrow text-indigo-bright">Your task</p>
             <h2 className="mt-1.5 text-[0.95rem] font-semibold leading-snug text-ink-50">{task.title}</h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-300">{task.brief}</p>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-300">{task.brief}</p>
           </div>
 
           {/* judgment callout */}
@@ -461,7 +461,7 @@ export function TaskStep({
             <div className="rounded-card border border-indigo/25 bg-ink-900 p-5 shadow-card">
               <div className="flex items-center gap-2">
                 <Scales size={15} className="text-indigo-bright" />
-                <p className="eyebrow text-indigo-bright">Calibrated AI-reliance check</p>
+                <p className="eyebrow text-indigo-bright">Trust the AI only when it&apos;s right</p>
                 <span
                   className={cn(
                     "ml-auto rounded-full px-2 py-0.5 font-data text-[0.7rem]",
@@ -473,8 +473,7 @@ export function TaskStep({
               </div>
               <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
                 The AI made these claims about your task.{" "}
-                <span className="text-ink-300">Accept the right ones, reject the wrong ones</span> — we
-                measure accept-correct <em>and</em> override-wrong.
+                <span className="text-ink-300">Accept the ones that are right and reject the ones that are wrong.</span>
               </p>
 
               {/* progress */}
@@ -539,9 +538,9 @@ export function TaskStep({
             </div>
           )}
 
-          {/* thinking ledger */}
+          {/* steps ledger */}
           <div className="rounded-card border border-ink-700 bg-ink-900 p-5 shadow-card">
-            <p className="eyebrow text-ink-400">Thinking ledger · auditable</p>
+            <p className="eyebrow text-ink-400">Your steps · logged</p>
             <ul className="mt-3 space-y-2">
               {ledger.map((e, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-xs">
@@ -563,7 +562,7 @@ export function TaskStep({
             <span className="eyebrow ml-auto text-ink-500">authorship logged</span>
           </div>
 
-          <div ref={chatRef} className="max-h-[340px] min-h-[200px] flex-1 space-y-3 overflow-y-auto p-4">
+          <div ref={chatRef} className="max-h-[min(50vh,420px)] min-h-[200px] flex-1 space-y-3 overflow-y-auto p-4">
             {messages.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
                 <Robot size={26} className="text-ink-600" />

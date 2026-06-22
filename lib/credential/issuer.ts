@@ -15,9 +15,15 @@ import { getSigner } from "./signer";
  */
 
 function hexToBytes(hex: string): Uint8Array {
-  const clean = hex.trim();
+  const clean = hex.trim().toLowerCase();
+  // Fail LOUD on a malformed key (odd length / non-hex) instead of silently
+  // producing a truncated/NaN-filled key that breaks every signature opaquely.
+  if (clean.length === 0 || clean.length % 2 !== 0 || !/^[0-9a-f]+$/.test(clean)) {
+    throw new Error("Invalid issuer key hex: expected an even-length hex string (check ISSUER_*_KEY_HEX).");
+  }
   const out = new Uint8Array(clean.length / 2);
   for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  if (out.length !== 32) throw new Error("Invalid issuer key: expected 32 bytes (64 hex chars) for Ed25519.");
   return out;
 }
 const b64url = (b: Uint8Array) => Buffer.from(b).toString("base64url");

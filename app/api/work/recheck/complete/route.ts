@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createHash, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { appendAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
-const Body = z.object({ sessionId: z.string().uuid() });
+const Body = z.object({
+  sessionId: z.string().uuid(),
+  secret: z.string().min(1), // holder proof-of-possession — only the holder can finalise their re-check
+});
 
 /**
  * Finalise a work-verification re-check: read the liveness verdict + the
@@ -32,6 +36,20 @@ export async function POST(req: Request) {
   if (session.status === "work-checked") {
     return NextResponse.json({ error: "Re-check already recorded" }, { status: 409 });
   }
+
+  // Holder proof-of-possession: only the credential's owner may finalise a
+  // re-check and advance its schedule — knowing a sessionId is not enough.
+  // (The /start step is already holder-gated; this closes the matching gap.)
+  const { data: cred } = session.credential_id
+    ? await sb.from("credentials").select("holder_secret_hash,round_count").eq("id", session.credential_id).maybeSingle()
+    : { data: null };
+  const presented = createHash("sha256").update(parsed.data.secret).digest();
+  let owned = false;
+  if (cred?.holder_secret_hash) {
+    const stored = Buffer.from(cred.holder_secret_hash, "hex");
+    owned = stored.length === presented.length && timingSafeEqual(stored, presented);
+  }
+  if (!owned) return NextResponse.json({ error: "Holder key does not match" }, { status: 403 });
 
   // Cross-round result comes from the liveness event (it matched against priors
   // BEFORE this round's descriptor was inserted — recomputing now would self-match).
@@ -74,6 +92,17 @@ export async function POST(req: Request) {
   if (enrollment) {
     const nextDue = new Date(Date.now() + (enrollment.interval_days ?? 30) * 86400_000).toISOString();
     await sb.from("work_enrollments").update({ next_due: nextDue }).eq("id", enrollment.id);
+  }
+
+  // A passed re-check is a completed verification round — advance the credential's
+  // round counter so "Re-check rounds" actually grows (and the next /start derives
+  // the correct round_no). Per-session idempotent: a session can only complete once
+  // (guarded by the work-checked status above), so this never double-counts.
+  if (result === "pass" && session.credential_id) {
+    await sb
+      .from("credentials")
+      .update({ round_count: (cred?.round_count ?? 1) + 1 })
+      .eq("id", session.credential_id);
   }
 
   await sb.from("sessions").update({ status: "work-checked" }).eq("id", sessionId);

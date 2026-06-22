@@ -55,7 +55,11 @@ export async function POST(req: Request) {
       system: spec.assistantSystemPrompt,
       messages,
       temperature: 0.7,
-      maxOutputTokens: 700,
+      // 700 truncated real code answers mid-line; 2048 fits a full function +
+      // explanation. timeoutMs is generous (within maxDuration=60) so a long code
+      // generation isn't aborted by the default hot-path failover timeout.
+      maxOutputTokens: 2048,
+      timeoutMs: 45_000,
     });
 
     // Persist the turn server-side so scoring is authoritative and cannot be

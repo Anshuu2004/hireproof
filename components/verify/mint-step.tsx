@@ -31,7 +31,7 @@ function ScoreExplain({ score }: { score: ScoreResult }) {
         <span className="font-data text-sm text-ink-50 ml-auto">{score.aiCollabScore}<span className="text-ink-500">/100</span></span>
       </div>
       <p className="mt-1 text-[0.7rem] leading-relaxed text-ink-500">
-        Judgment, not usage — every line is graded from your transcript. Tone, confidence and
+        Every score line comes from your actual chat. Tone, confidence and
         &ldquo;cultural fit&rdquo; are never scored (EU AI Act Art 5(1)(f)).
       </p>
 
@@ -104,8 +104,13 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
   const started = useRef(false);
 
   async function downloadReceipt() {
+    if (!cred?.holderSecret) return; // receipt is now holder-gated (POST + secret)
     try {
-      const data = await fetch(`/api/consent-receipt?sessionId=${sessionId}`).then((r) => r.json());
+      const data = await fetch(`/api/consent-receipt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, secret: cred.holderSecret }),
+      }).then((r) => r.json());
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -205,12 +210,12 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
     const fp = signature.slice(0, revealed);
     return (
       <div className="mx-auto w-full max-w-md text-center">
-        <p className="eyebrow text-indigo-bright">Minting your proof</p>
+        <p className="eyebrow text-indigo-bright">Building your badge</p>
         <div className="mx-auto mt-6 grid size-16 place-items-center rounded-full border border-ink-700 bg-ink-900">
           <span className="size-8 rounded-full bg-indigo/20" />
         </div>
         <p className="mt-5 font-data text-xs text-ink-400">
-          {phase === "minting" ? "assembling W3C verifiable credential…" : "signing · Ed25519 · did:web"}
+          {phase === "minting" ? "building your badge…" : "adding the tamper-proof signature…"}
         </p>
         <div className="mx-auto mt-3 max-w-sm break-all rounded-control border border-ink-700 bg-ink-950 p-3 text-left">
           <span className="font-data text-[0.7rem] leading-relaxed text-proof-bright caret">{fp}</span>
@@ -229,9 +234,9 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
           <Check size={20} weight="bold" />
         </span>
       </div>
-      <h1 className="mt-4 text-2xl font-semibold tracking-[-0.01em] text-ink-50">Minted. This proof is yours.</h1>
+      <h1 className="mt-4 text-2xl font-semibold tracking-[-0.01em] text-ink-50">Done. This proof is yours.</h1>
       <p className="mt-1.5 text-center text-sm text-ink-300">
-        A signed, portable credential — reuse it with any employer.
+        A tamper-proof badge that&apos;s yours to keep. Reuse it with any employer.
       </p>
 
       {cred && (
@@ -247,7 +252,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
         </div>
       )}
 
-      <div className="mt-6 grid w-full grid-cols-3 gap-2">
+      <div className="mt-6 grid w-full grid-cols-2 gap-2 sm:grid-cols-3">
         <a href={cred?.qrDataUrl} download={`hireproof-${tokenId}.png`} className={buttonClass("ghost", "sm", "gap-1.5")}>
           <DownloadSimple size={15} /> Save QR
         </a>
@@ -280,7 +285,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
         <div className="mt-3 w-full rounded-control border border-ink-700 bg-ink-900 p-4 text-left">
           <div className="flex items-center gap-2">
             <Scales size={15} className="text-indigo-bright" />
-            <span className="text-xs font-medium text-ink-100">Appropriate-reliance signal · RAIR/RSR</span>
+            <span className="text-xs font-medium text-ink-100">How well you trusted the AI</span>
             <span className="ml-auto font-data text-sm text-ink-50">
               {score.reliance.appropriateReliance}<span className="text-ink-500">/100</span>
             </span>
@@ -288,8 +293,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
           <p className="mt-1 text-[0.7rem] leading-relaxed text-ink-500">
             Calibrated reliance across {score.reliance.total} AI claims — accepted{" "}
             {score.reliance.acceptedCorrect}/{score.reliance.correctCount} correct, rejected{" "}
-            {score.reliance.rejectedWrong}/{score.reliance.wrongCount} wrong. Grounded in Schemmer 2023;
-            small-N, not a psychometrically validated instrument.
+            {score.reliance.rejectedWrong}/{score.reliance.wrongCount} wrong. Grounded in Schemmer 2023.
           </p>
           <div className="mt-2.5 flex flex-wrap gap-1.5 font-data text-[0.65rem]">
             <span className="rounded-full bg-proof/15 px-2 py-0.5 text-proof">RAIR {Math.round(score.reliance.rair * 100)}% accept-correct</span>
@@ -377,12 +381,12 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
         <div className="mt-5 w-full rounded-control border border-amber/30 bg-amber-wash/5 p-4">
           <div className="flex items-center gap-2">
             <Key size={15} className="text-amber" weight="fill" />
-            <span className="text-xs font-medium text-ink-100">Your private holder key</span>
+            <span className="text-xs font-medium text-ink-100">Your private key</span>
             <span className="eyebrow ml-auto text-ink-500">shown once</span>
           </div>
           <p className="mt-1.5 text-xs leading-relaxed text-ink-400">
-            This is bound into your signed credential. Keep it — it proves the credential is
-            <span className="text-ink-200"> yours</span>, not just whoever holds the QR.
+            This is tied to your badge. Keep it safe. It proves the badge is
+            <span className="text-ink-200"> yours</span>, not just whoever has the QR.
           </p>
           <div className="mt-2.5 flex items-center gap-2">
             <code className="flex-1 truncate rounded-control border border-ink-700 bg-ink-950 px-3 py-2 font-data text-xs text-amber">
@@ -411,7 +415,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
         ) : (
           <>
             <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
-              Itemised consent and erasure are exercisable here — not a roadmap line.
+              Itemised consent and erasure are exercisable here.
             </p>
             <div className="mt-2.5 grid grid-cols-2 gap-2">
               <Button variant="ghost" size="sm" onClick={downloadReceipt} className="gap-1.5">

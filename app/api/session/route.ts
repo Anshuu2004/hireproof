@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createHash, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateChallenge, spokenPhrase, type Language } from "@/lib/liveness/challenge";
 import { deferAudit } from "@/lib/audit";
@@ -23,6 +24,7 @@ const Body = z.object({
     demographicsForAudit: z.boolean().optional(),
   }),
   credentialId: z.string().uuid().optional(), // present on re-verify rounds
+  secret: z.string().min(1).optional(), // holder proof-of-possession for a candidate-initiated re-verify
 });
 
 /** Start a verification session: record itemised consent, issue a randomised challenge. */
@@ -43,8 +45,39 @@ export async function POST(req: Request) {
     );
   }
 
-  const challenge = generateChallenge(language as Language);
   const sb = supabaseAdmin();
+
+  // A re-verify round binds a NEW face descriptor to an existing credential, so
+  // this path must be AUTHORISED — otherwise anyone who learns a credential id
+  // could pollute its biometric history or fabricate a cross-round "mismatch".
+  // Accept EITHER an authenticated employer (console-initiated round) OR the
+  // holder secret (candidate-initiated). Round-1 (no credentialId) is open as before.
+  let employerSub: string | null = null;
+  if (credentialId) {
+    const emp = await getEmployer(req);
+    employerSub = emp?.sub ?? null;
+    let authorized = !!emp;
+    if (!authorized && parsed.data.secret) {
+      const { data: cred } = await sb
+        .from("credentials")
+        .select("holder_secret_hash,revoked")
+        .eq("id", credentialId)
+        .maybeSingle();
+      if (cred && !cred.revoked && cred.holder_secret_hash) {
+        const presented = createHash("sha256").update(parsed.data.secret).digest();
+        const stored = Buffer.from(cred.holder_secret_hash, "hex");
+        authorized = stored.length === presented.length && timingSafeEqual(stored, presented);
+      }
+    }
+    if (!authorized) {
+      return NextResponse.json(
+        { error: "Re-verify must be started from the employer console or with the holder key." },
+        { status: 403 }
+      );
+    }
+  }
+
+  const challenge = generateChallenge(language as Language);
 
   const { data, error } = await sb
     .from("sessions")
@@ -65,11 +98,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error?.message ?? "Database error" }, { status: 500 });
   }
 
-  // A re-verify started by an authenticated employer claims governance of that
-  // candidate (best-effort; scopes the candidate to this employer's console).
-  if (credentialId) {
-    const emp = await getEmployer(req);
-    if (emp) await sb.from("credentials").update({ governed_by: emp.sub }).eq("id", credentialId).then(() => {}, () => {});
+  // An employer-initiated re-verify claims governance of that candidate
+  // (best-effort; scopes the candidate to this employer's console).
+  if (credentialId && employerSub) {
+    await sb.from("credentials").update({ governed_by: employerSub }).eq("id", credentialId).then(() => {}, () => {});
   }
 
   deferAudit({

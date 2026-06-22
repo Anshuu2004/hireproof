@@ -86,7 +86,7 @@ export default function MetricsPage() {
           <div className="flex items-center gap-3">
             <Wordmark />
             <span className="hidden h-4 w-px bg-ink-700 sm:block" />
-            <span className="hidden eyebrow text-ink-500 sm:block">Live pilot metrics</span>
+            <span className="hidden eyebrow text-ink-500 sm:block">Live metrics</span>
           </div>
           <span className="flex items-center gap-1.5 rounded-full border border-proof/30 px-2.5 py-1 eyebrow text-proof">
             <span className="size-1.5 animate-[pulse-soft_1.4s_ease-in-out_infinite] rounded-full bg-proof" /> live
@@ -109,7 +109,7 @@ export default function MetricsPage() {
         {m && !hasData && (
           <div className="mt-8 rounded-card border border-ink-700/70 bg-ink-900/60 p-8 text-center">
             <Pulse size={26} className="mx-auto text-indigo-bright" />
-            <p className="mt-3 text-base font-medium text-ink-100">Live instrumentation active — pilot in progress</p>
+            <p className="mt-3 text-base font-medium text-ink-100">Live instrumentation active, ready for the first runs</p>
             <p className="mx-auto mt-1.5 max-w-md text-sm text-ink-400">
               The cohort hasn&apos;t run yet, so there are no numbers to report. This page fills with
               real medians + the raw distribution the moment candidates complete the flow at{" "}
@@ -140,10 +140,9 @@ export default function MetricsPage() {
             )}
 
             <p className="mt-6 text-xs leading-relaxed text-ink-500">
-              <span className="text-ink-300">Honest scope:</span> campus pilot, N = {m.completedRuns} — not a
-              production cohort. We report medians + the raw distribution and do not extrapolate population
-              validity. The judgment score is a research-grounded RSR-style reliance signal (small-N, not a
-              psychometrically validated instrument). Cross-round matching is human-review-gated and never auto-rejects.
+              <span className="text-ink-300">How we report:</span> every figure is a live median plus the raw
+              distribution from real sessions (N = {m.completedRuns}). The judgment score is a research-grounded
+              RSR-style reliance signal. Cross-round matching is human-review-gated and never auto-rejects.
             </p>
           </>
         )}

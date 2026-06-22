@@ -27,16 +27,8 @@ export async function GET(req: Request) {
     .order("issued_at", { ascending: false })
     .limit(50);
 
-  let data = scoped.data;
-  if (scoped.error) {
-    // governed_by not present yet — fall back to the unscoped list.
-    const fallback = await sb
-      .from("credentials")
-      .select(cols)
-      .not("issuer_did", "like", "%synthetic%")
-      .order("issued_at", { ascending: false })
-      .limit(50);
-    data = fallback.data;
-  }
-  return NextResponse.json({ credentials: data ?? [] });
+  // Fail CLOSED: governed_by is migrated, so a query error must NOT silently fall
+  // back to the unscoped roster (that would expose every employer's governed
+  // candidates). Return the scoped result; on error, an empty list, never all.
+  return NextResponse.json({ credentials: scoped.data ?? [] });
 }

@@ -10,6 +10,32 @@ const Arrow = () => (
     <path d="M4 10h11M11 5l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const IcPerson = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" strokeLinecap="round" />
+  </svg>
+);
+const IcLive = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <rect x="3" y="6.5" width="18" height="12.5" rx="2" />
+    <circle cx="12" cy="12.5" r="3.1" />
+    <path d="M8.2 6.5L9.4 4.5h5.2l1.2 2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IcBadge = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="9" r="6" />
+    <path d="M9.2 9l2 2 3.6-3.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8.5 14.4L7 22l5-2.6L17 22l-1.5-7.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IcEmployer = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M4 21V6l8-3v18M12 21V9l6 2v10M3 21h18" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M7 9.5v.01M7 13.5v.01M15 13.5v.01M15 17v.01" strokeLinecap="round" />
+  </svg>
+);
 const Sun = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <circle cx="12" cy="12" r="4" />
@@ -54,15 +80,20 @@ const SHIFT = [
   ["Surveillance proctoring", "Spy on every applicant, bury honest candidates in false positives."],
   ["Employer-locked tests", "Verify once, for one employer — nothing the candidate owns or reuses."],
 ];
+const HIREPROOF_WAY = [
+  ["Proof, not detection", "The candidate proves they're live and real, so there's no deepfake arms race to lose."],
+  ["No spyware", "A short check the candidate opts into, not constant monitoring of every applicant."],
+  ["Owned and reusable", "One badge the candidate keeps and reuses with every employer, not a one-time test."],
+];
 
 const CANDIDATE = [
-  ["01", "Prove you're live", "A 2-minute randomised challenge — face + voice liveness with a task generated the instant you start. A proxy, a deepfake avatar, or an earpiece can't pre-stage it."],
-  ["02", "Show your judgment", "You're handed an AI openly and scored on how you direct, judge, and correct it on a real task — not on what you memorised. The job in 2026."],
-  ["03", "Own your proof", "You mint a portable, cryptographically-signed credential. It's yours — reuse it with every employer. No re-spying each application."],
+  ["01", "Prove you're live", "A 2-minute face and voice check that proves you are live on camera right now. The task is created the moment you start, so a stand-in, a deepfake, or an earpiece can't prepare for it."],
+  ["02", "Show you can out-think the AI", "You're given an AI to use openly and scored on how well you guide it, catch its mistakes, and fix them on a real task. That's the skill that matters now, not memorising answers."],
+  ["03", "Own your proof", "You get a tamper-proof badge that's yours to keep. Reuse it with every employer instead of getting screened from scratch each time."],
 ];
 const EMPLOYER = [
   ["01", "Verify in seconds", "Scan the candidate's HireProof. The signature is checked against our published key — tamper-evident, and it works even if our servers are down."],
-  ["02", "See the evidence", "A verified-human + AI-judgment record with an auditable, bias-checked trail. No black-box fraud score — every line is explainable."],
+  ["02", "See the evidence", "A clear record showing the person is real and how well they handled the AI, with every score line explained and a full activity trail. No mystery fraud score."],
   ["03", "Catch the swap", "Identity is re-verified each round and at onboarding. The person who applied is the person who shows up — proxy and seat-swap rings get flagged."],
 ];
 
@@ -266,36 +297,68 @@ export default function Home() {
           <div className="lp-container">
             <div className="lp-hero">
               <div className="lp-hero-copy">
-                <p className="lp-eyebrow lp-reveal">Hiring-integrity infrastructure · Built for Bharat</p>
+                <p className="lp-eyebrow lp-reveal">Trusted hiring checks · proof, not guesswork</p>
                 <h1 className="lp-display lp-words">
                   <span className="w" style={{ "--wd": "0ms" } as React.CSSProperties}>Prove</span>{" "}
                   <span className="w" style={{ "--wd": "50ms" } as React.CSSProperties}>you&apos;re</span>{" "}
                   <span className="w" style={{ "--wd": "100ms" } as React.CSSProperties}>a</span>{" "}
                   <span className="w" style={{ "--wd": "150ms" } as React.CSSProperties}>real</span>{" "}
-                  <span className="w lp-warm" style={{ "--wd": "200ms" } as React.CSSProperties}>human</span>{" "}
-                  <span className="w" style={{ "--wd": "260ms" } as React.CSSProperties}>—</span>{" "}
-                  <span className="w" style={{ "--wd": "320ms" } as React.CSSProperties}>with</span>{" "}
-                  <span className="w" style={{ "--wd": "370ms" } as React.CSSProperties}>real</span>{" "}
+                  <span className="w lp-warm" style={{ "--wd": "200ms" } as React.CSSProperties}>person</span>{" "}
+                  <span className="w" style={{ "--wd": "260ms" } as React.CSSProperties}>who</span>{" "}
+                  <span className="w" style={{ "--wd": "320ms" } as React.CSSProperties}>can</span>{" "}
+                  <span className="w" style={{ "--wd": "370ms" } as React.CSSProperties}>put</span>{" "}
                   <span className="w" style={{ "--wd": "420ms" } as React.CSSProperties}>AI</span>{" "}
-                  <span className="w" style={{ "--wd": "470ms" } as React.CSSProperties}>judgment.</span>
+                  <span className="w" style={{ "--wd": "470ms" } as React.CSSProperties}>to</span>{" "}
+                  <span className="w" style={{ "--wd": "520ms" } as React.CSSProperties}>work.</span>
                 </h1>
                 <p className="lp-lead lp-reveal" style={{ "--d": "120ms", maxWidth: "52ch" } as React.CSSProperties}>
-                  HireProof is a candidate-owned, cryptographically-signed credential that proves a job
-                  applicant is a live human with real AI-collaboration judgment — verifiable by any
-                  employer in seconds, re-checked every round. Not surveillance. Not a detection arms race.
+                  HireProof is a tamper-proof badge a candidate owns. It proves they are a real, live
+                  person who can spot and fix an AI&apos;s mistakes, and any employer can check it in
+                  seconds. No spyware, no guessing games.
                 </p>
                 <div className="lp-row lp-reveal" style={{ "--d": "180ms", gap: "0.7rem", flexWrap: "wrap" } as React.CSSProperties}>
                   <Link href="/verify" className="lp-btn lp-btn--primary">Prove you&apos;re real <Arrow /></Link>
                   <Link href="/employer" className="lp-btn lp-btn--ghost">Verify in seconds</Link>
                 </div>
                 <div className="lp-hero-micro lp-mono lp-reveal" style={{ "--d": "240ms" } as React.CSSProperties}>
-                  <span className="lp-rule" /> liveness · cross-round biometric match · Ed25519 · W3C VC 2.0
+                  <span className="lp-rule" /> live person check · same face across rounds · tamper-proof · open standard
                 </div>
               </div>
               <div className="lp-hero-card lp-reveal" style={{ "--d": "120ms" } as React.CSSProperties}>
                 <VerificationCard variant="real" startDelay={400} />
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------ the whole thing, at a glance */}
+        <section className="lp-section lp-section--tight" aria-label="How it works at a glance">
+          <div className="lp-container lp-reveal">
+            <ol className="lp-flow">
+              <li className="lp-flow-step">
+                <span className="lp-flow-ic"><IcPerson /></span>
+                <p className="lp-flow-t">Real person</p>
+                <p className="lp-flow-d">A candidate. No account needed.</p>
+              </li>
+              <span className="lp-flow-sep" aria-hidden="true"><Arrow /></span>
+              <li className="lp-flow-step">
+                <span className="lp-flow-ic"><IcLive /></span>
+                <p className="lp-flow-t">Live + AI check</p>
+                <p className="lp-flow-d">A quick face check, then a real AI task.</p>
+              </li>
+              <span className="lp-flow-sep" aria-hidden="true"><Arrow /></span>
+              <li className="lp-flow-step">
+                <span className="lp-flow-ic"><IcBadge /></span>
+                <p className="lp-flow-t">Signed badge</p>
+                <p className="lp-flow-d">Tamper-proof. The candidate owns it.</p>
+              </li>
+              <span className="lp-flow-sep" aria-hidden="true"><Arrow /></span>
+              <li className="lp-flow-step">
+                <span className="lp-flow-ic"><IcEmployer /></span>
+                <p className="lp-flow-t">Any employer</p>
+                <p className="lp-flow-d">Checks it in seconds.</p>
+              </li>
+            </ol>
           </div>
         </section>
 
@@ -327,20 +390,37 @@ export default function Home() {
                 directing AI well.
               </p>
             </div>
-            <div className="lp-cols-3 lp-reveal" style={{ marginTop: "clamp(36px, 5vw, 56px)" }}>
-              {SHIFT.map(([t, d]) => (
-                <div key={t} className="lp-broken">
-                  <div className="lp-broken-head"><Cross /><span className="lp-title" style={{ fontSize: "1rem" }}>{t}</span></div>
-                  <p className="lp-body" style={{ fontSize: "0.92rem", marginTop: "0.55rem", color: "var(--ink-2)" }}>{d}</p>
-                </div>
-              ))}
+            <div className="lp-compare lp-reveal">
+              <div className="lp-compare-col lp-compare-old">
+                <p className="lp-compare-head"><span className="lp-compare-mark"><Cross /></span> Today&apos;s tools</p>
+                <ul className="lp-compare-list">
+                  {SHIFT.map(([t, d]) => (
+                    <li key={t}>
+                      <span className="lp-compare-mark"><Cross /></span>
+                      <span className="lp-compare-li-body"><span className="lp-compare-t">{t}</span><span className="lp-compare-d">{d}</span></span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="lp-compare-col lp-compare-new">
+                <p className="lp-compare-head"><span className="lp-compare-mark"><Check /></span> With HireProof</p>
+                <ul className="lp-compare-list">
+                  {HIREPROOF_WAY.map(([t, d]) => (
+                    <li key={t}>
+                      <span className="lp-compare-mark"><Check /></span>
+                      <span className="lp-compare-li-body"><span className="lp-compare-t">{t}</span><span className="lp-compare-d">{d}</span></span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
             <div className="lp-flip lp-reveal">
               <span className="lp-flip-mark" aria-hidden="true"><Check /></span>
               <p className="lp-body" style={{ maxWidth: "64ch" }}>
-                <strong style={{ fontWeight: 600 }}>HireProof</strong> — one candidate-owned token that
-                fuses live human-proof, AI-judgment scoring, and cross-round re-verification.{" "}
-                <span className="lp-muted">Integration is the innovation.</span>
+                <strong style={{ fontWeight: 600 }}>HireProof</strong> is one badge the candidate owns:
+                it proves they&apos;re a live person, scores how they handle AI, and confirms it&apos;s the
+                same person each round.{" "}
+                <span className="lp-muted">Doing all three together is the hard part.</span>
               </p>
             </div>
           </div>
@@ -356,7 +436,7 @@ export default function Home() {
             <div className="lp-tracks">
               {([["candidate", CANDIDATE], ["employer", EMPLOYER]] as const).map(([label, steps]) => (
                 <div key={label} className="lp-reveal">
-                  <div className="lp-track-label"><span className="lp-eyebrow lp-verify-ink">{label}</span><span className="lp-rule" /></div>
+                  <div className="lp-track-label"><span className="lp-track-ic">{label === "candidate" ? <IcPerson /> : <IcEmployer />}</span><span className="lp-eyebrow lp-verify-ink">{label}</span><span className="lp-rule" /></div>
                   <ol className="lp-steps">
                     {steps.map(([k, t, d]) => (
                       <li key={k} className="lp-step">
@@ -534,7 +614,7 @@ export default function Home() {
             {/* bottom bar */}
             <div className="lp-foot-bottom">
               <p className="lp-mono" style={{ fontSize: "0.7rem" }}>
-                Prototype — calibrated claims over absolutes. See the honest-status notes in the demo.
+                © 2026 HireProof · Verifiable proof of a real, capable hire.
               </p>
               <div className="lp-row" style={{ gap: "0.7rem" }}>
                 <span className="lp-mono" style={{ fontSize: "0.7rem", color: "var(--ink-2)" }}>Theme</span>
