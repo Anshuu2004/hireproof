@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { verifyCredential } from "@/lib/credential/issuer";
 
 export const runtime = "nodejs";
@@ -41,7 +41,7 @@ export async function GET(req: Request) {
     signature_valid: signatureValid,
     cross_round_status: data.round_count > 1 ? "multi-round" : "first-round",
   });
-  await appendAudit({
+  deferAudit({
     sessionId: null,
     eventType: token ? "credential-verified" : "credential-status-checked",
     output: { credentialId: id, revoked: data.revoked, signatureValid },

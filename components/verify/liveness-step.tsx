@@ -290,9 +290,12 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
       setPhase("capturing");
       try {
         const faceapi = await import("@vladmandic/face-api");
-        await faceapi.nets.ssdMobilenetv1.loadFromUri(FACEAPI_MODELS);
-        await faceapi.nets.faceLandmark68Net.loadFromUri(FACEAPI_MODELS);
-        await faceapi.nets.faceRecognitionNet.loadFromUri(FACEAPI_MODELS);
+        // Load the three model nets in parallel (independent) — cuts the capture stall.
+        await Promise.all([
+          faceapi.nets.ssdMobilenetv1.loadFromUri(FACEAPI_MODELS),
+          faceapi.nets.faceLandmark68Net.loadFromUri(FACEAPI_MODELS),
+          faceapi.nets.faceRecognitionNet.loadFromUri(FACEAPI_MODELS),
+        ]);
         const det = await faceapi
           .detectSingleFace(videoRef.current!, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
           .withFaceLandmarks()

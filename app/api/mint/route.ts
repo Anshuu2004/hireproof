@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { createHash, randomBytes, randomUUID } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { signCredential, descriptorHash, type CredentialClaims } from "@/lib/credential/issuer";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
@@ -18,26 +18,23 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   const sb = supabaseAdmin();
-  const { data: session } = await sb.from("sessions").select("*").eq("id", parsed.data.sessionId).single();
+  const { data: session } = await sb.from("sessions").select("liveness_verdict,round_no").eq("id", parsed.data.sessionId).single();
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
   if (session.liveness_verdict !== "pass") {
     return NextResponse.json({ error: "Liveness not passed — cannot mint" }, { status: 400 });
   }
 
-  const { data: scoreRow } = await sb
-    .from("scores")
-    .select("*")
-    .eq("session_id", parsed.data.sessionId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const { data: fd } = await sb
-    .from("face_descriptors")
-    .select("embedding")
-    .eq("session_id", parsed.data.sessionId)
-    .limit(1)
-    .maybeSingle();
+  // Two independent reads in parallel (and narrowed off `select *`).
+  const [{ data: scoreRow }, { data: fd }] = await Promise.all([
+    sb
+      .from("scores")
+      .select("ai_collab_score,direction_quality,error_detection,final_correctness")
+      .eq("session_id", parsed.data.sessionId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    sb.from("face_descriptors").select("embedding").eq("session_id", parsed.data.sessionId).limit(1).maybeSingle(),
+  ]);
   const descriptor: number[] = fd?.embedding
     ? typeof fd.embedding === "string"
       ? JSON.parse(fd.embedding)
@@ -68,6 +65,15 @@ export async function POST(req: Request) {
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + EXPIRY_DAYS * 86400_000);
 
+  // Start QR encoding now (depends only on the token) so it overlaps the DB writes below.
+  const verifyUrl = `${env.siteUrl}/v#${token}`;
+  const qrPromise = QRCode.toDataURL(verifyUrl, {
+    errorCorrectionLevel: "M",
+    margin: 1,
+    scale: 6,
+    color: { dark: "#0a0b0d", light: "#fcfcfd" },
+  });
+
   const { error } = await sb.from("credentials").insert({
     id: credentialId,
     session_id: parsed.data.sessionId,
@@ -81,22 +87,18 @@ export async function POST(req: Request) {
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // bind this session's descriptor to the credential for cross-round matching
-  await sb.from("face_descriptors").update({ credential_id: credentialId }).eq("session_id", parsed.data.sessionId);
-  await sb.from("sessions").update({ credential_id: credentialId, status: "issued" }).eq("id", parsed.data.sessionId);
-  await appendAudit({
+  // bind the descriptor to the credential + mark issued (independent tables → parallel)
+  await Promise.all([
+    sb.from("face_descriptors").update({ credential_id: credentialId }).eq("session_id", parsed.data.sessionId),
+    sb.from("sessions").update({ credential_id: credentialId, status: "issued" }).eq("id", parsed.data.sessionId),
+  ]);
+  deferAudit({
     sessionId: parsed.data.sessionId,
     eventType: "credential-issued",
     output: { credentialId, score: claims.aiCollaboration.score, issuer: env.issuerDid },
   });
 
-  const verifyUrl = `${env.siteUrl}/v#${token}`;
-  const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
-    errorCorrectionLevel: "M",
-    margin: 1,
-    scale: 6,
-    color: { dark: "#0a0b0d", light: "#fcfcfd" },
-  });
+  const qrDataUrl = await qrPromise;
 
   return NextResponse.json({
     token,

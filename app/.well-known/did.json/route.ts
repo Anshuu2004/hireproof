@@ -10,6 +10,7 @@ export const runtime = "nodejs";
  */
 export function GET() {
   return NextResponse.json(didDocument(), {
-    headers: { "Cache-Control": "public, max-age=3600" },
+    // The issuer key effectively never rotates — let the CDN serve it without a function hit.
+    headers: { "Cache-Control": "public, max-age=86400, s-maxage=31536000, immutable" },
   });
 }

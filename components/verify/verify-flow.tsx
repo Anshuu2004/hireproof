@@ -1,16 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { Check, X, Warning } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/wordmark";
 import { BackLink } from "@/components/back-link";
 import { ConsentStep, type ConsentValue, type Demographics } from "./consent-step";
-import { LivenessStep, type LivenessResult } from "./liveness-step";
+import { type LivenessResult } from "./liveness-step";
 import { TaskStep, type ScoreResult } from "./task-step";
 import { MintStep } from "./mint-step";
 import { Button } from "@/components/ui/button";
 import type { Language, LivenessAction } from "@/lib/liveness/challenge";
 import { cn } from "@/lib/cn";
+
+// Defer the heavy liveness code out of the /verify entry chunk (camera + MediaPipe-adjacent).
+const LivenessStep = dynamic(() => import("./liveness-step").then((m) => m.LivenessStep), {
+  ssr: false,
+  loading: () => <p className="text-center font-data text-xs text-ink-400">loading the live check…</p>,
+});
+
+// Speculatively warm the heavy on-device liveness assets while the user reads
+// consent, so the "loading face engine" + capture steps don't stall on cold
+// downloads. Best-effort; liveness still loads them itself if these haven't landed.
+function warmLivenessAssets() {
+  if (typeof window === "undefined") return;
+  import("@mediapipe/tasks-vision").catch(() => {});
+  import("@vladmandic/face-api").catch(() => {});
+  for (const url of [
+    "/mediapipe/face_landmarker.task",
+    "/mediapipe/wasm/vision_wasm_internal.wasm",
+    "/models/ssd_mobilenetv1_model.bin",
+    "/models/face_landmark_68_model.bin",
+    "/models/face_recognition_model.bin",
+  ]) {
+    fetch(url, { cache: "force-cache" }).catch(() => {});
+  }
+}
 
 type Step = "consent" | "liveness" | "task" | "mint" | "fail";
 
@@ -85,6 +110,12 @@ export function VerifyFlow() {
   const [session, setSession] = useState<SessionData | null>(null);
   const [liveness, setLiveness] = useState<LivenessResult | null>(null);
   const [score, setScore] = useState<ScoreResult | null>(null);
+  const [prefetchedTask, setPrefetchedTask] = useState<{ taskId: string; title: string; brief: string } | null>(null);
+
+  // Warm the on-device liveness assets the moment this flow mounts (consent screen).
+  useEffect(() => {
+    warmLivenessAssets();
+  }, []);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
 
@@ -113,6 +144,17 @@ export function VerifyFlow() {
       }
       setSession(data as SessionData);
       setStep("liveness");
+      // Pre-generate the AI task NOW (during the ~15-30s liveness check) so it's
+      // ready when the user reaches the task step. Best-effort — TaskStep still
+      // fetches on its own if this hasn't landed.
+      void fetch("/api/task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: (data as SessionData).sessionId }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((t) => { if (t?.taskId) setPrefetchedTask(t); })
+        .catch(() => {});
     } catch {
       setError("Network error — please retry");
     } finally {
@@ -156,6 +198,7 @@ export function VerifyFlow() {
         {step === "task" && session && (
           <TaskStep
             sessionId={session.sessionId}
+            prefetchedTask={prefetchedTask}
             onComplete={(r) => {
               setScore(r);
               setStep("mint");

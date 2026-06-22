@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
@@ -77,4 +78,14 @@ export async function appendAudit(params: {
 
   if (error) throw error;
   return (data?.row_hash as string) ?? rowHash;
+}
+
+/**
+ * Schedule an audit append to run AFTER the HTTP response is sent. On Vercel,
+ * `after()` keeps the invocation alive to flush it, so the hash-chain insert +
+ * its advisory lock never sit on user-facing latency. Fire-and-forget; logged on error.
+ * The audit row is append-only evidence — the client's response never depends on it.
+ */
+export function deferAudit(params: Parameters<typeof appendAudit>[0]): void {
+  after(() => appendAudit(params).catch((e) => console.error("[audit] deferred append failed", e)));
 }

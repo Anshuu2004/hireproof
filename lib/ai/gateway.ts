@@ -35,6 +35,10 @@ const GEMINI: Record<Tier, string> = {
 // Disable Gemini's "thinking" budget for latency (ignored by Claude/gateway).
 const GEMINI_FAST_OPTS = { providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } } };
 
+// Abandon a hung/slow provider after this and fail over to the next, so a stalled
+// provider can't block the whole request up to the 60s function limit.
+const TIMEOUT_MS = 20_000;
+
 const hasGemini = () => Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
 function providerOrder(): Provider[] {
@@ -62,7 +66,7 @@ export async function genText(tier: Tier, params: TextParams): Promise<{ text: s
     try {
       const extra = p === "gemini" && tier === "fast" ? GEMINI_FAST_OPTS : {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const r = await generateText({ model: modelFor(p, tier), ...(params as any), ...extra });
+      const r = await generateText({ model: modelFor(p, tier), ...(params as any), ...extra, abortSignal: AbortSignal.timeout(TIMEOUT_MS) });
       return { text: r.text, provider: p };
     } catch (e) {
       lastErr = e;
@@ -77,6 +81,7 @@ interface ObjectParams<T> {
   prompt?: string;
   messages?: ModelMessage[];
   temperature?: number;
+  maxOutputTokens?: number;
 }
 
 export async function genObject<T>(tier: Tier, params: ObjectParams<T>): Promise<{ object: T; provider: Provider }> {
@@ -86,13 +91,14 @@ export async function genObject<T>(tier: Tier, params: ObjectParams<T>): Promise
     prompt: params.prompt,
     messages: params.messages,
     temperature: params.temperature,
+    maxOutputTokens: params.maxOutputTokens ?? 3000,
   };
   let lastErr: unknown;
   for (const p of providerOrder()) {
     try {
       const extra = p === "gemini" && tier === "fast" ? GEMINI_FAST_OPTS : {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const r = await generateObject({ model: modelFor(p, tier), ...(opts as any), ...extra });
+      const r = await generateObject({ model: modelFor(p, tier), ...(opts as any), ...extra, abortSignal: AbortSignal.timeout(TIMEOUT_MS) });
       return { object: r.object as T, provider: p };
     } catch (e) {
       lastErr = e;

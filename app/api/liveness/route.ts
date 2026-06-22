@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { transcriptMatchesDigits, type Language, type LivenessAction } from "@/lib/liveness/challenge";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   const sb = supabaseAdmin();
   const { data: session, error } = await sb
     .from("sessions")
-    .select("*")
+    .select("liveness_verdict,status,task_seed_json,created_at,language,credential_id,round_no")
     .eq("id", sessionId)
     .single();
   if (error || !session) {
@@ -105,27 +105,32 @@ export async function POST(req: Request) {
     }
   }
 
-  // One descriptor per session (a retry replaces, never appends — so a session's
-  // cross-round anchor can't be stuffed with multiple vectors).
-  await sb.from("face_descriptors").delete().eq("session_id", sessionId);
-  await sb.from("face_descriptors").insert({
-    credential_id: session.credential_id,
-    session_id: sessionId,
-    embedding: vec,
-    round_no: session.round_no ?? 1,
-  });
+  // One descriptor per session (a retry replaces, never appends). The descriptor
+  // replace (ordered delete→insert) runs in parallel with the session update —
+  // different tables, no dependency.
+  const writeDescriptor = (async () => {
+    await sb.from("face_descriptors").delete().eq("session_id", sessionId);
+    await sb.from("face_descriptors").insert({
+      credential_id: session.credential_id,
+      session_id: sessionId,
+      embedding: vec,
+      round_no: session.round_no ?? 1,
+    });
+  })();
+  await Promise.all([
+    writeDescriptor,
+    sb
+      .from("sessions")
+      .update({
+        liveness_verdict: verdict,
+        liveness_proof_json: livenessProof,
+        spoken_transcript: spokenTranscript,
+        status: verdict === "pass" ? "live_passed" : "created",
+      })
+      .eq("id", sessionId),
+  ]);
 
-  await sb
-    .from("sessions")
-    .update({
-      liveness_verdict: verdict,
-      liveness_proof_json: livenessProof,
-      spoken_transcript: spokenTranscript,
-      status: verdict === "pass" ? "live_passed" : "created",
-    })
-    .eq("id", sessionId);
-
-  await appendAudit({
+  deferAudit({
     sessionId,
     eventType: "liveness",
     output: {

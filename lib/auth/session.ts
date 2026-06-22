@@ -1,5 +1,8 @@
-import { createHash, createHmac, scryptSync, timingSafeEqual } from "crypto";
+import { createHash, createHmac, scrypt, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 import { env } from "@/lib/env";
+
+const scryptAsync = promisify(scrypt) as (password: string | Buffer, salt: Buffer, keylen: number) => Promise<Buffer>;
 
 /**
  * Self-contained employer session auth — real, no external auth provider config
@@ -47,12 +50,12 @@ export function bearer(req: Request): EmployerSession | null {
   return verifySession(h.startsWith("Bearer ") ? h.slice(7) : null);
 }
 
-/** Verify a password against a stored `scrypt$<saltHex>$<keyHex>` hash. */
-export function verifyPassword(password: string, stored: string | null | undefined): boolean {
+/** Verify a password against a stored `scrypt$<saltHex>$<keyHex>` hash (async — does not block the event loop). */
+export async function verifyPassword(password: string, stored: string | null | undefined): Promise<boolean> {
   if (!stored) return false;
   const [scheme, saltHex, hashHex] = stored.split("$");
   if (scheme !== "scrypt" || !saltHex || !hashHex) return false;
   const expected = Buffer.from(hashHex, "hex");
-  const actual = scryptSync(password, Buffer.from(saltHex, "hex"), expected.length);
+  const actual = await scryptAsync(password, Buffer.from(saltHex, "hex"), expected.length);
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }

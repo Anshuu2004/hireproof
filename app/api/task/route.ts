@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateTask } from "@/lib/ai/task";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     .single();
   if (error || !data) return NextResponse.json({ error: error?.message ?? "db error" }, { status: 500 });
 
-  await appendAudit({
+  deferAudit({
     sessionId: parsed.data.sessionId,
     eventType: "task-generated",
     output: { taskId: data.id, domain: spec.domain },

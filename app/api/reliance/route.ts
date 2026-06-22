@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateReliancePanel, scoreReliance, type PanelItem } from "@/lib/ai/reliance";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 import type { TaskSpec } from "@/lib/ai/task";
 
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     if (!items.length) return NextResponse.json({ error: "No reliance panel for this task" }, { status: 400 });
     const result = scoreReliance(items, decisions);
     if (sessionId) await sb.from("scores").update({ reliance_json: result }).eq("session_id", sessionId);
-    await appendAudit({ sessionId: sessionId ?? task.session_id ?? null, eventType: "reliance-probe", output: result });
+    deferAudit({ sessionId: sessionId ?? task.session_id ?? null, eventType: "reliance-probe", output: result });
     return NextResponse.json(result);
   }
 

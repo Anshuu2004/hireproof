@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateChallenge, spokenPhrase, type Language } from "@/lib/liveness/challenge";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 import { bearer } from "@/lib/auth/session";
 
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     if (emp) await sb.from("credentials").update({ governed_by: emp.sub }).eq("id", credentialId).then(() => {}, () => {});
   }
 
-  await appendAudit({
+  deferAudit({
     sessionId: data.id,
     eventType: "consent+challenge",
     output: { language, consent, actions: challenge.actions, reverify: Boolean(credentialId) },

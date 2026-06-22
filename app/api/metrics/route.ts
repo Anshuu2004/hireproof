@@ -12,5 +12,8 @@ export async function GET() {
   const sb = supabaseAdmin();
   const { data, error } = await sb.rpc("hp_metrics");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data ?? {}, { headers: { "Cache-Control": "no-store" } });
+  // Aggregate, non-PII; seconds-stale is fine. Let the CDN absorb repeat loads.
+  return NextResponse.json(data ?? {}, {
+    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+  });
 }

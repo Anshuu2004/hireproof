@@ -42,9 +42,11 @@ function now() {
 
 export function TaskStep({
   sessionId,
+  prefetchedTask,
   onComplete,
 }: {
   sessionId: string;
+  prefetchedTask?: { taskId: string; title: string; brief: string } | null;
   onComplete: (r: ScoreResult) => void;
 }) {
   const [task, setTask] = useState<{ taskId: string; title: string; brief: string } | null>(null);
@@ -60,6 +62,13 @@ export function TaskStep({
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // If the flow pre-generated the task during liveness, use it immediately —
+    // the "generating a fresh task…" spinner never shows.
+    if (prefetchedTask) {
+      setTask(prefetchedTask);
+      setLedger([{ t: now(), label: "Task generated · planted flaw hidden" }]);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -83,7 +92,7 @@ export function TaskStep({
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, prefetchedTask]);
 
   // Generate the reliance probe once a task exists. Best-effort: if it fails,
   // the panel simply doesn't appear and the main flow is unaffected.

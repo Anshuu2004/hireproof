@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { bearer } from "@/lib/auth/session";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Credential not found" }, { status: 404 });
 
-  await appendAudit({
+  deferAudit({
     eventType: "credential-revoked",
     output: { credentialId: parsed.data.credentialId, by: session.email },
   });

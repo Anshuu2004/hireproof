@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createHash, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     owned = stored.length === presented.length && timingSafeEqual(stored, presented);
   }
 
-  await appendAudit({
+  deferAudit({
     eventType: "ownership-proof",
     output: { credentialId: parsed.data.credentialId, owned },
   });

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { scoreTranscript, type Turn } from "@/lib/ai/scorer";
 import type { TaskSpec } from "@/lib/ai/task";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -29,11 +29,11 @@ export async function POST(req: Request) {
   const { sessionId, taskId, finalAnswer } = parsed.data;
 
   const sb = supabaseAdmin();
-  const { data: task } = await sb
-    .from("ai_tasks")
-    .select("prompt_seed,session_id")
-    .eq("id", taskId)
-    .single();
+  // Two independent gating reads in parallel, before the (expensive) LLM grade.
+  const [{ data: task }, { data: sess }] = await Promise.all([
+    sb.from("ai_tasks").select("prompt_seed,session_id").eq("id", taskId).single(),
+    sb.from("sessions").select("status").eq("id", sessionId).maybeSingle(),
+  ]);
   if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
 
   // The task must belong to this session — stops cross-session task harvesting
@@ -43,7 +43,6 @@ export async function POST(req: Request) {
   }
 
   // Idempotency: a session is scored once. Re-posting is rejected (no score replay).
-  const { data: sess } = await sb.from("sessions").select("status").eq("id", sessionId).maybeSingle();
   if (!sess) return NextResponse.json({ error: "Session not found" }, { status: 404 });
   if (sess.status === "scored" || sess.status === "issued") {
     return NextResponse.json({ error: "Session already scored" }, { status: 409 });
@@ -77,15 +76,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // append the final answer as the closing turn (the conversation was already
-  // persisted server-side during /assistant)
-  await sb.from("ai_transcript_turns").insert({
-    ai_task_id: taskId,
-    turn_no: turns.length + 1,
-    role: "candidate",
-    content: `FINAL ANSWER:\n${finalAnswer}`,
-  });
-
   const scoreRow = {
     session_id: sessionId,
     error_detection: result.rubric.error_detection,
@@ -98,15 +88,24 @@ export async function POST(req: Request) {
     model_version: result.provider,
     prompt_version: "rubric-v1",
   };
-  // Durable, auditable explanation: the per-axis justifications (each quotes the
-  // transcript) + caughtPlantedError, so the "why this score" is not lost. Falls
-  // back gracefully if the rubric_json column hasn't been migrated yet.
-  const ins = await sb.from("scores").insert({ ...scoreRow, rubric_json: result.rubric });
-  if (ins.error) await sb.from("scores").insert(scoreRow);
+  // Three independent writes in parallel: close the transcript with the final
+  // answer, persist the score (with a graceful rubric_json fallback if the column
+  // isn't migrated), and mark the session scored.
+  await Promise.all([
+    sb.from("ai_transcript_turns").insert({
+      ai_task_id: taskId,
+      turn_no: turns.length + 1,
+      role: "candidate",
+      content: `FINAL ANSWER:\n${finalAnswer}`,
+    }),
+    (async () => {
+      const ins = await sb.from("scores").insert({ ...scoreRow, rubric_json: result.rubric });
+      if (ins.error) await sb.from("scores").insert(scoreRow);
+    })(),
+    sb.from("sessions").update({ status: "scored" }).eq("id", sessionId),
+  ]);
 
-  await sb.from("sessions").update({ status: "scored" }).eq("id", sessionId);
-
-  await appendAudit({
+  deferAudit({
     sessionId,
     eventType: "ai-collab-score",
     output: {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { signSession, verifyPassword } from "@/lib/auth/session";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -26,11 +26,11 @@ export async function POST(req: Request) {
     .ilike("email", parsed.data.email)
     .maybeSingle();
 
-  if (!emp || !verifyPassword(parsed.data.password, emp.password_hash)) {
+  if (!emp || !(await verifyPassword(parsed.data.password, emp.password_hash))) {
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
   const token = signSession({ id: emp.id, email: emp.email });
-  await appendAudit({ eventType: "employer-login", output: { employerId: emp.id, email: emp.email } });
+  deferAudit({ eventType: "employer-login", output: { employerId: emp.id, email: emp.email } });
   return NextResponse.json({ token, employer: { email: emp.email, org: emp.org_name } });
 }

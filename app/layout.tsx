@@ -88,11 +88,20 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+        {/* General Sans (landing display only) — loaded NON-render-blocking so it
+            never delays first paint on any route. media="print" keeps it off the
+            critical path; the script flips it to "all" once loaded. */}
         <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="anonymous" />
         <link
+          id="gs-font"
           rel="stylesheet"
           href="https://api.fontshare.com/v2/css?f%5B%5D=general-sans@500,600,700&display=swap"
+          media="print"
         />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var l=document.getElementById('gs-font');if(!l)return;l.onload=function(){l.media='all';l.onload=null;};setTimeout(function(){l.media='all';},1500);})();` }} />
+        <noscript>
+          <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f%5B%5D=general-sans@500,600,700&display=swap" />
+        </noscript>
       </head>
       <body className="min-h-full flex flex-col bg-ink-950 text-ink-100 font-sans">
         {children}

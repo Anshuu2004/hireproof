@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createHash, timingSafeEqual } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { appendAudit } from "@/lib/audit";
+import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     demographicsDeleted = dcount ?? 0;
   }
 
-  await appendAudit({
+  deferAudit({
     eventType: "erasure",
     output: {
       credentialId: cred.id,
