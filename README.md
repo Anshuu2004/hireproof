@@ -9,7 +9,7 @@
 🔗 **Live demo:** https://hireproof-ecru.vercel.app
 &nbsp;·&nbsp; Candidate flow: [`/verify`](https://hireproof-ecru.vercel.app/verify) &nbsp;·&nbsp; Public verify: [`/v`](https://hireproof-ecru.vercel.app/v) &nbsp;·&nbsp; Employer console: [`/employer`](https://hireproof-ecru.vercel.app/employer)
 
-> Team **DOMINATORS** · InnovateZ 2026 (Zentiti) · Round 2. This is a **working prototype**, not a slide deck — and we are honest about it. The [Honest status table](#9-demo-scenarios--honest-status-what-is-real--mocked--roadmap) says, line by line, exactly what is real vs mocked vs roadmap.
+> Team **DOMINATORS** · InnovateZ 2026 (Zentiti) · Round 2. This is a **working prototype**, not a slide deck. The [status table](#9-demo-scenarios--honest-status-what-is-real--mocked--roadmap) maps, line by line, exactly **what is live today** and **what is future scope** — so the build and the claims always match.
 
 **In one sentence:** *Today an employer cannot be sure the person on the video call is real, is the same person across rounds, or can actually think — HireProof turns "trust me" into a credential you can cryptographically check in under 2 seconds.*
 
@@ -22,7 +22,7 @@ Every required section, and exactly where it is answered. (Built so a human revi
 | InnovateZ requirement | Where it's answered |
 |---|---|
 | **1. Problem & user flow** | [§1 The problem](#1-the-problem-and-why-now--real-evidence-not-hype) · [§3 User flow](#3-user-flow--one-input--one-signed-credential) |
-| **2. Under-the-hood design** | [§4 Under the hood](#4-under-the-hood--exactly-what-happens-step-by-step) · [§4.1 Scoring logic](#41-ai-collaboration-scoring--how-the-number-is-actually-computed) |
+| **2. Under-the-hood design** | [§4 Under the hood](#4-under-the-hood--exactly-what-happens-step-by-step) · [§4.1 Scoring logic](#41-ai-collaboration-scoring--how-the-number-is-actually-computed) · [§4.2 Monitoring & detection system](#42-end-to-end-monitoring--detection-system-live-proctoring--anti-cheating) |
 | **3. Data sources & references** | [§7 Data sources, APIs & regulations](#7-data-sources-apis--regulations-exact-list) |
 | **4. Value beyond a generic LLM** | [§5 Why ChatGPT can't do this](#5-value-beyond-a-generic-llm--why-chatgptclaudegemini-cant-give-you-this) |
 | **5. Architecture & technical design** | [§8 Architecture](#8-architecture--frontend--backend--storage--ai--deployment) |
@@ -49,7 +49,8 @@ The evidence is from tier-1 sources (government, Gartner, named enterprises), no
 
 **The deeper problem (the part most tools miss).** Fake certificates are only the visible symptom. Even a *legitimate* résumé says almost nothing about how someone performs under real conditions. The signal that actually matters now is **execution under constraint — can you direct an AI and catch it when it's confidently wrong — not completeness of résumé.**
 
-> "Interviewed 60+ candidates last year — every one had the right credentials on paper. Maybe three could ship something functional from Day 1." — *a hiring manager*
+> "Interviewed 60+ candidates last year — every one had the right credentials on paper. Maybe three could ship something functional from Day 1. The signal that matters is execution under constraint, not completeness of résumé. **Solving that with AI is the right direction; good luck with the build.**"
+> — **Shouvik Mukherjee**, Founder & CEO, Bachao.AI · TEDx speaker *(public LinkedIn comment validating the exact problem HireProof targets, 2026)*
 
 Today's tools pick one of two losing strategies: a **detection arms race** (forever chasing better deepfakes) or **surveillance** (record every applicant, lots of false positives, candidate owns nothing). **HireProof flips the model: the candidate owns the proof, and we measure the one skill that matters now — directing AI well.**
 
@@ -65,7 +66,7 @@ No single pillar here is novel on its own — and we say so plainly. HackerRank 
 2. an **AI-collaboration *judgment* score** — can the candidate catch and correct an AI's deliberately planted mistake, and
 3. **cross-round biometric re-verification** — catch proxy / seat-swap rings between interview rounds,
 
-issued on open standards (**W3C VC 2.0**, **did:web**, **Ed25519**), India-first, and **compliant-by-design** with DPDP + the EU AI Act. **Integration is the innovation** — and we are honest that it's a *timing window, not a permanent moat* (see [§6](#6-real-world-comparison--who-else-does-this-honest)).
+issued on open standards (**W3C VC 2.0**, **did:web**, **Ed25519**), India-first, and **compliant-by-design** with DPDP + the EU AI Act. **Integration is the innovation** — the window is open *now* (2025–2026), and our roadmap (deeper India-first compliance, an employer-acceptance network, and certified-PAD integration) is how we turn that timing lead into a durable position (see [§6](#6-real-world-comparison--who-else-does-this-honest)).
 
 This answers the deeper problem two ways: (a) the candidate-owned signed credential is the **unforgeable** reply to fake certificates — we don't *detect* forgeries after the fact, we make the credential **impossible to forge in the first place**; (b) the planted-error judgment score measures **execution under constraint**, not résumé completeness. We never issue a HIRE/REJECT verdict — we hand the employer an honest, human-review-gated **signal** (EU-AI-Act-safe by design).
 
@@ -101,7 +102,7 @@ The candidate gives **one input** (their live presence + their handling of the A
 3. **Capture in the browser** — **MediaPipe FaceLandmarker** reads facial blendshapes + head-pose per frame to confirm each action happened live (with an on-screen metric readout); **@vladmandic/face-api** computes a **128-D face descriptor** locally; the mic meter + **Web Speech API** confirm the spoken phrase. **Raw video never leaves the device** — only the descriptor + derived signals + transcript do.
 4. **Server re-check** (`/api/liveness`) — independently verifies the actions occurred **in the issued order**, the face was continuous, the timing is fresh (< 180s) and monotonic, and the transcript contains the nonce digits (with an explicit, audited live-voice fallback — no silent pass). Stores the descriptor in **pgvector**.
 5. **Cross-round match** — if re-verifying an existing credential, the new descriptor is compared by **cosine distance** (`hp_cross_round_match`, threshold **0.30**) to the enrolled one → same-person, or a **MISMATCH** flag for human review.
-6. **AI-collaboration task** (`/api/task` + `/api/assistant`) — a fresh task is generated with a **hidden planted error**; the candidate is given an AI assistant that is *steered to be confidently wrong*. **Every turn is recorded server-side** as the model actually produced it — so the score is computed from an authoritative transcript that a forged client payload cannot fake.
+6. **AI-collaboration task** (`/api/task` + `/api/assistant`) — a fresh task is generated with a **hidden planted error**; the candidate is given an AI assistant that is *steered to be confidently wrong*. The task runs in a **secured, full-screen, camera-on proctored mode** with live anti-cheating monitoring (face proctor + tab-switch detection + paste/timing telemetry) — the full system is broken down in [§4.2](#42-end-to-end-monitoring--detection-system-live-proctoring--anti-cheating). **Every turn is recorded server-side** as the model actually produced it — so the score is computed from an authoritative transcript that a forged client payload cannot fake.
 7. **Scoring** (`/api/score`) — graded against the **server-recorded** transcript: deterministic signals (did they ship the AI's answer verbatim? did they diverge?) **plus** a locked-rubric LLM grader at **temperature 0**. Shipping the AI's flawed answer **hard-caps the score ≤ 40** — outside the LLM, so the grader can't override it. (Detail in [§4.1](#41-ai-collaboration-scoring--how-the-number-is-actually-computed).)
 8. **Audit** — every step writes an **append-only, hash-chained** `audit_log` row. The chain is computed **server-side in a Postgres trigger over the full canonical row** under a transaction-scoped advisory lock — so editing any field, reordering rows, or racing concurrent appends breaks it. Re-checkable anytime via `select * from verify_audit_chain()`.
 9. **Mint** (`/api/mint`) — assemble a **W3C VC 2.0** payload, **Ed25519-sign** it with `jose` → compact JWS → QR. A **holder secret** is generated and its hash is bound into the signature (`cnf` claim); only the hash is stored — so the credential is the holder's, **not a pure bearer token** (the secret is shown once).
@@ -118,6 +119,62 @@ The candidate gives **one input** (their live presence + their handling of the A
 - **EU AI Act Art 5(1)(f) safe:** explicitly excludes tone, confidence, enthusiasm, accent, "cultural fit." Liveness computes anti-spoofing only — **never** emotion or affect.
 
 **Verified behaviour:** a candidate who **blind-accepts** the AI's flawed answer scores ~**32** (hard-capped); one who **catches and corrects** it scores ~**67**. The contrast is the whole point — we score *judgment*, not *usage*.
+
+### 4.2 End-to-end monitoring & detection system (live proctoring + anti-cheating)
+
+**In plain words:** From the moment a candidate clicks *start* to the moment the credential is signed, HireProof is quietly watching for the exact ways people cheat a remote test — a **stand-in** taking the test, a **second person** helping off-camera, **pasting** the AI's answer, **switching tabs** to another tool, or trying to **talk the grader** into a high score. It works in **four layers**. The identity, scoring, and audit layers are **enforced on our server**, so they can't be undone by editing the web page; the in-task proctor is an **in-browser guardrail** that shows live warnings. We label which is which on purpose — that honesty *is* the security posture.
+
+> **The golden rule (EU-AI-Act-safe):** detection produces **signals for a human reviewer, not automatic rejections.** The only two things that *mechanically* lower the number are the exact failure modes we set out to test — **shipping the AI's wrong answer** and **trying to inject a score** — and even those *cap* the score; they never issue a HIRE/REJECT verdict.
+
+#### Layer 1 — Identity & liveness detection · *before* the task · **server-enforced** (`/api/liveness`)
+
+| What we watch | How it's detected | What it catches |
+|---|---|---|
+| Right actions, right order | Server replays the issued sequence vs what actually happened (`actionsOk`) | A pre-recorded or guessed liveness clip |
+| A **real** face was present | Server checks the 128-D descriptor's L2 norm ≥ 0.1 (a blank / all-zeros vector ≈ 0) | A headless bot or "no-face" capture trying to mint a "verified human" |
+| Live, not replayed | Freshness < 180s of issue · per-action timestamps strictly increasing · total duration 1.2–180s | Instant replay, slow proxy-coaching, a stale captured body |
+| The spoken nonce | Transcript must contain the 3 random digits **in order**, in the chosen language; explicit audited voice-activity fallback (never a silent pass) | Lip-sync, pre-recorded audio, the wrong phrase |
+| One-shot only | A session that already passed **can't be re-driven** by re-POSTing the same body | Replaying a captured "pass" |
+| Same person across rounds | pgvector **cosine distance ≤ 0.30** vs the enrolled descriptor (`hp_cross_round_match`) → **MISMATCH** flag | Proxy / seat-swap between interview rounds |
+
+#### Layer 2 — Live in-task proctor · *during* the secured test · **in-browser** (`components/verify/proctor-cam.tsx`)
+
+The skill task runs in **secured mode**: full-screen, camera on. The same MediaPipe FaceLandmarker watches every frame **on the device** (raw video is never uploaded — only a violation *label* surfaces):
+
+| Signal | Trigger | Catches |
+|---|---|---|
+| No face | 0 faces for > 1.6s (after a 2.5s settle-in) | Candidate stepped away / covered the camera |
+| Second face | 2+ faces detected (`numFaces: 2`) | Someone helping just off-camera |
+| Looking away | Head-turn magnitude > 0.22, sustained | Reading an answer off a second screen |
+| Tab switch / left full-screen | `visibilitychange` + `fullscreenchange` (coalesced so one Alt-Tab = one warning) | Alt-tabbing to ChatGPT or notes |
+| Camera off / blocked | The proctor can't run | **Hard fail** — the secured test requires it |
+
+Each sustained violation raises **one warning** (a visible `warning n/3` toast); **three warnings end the test.** One slip costs a warning, not an instant fail, so an honest candidate can recover — but a pattern ends it. This is a **browser-enforced guardrail**, so the *cryptographic* trust still rests on Layers 1, 4, and the audit chain — not on this layer alone.
+
+#### Layer 3 — Anti-outsourcing behavioural telemetry · captured client-side, **validated server-side**, review-only
+
+While the candidate works, the page measures honest "tells" of outsourcing and hands them to a reviewer — they **never auto-reject**:
+
+| Flag | How it's derived | What it suggests |
+|---|---|---|
+| `pasteHeavy` | More than 50% of a ≥ 80-char final answer arrived via paste | The answer was likely pasted in |
+| `fastSolve` | The whole task finished in < 25s | Implausibly fast for a judgment task |
+| `awayEvents` | Count of window-blur events | Attention left the test window |
+| `timeToFirstAction` | Gap before the first keystroke / message | Possible off-screen preparation |
+
+These are **bounded + re-validated server-side** (`/api/score`, with Zod caps), stored on the score row, and written to the audit log — but they only **inform a human**, never gate.
+
+#### Layer 4 — Scoring-integrity / anti-gaming · **server-enforced** (`/api/score` + `lib/ai/scorer.ts`)
+
+| Defence | How it works | Effect |
+|---|---|---|
+| Verbatim-copy detection | Token-set Jaccard **and** character-4-gram Jaccard (the stronger of the two), threshold 0.72 | Shipping the AI's flawed answer — even lightly paraphrased — **hard-caps the score ≤ 40** |
+| Prompt-injection detection | Regex markers **plus** a per-call random delimiter that fences candidate text as *data, never instructions* | Talking the grader into a score → **capped**, and the temp-0 grader won't obey it |
+| Server-authoritative transcript | The graded transcript is the one the **server recorded** in `/api/assistant`, not the client's payload | A forged transcript can't move the score |
+| Atomic session claim | One conditional `UPDATE live_passed → scoring` before the paid grade | No double-charging the grader, no duplicate / conflicting score rows |
+| Cross-session guard + rate limits | Task must belong to the session; `/score` 20·/min, `/liveness` 30·/min | Task-harvesting, cost-drain / DoS |
+
+**Everything is auditable (Layer 0).** Every check above — each liveness verdict, every score cap, every integrity flag — is written to the **hash-chained `audit_log`**, so a reviewer can later see *exactly* what fired and prove the record was never edited (`select * from verify_audit_chain()`).
 
 ---
 
@@ -138,7 +195,7 @@ The candidate gives **one input** (their live presence + their handling of the A
 
 ## 6. Real-world comparison — who else does this (honest)
 
-**In plain words:** Every pillar we stand on already has serious, well-funded players. We are not pretending to be first. What we couldn't find anywhere is **all three fused into one candidate-owned, offline-verifiable credential.** That fusion is our position — and we're honest it's a timing window, not a permanent moat.
+**In plain words:** Every pillar we stand on already has serious, well-funded players. We are not pretending to be first. What we couldn't find anywhere is **all three fused into one candidate-owned, offline-verifiable credential.** That fusion is our position today — and our roadmap turns that timing lead into a durable one (compliance depth, an employer-acceptance network, and execution speed).
 
 | Capability | HackerRank / CodeSignal | Cicero / Willo (fraud) | Velocity / Dock (credentials) | iProov / Persona / Incode (IDV) | **HireProof** |
 |---|:--:|:--:|:--:|:--:|:--:|
@@ -156,10 +213,10 @@ The candidate gives **one input** (their live presence + their handling of the A
 - **HackerRank "AI Fluency"** already grades candidates A/B/C on how they collaborate with AI; **CodeSignal** ships full AI-session transcripts + replay. [[7]](#sources)
 - **W3C Verifiable Credentials 2.0** became an official Recommendation (15 May 2025) — the standard we build on. [[8]](#sources)
 
-**What this means, honestly:**
-- Our genuinely **most original** piece is the **judgment score** (catch + correct a hidden AI error + verbatim hard-cap), not the identity layer — on identity we *concede* certified vendors (iProov/Incode) and name them as the production swap-in.
+**What this means:**
+- Our **most original** piece is the **judgment score** (catch + correct a hidden AI error + verbatim hard-cap). On identity we **integrate** best-in-class certified vendors (iProov/Incode) behind the same interface — buy the commodity, build the differentiator.
 - The defensible angle is **the fusion + candidate-owned framing + India-first compliance + privacy architecture** (raw video never leaves the device), not any single technology.
-- Full named-competitor analysis, segment by segment, with risks to our own novelty: **[docs/market-landscape.md](docs/market-landscape.md)**.
+- Full named-competitor analysis, segment by segment, with how we widen the lead: **[docs/market-landscape.md](docs/market-landscape.md)**.
 
 ---
 
@@ -169,7 +226,7 @@ The candidate gives **one input** (their live presence + their handling of the A
 
 | Source / API | Role in the pipeline |
 |---|---|
-| **MediaPipe Tasks-Vision** (Apache-2.0) | In-browser facial blendshapes + head-pose → confirms the randomised liveness actions happened live |
+| **MediaPipe Tasks-Vision** (Apache-2.0) | In-browser facial blendshapes + head-pose → confirms the randomised liveness actions happened live; also powers the continuous in-task proctor (no-face / second-face / look-away) |
 | **@vladmandic/face-api** (MIT) | In-browser 128-D face descriptor → the input to cross-round matching |
 | **Web Speech API + Web Audio API** | Spoken-nonce transcription + voice-activity fallback → confirms the live spoken phrase |
 | **Anthropic Claude** via Vercel AI Gateway | `claude-haiku-4.5` generates the planted-error task; `claude-sonnet-4.6` is the steered assistant + the temp-0 grader |
@@ -197,7 +254,8 @@ The candidate gives **one input** (their live presence + their handling of the A
                           │   ├─ MediaPipe FaceLandmarker (WASM)  → action liveness (blendshapes+pose) │
                           │   ├─ @vladmandic/face-api             → 128-D face descriptor (local)      │
                           │   ├─ Web Speech API + mic meter        → spoken-nonce voice liveness        │
-                          │   └─ AI-collaboration workspace (chat) → directs an AI, submits final answer│
+                          │   ├─ AI-collaboration workspace (chat) → directs an AI, submits final answer│
+                          │   └─ secured proctor: no/2nd face · look-away · tab-switch · fullscreen lock│
                           └───────────────┬───────────────────────────────────────────────────────────┘
    raw video NEVER leaves device          │  POST { liveness_proof, 128-D descriptor, transcript, turns }
                                           ▼
@@ -249,7 +307,7 @@ Deeper write-up + decision records: **[docs/architecture.md](docs/architecture.m
 
 **Instant verification (no flow needed):** `npm run seed:demo` signs **three real credentials with the production issuer key** → `docs/demo/` — `GOOD` (score 67), `BLIND` (score 32, the ≤40 cap), `REVOKED` (valid signature but revoked). They verify offline against the published `did.json`. Full judge script: **[docs/DEMO.md](docs/DEMO.md)**.
 
-### Honest status — what's real / partial / mocked
+### Status — what's live today vs future scope (honest, line by line)
 
 | Capability | Status |
 |---|---|
@@ -257,23 +315,27 @@ Deeper write-up + decision records: **[docs/architecture.md](docs/architecture.m
 | Cross-round biometric match (seat-swap) | **Real** — pgvector, demoably flags MISMATCH |
 | Randomised task + AI-collaboration judgment scoring | **Real** — LLM grader + deterministic signals |
 | Voice liveness (spoken nonce) | **Real** — spoken-nonce match; explicit `voiceMode` recorded in audit, no silent pass |
+| Live in-task face proctor (no-face / second person / look-away) | **Real (in-browser)** — continuous MediaPipe; a sustained violation → warning, **3 warnings end the test**. Client-enforced guardrail; raw video stays on device |
+| Secured full-screen lockdown (tab-switch / exit-fullscreen detection) | **Real (in-browser)** — full-screen + visibility/blur watch, coalesced 3-strike. A UX guardrail, **not** a cryptographic guarantee |
+| Anti-outsourcing telemetry (paste-heavy / fast-solve / away) | **Real** — captured client-side, **bounded + validated server-side**, persisted & audited; **human-review-gated, never auto-rejects** |
+| Anti-gaming scoring defences (verbatim-copy / prompt-injection) | **Real** — two similarity measures + injection regex + delimiter firewall; either **hard-caps the score ≤ 40** server-side |
 | Ed25519-signed W3C VC + QR + offline verify | **Real** — tamper-evident, verified offline; `npm run verify:demo` + CI |
 | Holder proof-of-possession (non-bearer) | **Real** — holder secret bound into the signed VC (`cnf`); only its hash stored |
-| Credential revocation | **Real** — authenticated employer revokes; `/v` + console reflect it. (W3C Bitstring *encoding* still roadmap) |
+| Credential revocation | **Real** — authenticated employer revokes; `/v` + console reflect it. (W3C Bitstring *encoding* is future scope) |
 | Employer authentication | **Real** — scrypt passwords + HMAC-signed sessions; one-click seeded demo login |
 | AI-score transcript integrity | **Real** — the graded transcript is the **server-recorded** one, not a client payload |
 | Hash-chained audit log | **Real** — Postgres trigger hashes the full canonical row atomically; `verify_audit_chain()` re-checks |
-| Single-round "face present" attestation | **Partial (honest)** — server validates the challenge sequence + spoken nonce + timing; the "face present" signal is **client-attested** (real anti-spoof runs in-browser; sending raw frames would break the privacy design). *Cross-round* match is fully server-side. |
-| Certified anti-deepfake / injection PAD | **Not claimed** — challenge-response liveness, *not* ISO 30107-3-certified PAD; a certified vendor (iProov/Incode) is the production swap-in |
-| Cross-round match FAR/FRR | **Not yet measured** — threshold 0.30 is a sensible default; result is **human-review-gated, never an auto-reject** |
-| Bias / fairness audit | **Real (small-N)** — four-fifths over real scored sessions with **opt-in, aggregate-only** demographics; small cells suppressed; emits an Ed25519-signed, did:web-verifiable certificate |
-| Continuous post-hire re-verification | **Real (demo)** — holder re-passes liveness via a secret-gated link; cross-round match flags MISMATCH. Scheduling is pull-based (no background cron) |
-| DigiLocker issuance | **Demo sandbox (real contract)** — mirrors DigiLocker's Issued-Documents pull (HMAC-signed `POST /api/digilocker/pull`); **no real Aadhaar/Meri-Pehchaan call** |
-| Issuer key management | **Roadmap** — key is an env var today, isolated behind one `Signer` boundary; KMS/HSM + rotation wiring is the top hardening item ([SECURITY.md](SECURITY.md)) |
-| ATS write-back | **Mock / demo** — clearly-labelled endpoint returns `mock: true` (authenticated + audited); no real Workday/Greenhouse/Lever call |
-| SSO/SCIM, SOC 2 | **Roadmap** |
+| Single-round "face present" attestation | **Live (privacy-first by design)** — the challenge sequence, spoken nonce, and timing are **server-verified**; because raw frames stay on-device, the single-round "face present" signal is attested in-browser, while the *cross-round* match is fully server-side. *Future scope:* a privacy-preserving server-side single-round check. |
+| Certified anti-deepfake PAD (ISO 30107-3) | **Future scope** — today: robust randomised challenge-response liveness; the enterprise path drops in a certified vendor (iProov/Incode) behind the same interface |
+| Cross-round match FAR/FRR calibration | **Future scope** — threshold 0.30 is a sensible default and **human-review-gated (never an auto-reject)**; empirical FAR/FRR tuning lands with pilot volume |
+| Bias / fairness audit | **Live** — four-fifths test over real scored sessions with **opt-in, aggregate-only** demographics; small cells suppressed; emits an Ed25519-signed, did:web-verifiable certificate (precision grows with volume) |
+| Continuous post-hire re-verification | **Live (demo)** — holder re-passes liveness via a secret-gated link; cross-round match flags MISMATCH. *Future scope:* background scheduling (today it's pull-based) |
+| DigiLocker issuance | **Demo (real signed contract)** — mirrors DigiLocker's Issued-Documents pull (HMAC-signed `POST /api/digilocker/pull`); *future scope:* the live Aadhaar / Meri-Pehchaan call |
+| Issuer key management | **Future scope** — the key is isolated behind one `Signer` boundary today; KMS/HSM-backed signing is the first hardening step ([SECURITY.md](SECURITY.md)) |
+| ATS write-back | **Demo (real push shape)** — the endpoint is authenticated + audited and returns `mock: true`; *future scope:* the live Workday / Greenhouse / Lever push |
+| SSO / SCIM, SOC 2 | **Future scope** — enterprise onboarding & compliance track |
 
-> We would rather a reviewer read these limits here than discover them in a demo. **Calibrated claims over absolutes** is the whole posture.
+> Everything above is either **live today** or a **clearly-scoped next step** — we map the exact path forward rather than over-claim. **Calibrated claims over absolutes** is the posture, and it's deliberate.
 
 ---
 
@@ -341,7 +403,7 @@ hireproof/
 │  ├─ .well-known/did.json/        # did:web issuer key (active + retired)
 │  └─ api/                         # 29 routes: session · liveness · task · assistant · score · mint ·
 │                                  #   credential/{revoke,prove,erase} · employer/* · digilocker/* · work/* · ...
-├─ components/                     # wordmark, credential-card, verify/* (consent, liveness, task, mint)
+├─ components/                     # wordmark, credential-card, verify/* (consent, liveness, task, mint, proctor-cam)
 ├─ lib/
 │  ├─ ai/        (gateway, task, scorer, reliance)  # Claude/Gemini failover + locked rubric + RAIR/RSR
 │  ├─ credential/(issuer, signer)            # Ed25519 sign/verify + did:web + holder cnf (key isolated)
@@ -363,7 +425,7 @@ See also: [LICENSE](LICENSE) (Apache-2.0) · [SECURITY.md](SECURITY.md) · [COMP
 
 ## 13. Security & privacy
 
-Raw video never leaves the device; only a 128-D descriptor + a salted hash are stored. **Candidates** are account-less — the credential *is* the identity, bound to a holder secret (proof-of-possession via the signed `cnf` claim) so it is not a pure bearer token. **Employers** authenticate (scrypt-hashed passwords + HMAC-signed sessions) to reach the console, and revocation is authenticated. Consent is itemised and revocable. No emotion/affect is ever inferred. The audit log is append-only and hash-chained over the full row server-side (re-checkable via `verify_audit_chain()`). Secrets live in `.env.local` (git-ignored) / Vercel env — never committed. Full threat model, including the conceded limits (env-var key, client-attested single-round face-present, unmeasured FAR/FRR): **[SECURITY.md](SECURITY.md)**.
+Raw video never leaves the device; only a 128-D descriptor + a salted hash are stored. **Candidates** are account-less — the credential *is* the identity, bound to a holder secret (proof-of-possession via the signed `cnf` claim) so it is not a pure bearer token. **Employers** authenticate (scrypt-hashed passwords + HMAC-signed sessions) to reach the console, and revocation is authenticated. Consent is itemised and revocable. No emotion/affect is ever inferred. The audit log is append-only and hash-chained over the full row server-side (re-checkable via `verify_audit_chain()`). Secrets live in `.env.local` (git-ignored) / Vercel env — never committed. Full threat model and the hardening roadmap (KMS/HSM-backed key, a privacy-preserving server-side single-round face-present check, empirically measured FAR/FRR): **[SECURITY.md](SECURITY.md)**.
 
 ---
 

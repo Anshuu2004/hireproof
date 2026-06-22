@@ -17,6 +17,7 @@ flowchart TB
         V[Voice nonce<br/>Web Speech + Web Audio]
         F["@vladmandic/face-api<br/>128-D descriptor"]
         T[AI-collaboration task UI<br/>catch the planted error]
+        P[Secured-test proctor<br/>no/2nd face · look-away · lockdown]
     end
 
     subgraph Edge["Next.js API routes (Vercel)"]
@@ -55,6 +56,8 @@ flowchart TB
     T --> AS --> SC
     S --> LV --> VEC
     TK --> T
+    T --> P
+    P -->|integrity signals| SC
     SC --> ISS --> MT
     MT --> PG
     LV & SC & MT & CS & RV & PR & EM --> AUD --> AL
@@ -77,8 +80,13 @@ flowchart TB
 3. **Cross-round match** — on re-verify rounds, the new descriptor is matched
    against prior rounds via cosine distance (threshold 0.3). A mismatch flags a
    proxy/seat-swap — **human-review-gated, never an auto-reject**.
-4. **Task** — `/api/task` generates an AI-collaboration problem with a *planted
-   error* the candidate must catch and correct.
+4. **Task (secured, proctored)** — `/api/task` generates an AI-collaboration
+   problem with a *planted error* the candidate must catch and correct. The task
+   runs in **secured mode**: full-screen lockdown + a continuous in-browser face
+   proctor (no-face / second-face / look-away) + tab-switch detection, with
+   behavioural integrity telemetry (paste-heavy / fast-solve / away) captured
+   client-side and re-validated server-side. All of this produces **human-review
+   signals, never auto-rejects** — and raw video stays on the device.
 5. **Task + score** — `/api/assistant` is the AI tool the candidate directs;
    **each turn is persisted server-side** as the model produced it. `/api/score`
    then grades the **server-recorded** transcript (not a client payload) with
@@ -116,6 +124,10 @@ flowchart TB
   See [adr/0006](adr/0006-holder-binding.md).
 - **Authenticated console** — employer access + revocation are gated by real
   scrypt/HMAC auth. See [adr/0007](adr/0007-self-contained-employer-auth.md).
+- **Layered cheat detection** — randomised liveness, a live in-task face proctor
+  + full-screen lockdown, anti-outsourcing telemetry, and server-side anti-gaming
+  (verbatim hard-cap + prompt-injection firewall), all written to the hash-chained
+  audit log; every signal is human-review-gated, not an auto-rejection.
 
 ## What is working vs. roadmap
 
@@ -125,7 +137,10 @@ See the honesty table in the top-level `README.md` and `SECURITY.md` /
 match, hash-chained audit, **holder proof-of-possession, server-authoritative
 scoring, employer authentication, credential revocation, a live `/metrics`
 evidence dashboard, the `/rings` cross-employer fraud-ring view, and the
-RAIR/RSR appropriate-reliance probe** are **real**. A
-packaged Action API, the W3C Bitstring **encoding** of revocation, ATS write-back,
-a KMS-backed issuer key, SSO/SCIM, and SOC 2 are **roadmap**. Certified ISO-30107-3
-PAD and a real (non-synthetic) bias audit are **honestly out of scope**, not faked.
+RAIR/RSR appropriate-reliance probe, and the live in-task proctoring +
+anti-cheating detection system** are **real**. A
+packaged Action API, the W3C Bitstring **encoding** of revocation, the live ATS
+write-back, a KMS-backed issuer key, SSO/SCIM, and SOC 2 are **future scope**.
+Certified ISO-30107-3 PAD and a higher-volume bias audit are also **future scope** —
+the interfaces exist today (a certified vendor drops in behind the same liveness
+boundary; the audit scales with pilot volume), so nothing here is faked.

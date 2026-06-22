@@ -19,7 +19,11 @@ flow twice.
    pre-staged.
 2. **Pass liveness.** MediaPipe reads the actions in-browser; a 128-D face
    descriptor is computed locally (raw video never leaves the device).
-3. **The AI-collaboration task.** You're handed a task and an AI assistant
+3. **The AI-collaboration task (secured, proctored).** The task opens in
+   **secured mode** — full-screen, camera on, with a live in-browser face proctor
+   (flags a second person or looking away) + tab-switch detection; three integrity
+   warnings end the test, and paste/timing telemetry is captured for human review
+   (raw video stays on-device). Inside it you're handed a task and an AI assistant
    (Claude/Gemini via Vercel AI Gateway). The AI's first answer contains **one
    deliberately planted error** (e.g. an `INNER` vs `LEFT JOIN` bug, a wrong
    denominator).
@@ -73,7 +77,7 @@ seeded by migration `20260621140000_real_features.sql`). You can:
 
 ---
 
-## What is REAL / MOCK / ROADMAP (the honest part)
+## What is REAL / DEMO / FUTURE SCOPE (the honest part)
 
 **REAL, end-to-end:**
 - Active challenge-response liveness (randomised actions + spoken nonce + timing).
@@ -85,18 +89,27 @@ seeded by migration `20260621140000_real_features.sql`). You can:
 - Employer auth (scrypt + HMAC sessions), hash-chained audit log.
 - Issuer key isolated behind a single `Signer` boundary; **key rotation
   supported** (did:web publishes active + retired keys).
+- **Secured proctored skill test** — full-screen lockdown, continuous in-browser
+  face proctor (no-face / second-face / look-away), tab-switch detection (3-strike),
+  and anti-outsourcing telemetry (paste-heavy / fast-solve); human-review signals,
+  raw video on-device.
 
-**MOCK (clearly labelled, real contract/shape):**
+**DEMO (clearly labelled, real contract/shape — live integration is future scope):**
 - **ATS write-back** (`/api/employer/ats-writeback`) — returns `mock: true`; shows
-  the Workday/Greenhouse/Lever push shape, makes no external call.
+  the real Workday/Greenhouse/Lever push shape, makes no external call yet.
+  *Future scope:* the live push.
 - **DigiLocker** (`/api/digilocker/*`) — real HMAC-signed contract + DPDP consent,
-  but sandbox only; no real Aadhaar/Meri-Pehchaan call.
+  sandbox only. *Future scope:* the live Aadhaar/Meri-Pehchaan call.
 
-**ROADMAP (disclosed in SECURITY.md):**
-- KMS/HSM-backed signing (the `KmsSigner` stub is not wired).
-- Empirically measured cross-round FAR/FRR (threshold 0.3 is human-review-gated).
-- Certified PAD (ISO/IEC 30107-3) — current liveness is anti-spoof, not certified.
-- Enterprise auth (SSO/SAML/SCIM/MFA), external audit-log anchoring, SOC 2.
+**FUTURE SCOPE (disclosed in SECURITY.md):**
+- KMS/HSM-backed signing — the `Signer` boundary is ready; the KMS wiring is the
+  first hardening step.
+- Empirically measured cross-round FAR/FRR — the 0.3 default is human-review-gated
+  today; calibration lands with pilot volume.
+- Certified PAD (ISO/IEC 30107-3) — today's challenge-response liveness drops in a
+  certified vendor behind the same interface.
+- Enterprise auth (SSO/SAML/SCIM/MFA), external audit-log anchoring, SOC 2 —
+  enterprise onboarding track.
 
 Seeded/synthetic data is labelled as such (`/metrics`, `/fairness`, `/rings`).
 
@@ -109,7 +122,7 @@ Seeded/synthetic data is labelled as such (`/metrics`, `/fairness`, `/rings`).
 cp .env.example .env.local      # fill in Supabase + issuer keys (gen command in .env.example)
 npm install
 npm run dev                     # http://localhost:3000
-npm test                        # offline credential security smoke test (5 assertions)
+npm test                        # trust-core suite — 20 Vitest tests (credential · audit-chain · reliance)
 npm run seed:demo               # mint the 3 demo credentials + QR codes
 ```
 
