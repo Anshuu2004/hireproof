@@ -31,14 +31,18 @@ export async function GET(req: Request) {
 
   const docs = (creds ?? []).map((c) => {
     const claims = c.payload_json as { aiCollaboration?: { score?: number } };
+    // Never hand out the live JWS token for a REVOKED credential — the signature
+    // verifies offline forever, so leaking it would let a killed credential keep
+    // circulating. Still list it (so the wallet can show "revoked"), just without
+    // the verifiable token.
     return {
       credentialId: c.id,
       score: claims.aiCollaboration?.score ?? 0,
       issuedAt: c.issued_at,
       expiresAt: c.expires_at,
       revoked: c.revoked,
-      token: c.signature,
-      verifyUrl: `${env.siteUrl}/v#${c.signature}`,
+      token: c.revoked ? null : c.signature,
+      verifyUrl: c.revoked ? null : `${env.siteUrl}/v#${c.signature}`,
     };
   });
 

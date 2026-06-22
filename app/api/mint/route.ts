@@ -18,10 +18,47 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   const sb = supabaseAdmin();
-  const { data: session } = await sb.from("sessions").select("liveness_verdict,round_no").eq("id", parsed.data.sessionId).single();
+  const { data: session } = await sb
+    .from("sessions")
+    .select("liveness_verdict,round_no,status,credential_id")
+    .eq("id", parsed.data.sessionId)
+    .single();
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
   if (session.liveness_verdict !== "pass") {
     return NextResponse.json({ error: "Liveness not passed — cannot mint" }, { status: 400 });
+  }
+
+  // Idempotency: a session mints EXACTLY ONE credential. If one already exists,
+  // return it rather than issuing a second — re-minting would re-point the face
+  // descriptor to a new credential id, orphan the prior credential's biometric
+  // link, and break erase-by-credential_id. The holder secret is shown only at
+  // first mint and never stored, so it is not (and cannot be) re-returned here.
+  if (session.credential_id || session.status === "issued") {
+    const { data: existing } = await sb
+      .from("credentials")
+      .select("id,payload_json,signature,issued_at,expires_at")
+      .eq("id", session.credential_id)
+      .maybeSingle();
+    if (existing) {
+      const verifyUrl = `${env.siteUrl}/v#${existing.signature}`;
+      const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+        errorCorrectionLevel: "M",
+        margin: 1,
+        scale: 6,
+        color: { dark: "#0a0b0d", light: "#fcfcfd" },
+      });
+      return NextResponse.json({
+        token: existing.signature,
+        credentialId: existing.id,
+        holderSecret: null, // only revealed at first mint; never stored
+        alreadyIssued: true,
+        verifyUrl,
+        qrDataUrl,
+        claims: existing.payload_json,
+        issuedAt: existing.issued_at,
+        expiresAt: existing.expires_at,
+      });
+    }
   }
 
   // Two independent reads in parallel (and narrowed off `select *`).

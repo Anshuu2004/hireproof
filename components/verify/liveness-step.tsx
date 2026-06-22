@@ -300,7 +300,16 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
           .detectSingleFace(videoRef.current!, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
-        const descriptor = det ? Array.from(det.descriptor) : new Array(128).fill(0);
+        // L2-normalise the descriptor so the stored vector is unit-length, matching
+        // the documented schema (init.sql / ADR-0003 / SECURITY.md). Cosine distance
+        // is magnitude-invariant, so this changes NO match result vs previously-stored
+        // un-normalised vectors — it just makes the embedding canonical. A no-face
+        // capture stays all-zeros so the server's norm check can reject it.
+        let descriptor = det ? Array.from(det.descriptor) : new Array(128).fill(0);
+        if (det) {
+          const norm = Math.sqrt(descriptor.reduce((s, x) => s + x * x, 0)) || 1;
+          descriptor = descriptor.map((x) => x / norm);
+        }
 
         setPhase("submitting");
         const res = await fetch("/api/liveness", {

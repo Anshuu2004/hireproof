@@ -58,7 +58,7 @@ export default function RecheckPage() {
       const res = await fetch("/api/work/recheck/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: session.sessionId }),
+        body: JSON.stringify({ sessionId: session.sessionId, secret }),
       });
       const data = await res.json();
       setResult({ result: (data.result as Result) ?? (r.verdict === "pass" ? "pass" : "fail"), distance: data.distance ?? null });

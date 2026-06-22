@@ -4,9 +4,14 @@ import { createHash } from "crypto";
  * Pure, dependency-free core of the hash-chained audit log.
  *
  * Extracted from lib/audit.ts so the chain logic is unit-testable WITHOUT
- * pulling in next/server or the Supabase client. lib/audit.ts (app layer) and
- * the Postgres BEFORE-INSERT trigger (DB layer) must stay byte-identical to
- * this canonicalisation, or `verify_audit_chain()` would disagree with the app.
+ * pulling in next/server or the Supabase client. lib/audit.ts (app layer) shares
+ * THIS exact canonicalisation. The Postgres BEFORE-INSERT trigger (DB layer) is a
+ * deliberately DIFFERENT, stronger canonicalisation: once the migration is
+ * applied it recomputes the chain server-side over the full row INCLUDING the
+ * db-assigned id and a monotonic `seq`, with a microsecond timestamp, and
+ * SUPERSEDES these app-computed values. So the two layers are NOT byte-identical
+ * by design — the trigger is the authority, and verify_audit_chain() validates
+ * the trigger's chain (see docs/adr/0004-audit-hash-chain.md).
  *
  * The hash covers the FULL set of persisted application fields in a fixed
  * order (not just `output`), so editing any field — or the timestamp — breaks

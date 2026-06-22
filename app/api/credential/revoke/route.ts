@@ -17,15 +17,20 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   const sb = supabaseAdmin();
-  // Revoking a credential claims governance of that candidate for this employer
-  // (best-effort: ignore the governed_by write if the column isn't migrated yet).
+  // Ownership-scoped revoke: an employer may revoke a credential only if it is
+  // ungoverned (first to act claims governance) OR already governed by them.
+  // Revoking claims governance for this employer. This stops any authenticated
+  // employer from revoking another employer's candidate by id.
   let { data, error } = await sb
     .from("credentials")
     .update({ revoked: true, governed_by: session.sub })
     .eq("id", parsed.data.credentialId)
+    .or(`governed_by.is.null,governed_by.eq.${session.sub}`)
     .select("id,revoked")
     .maybeSingle();
   if (error) {
+    // Fallback only if the governed_by column isn't migrated yet (pre-governance
+    // deploy): keep revocation working, scoped by id alone.
     ({ data, error } = await sb
       .from("credentials")
       .update({ revoked: true })
@@ -35,7 +40,9 @@ export async function POST(req: Request) {
   }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ error: "Credential not found" }, { status: 404 });
+  // No row matched: either the credential doesn't exist, or it is governed by a
+  // different employer (not yours to revoke). 404 either way (don't leak which).
+  if (!data) return NextResponse.json({ error: "Credential not found or not yours to revoke" }, { status: 404 });
 
   deferAudit({
     eventType: "credential-revoked",

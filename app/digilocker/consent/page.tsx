@@ -23,7 +23,11 @@ export default function DigiLockerConsentPage() {
     const q = new URLSearchParams(window.location.search);
     setCredentialId(q.get("credentialId") ?? "");
     setState(q.get("state") ?? "");
-    setHandle(`demo-${Math.random().toString(36).slice(2, 8)}`);
+    // Crypto-random, unguessable handle (48 bits) — Math.random is predictable and
+    // short, which would make a candidate's linked documents enumerable.
+    const b = new Uint8Array(6);
+    crypto.getRandomValues(b);
+    setHandle(`demo-${Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("")}`);
     const stashed = window.sessionStorage.getItem("hp_dl_secret");
     if (stashed) setSecret(stashed);
   }, []);

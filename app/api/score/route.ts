@@ -29,11 +29,12 @@ export async function POST(req: Request) {
   const { sessionId, taskId, finalAnswer } = parsed.data;
 
   const sb = supabaseAdmin();
-  // Two independent gating reads in parallel, before the (expensive) LLM grade.
-  const [{ data: task }, { data: sess }] = await Promise.all([
-    sb.from("ai_tasks").select("prompt_seed,session_id").eq("id", taskId).single(),
-    sb.from("sessions").select("status").eq("id", sessionId).maybeSingle(),
-  ]);
+  // Validate the task first (cheap), then ATOMICALLY claim the session for scoring
+  // before the expensive LLM grade. The claim is one conditional UPDATE
+  // (live_passed -> scoring); only one of N concurrent POSTs can win, so we can't
+  // double-charge the grader or write duplicate/conflicting score rows for a
+  // session — the read-then-write idempotency race is closed in a single statement.
+  const { data: task } = await sb.from("ai_tasks").select("prompt_seed,session_id").eq("id", taskId).single();
   if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
 
   // The task must belong to this session — stops cross-session task harvesting
@@ -42,10 +43,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Task does not belong to this session" }, { status: 403 });
   }
 
-  // Idempotency: a session is scored once. Re-posting is rejected (no score replay).
-  if (!sess) return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  if (sess.status === "scored" || sess.status === "issued") {
-    return NextResponse.json({ error: "Session already scored" }, { status: 409 });
+  const { data: claimed } = await sb
+    .from("sessions")
+    .update({ status: "scoring" })
+    .eq("id", sessionId)
+    .eq("status", "live_passed")
+    .select("id")
+    .maybeSingle();
+  if (!claimed) {
+    // Claim failed — disambiguate: missing vs already-scored vs in-flight/not-ready.
+    const { data: sess } = await sb.from("sessions").select("status").eq("id", sessionId).maybeSingle();
+    if (!sess) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    if (sess.status === "scored" || sess.status === "issued") {
+      return NextResponse.json({ error: "Session already scored" }, { status: 409 });
+    }
+    return NextResponse.json({ error: "Session is not ready to score, or scoring is already in progress" }, { status: 409 });
   }
 
   const spec = (task.prompt_seed as { spec: TaskSpec }).spec;
@@ -70,6 +82,9 @@ export async function POST(req: Request) {
       finalAnswer
     );
   } catch (e) {
+    // Grading failed after we claimed the session — RELEASE the claim so the
+    // candidate can retry (otherwise it would be stuck in 'scoring' forever).
+    await sb.from("sessions").update({ status: "live_passed" }).eq("id", sessionId).eq("status", "scoring");
     return NextResponse.json(
       { error: `AI unavailable: ${e instanceof Error ? e.message : "error"}` },
       { status: 502 }

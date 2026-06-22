@@ -27,6 +27,10 @@ const FRESHNESS_MS = 180_000;
 /** Plausible bounds for completing three actions (defeats instantaneous replay). */
 const MIN_DURATION_MS = 1200;
 const MAX_DURATION_MS = 180_000;
+/** A genuine 128-D face-api descriptor has an L2 norm comfortably above this; an
+ *  all-zeros / blank vector (what the real client sends on NO face, and what a
+ *  headless forge submits) is ~0. Below this we treat the face as absent/forged. */
+const MIN_FACE_NORM = 0.1;
 
 export async function POST(req: Request) {
   const rl = limited(req, "liveness", 30, 60_000);
@@ -60,7 +64,13 @@ export async function POST(req: Request) {
   // Server re-checks the independent signals (never trusts a client "pass"):
   const actionsOk =
     completed.length >= seed.actions.length && seed.actions.every((a, i) => completed[i] === a);
-  const faceOk = livenessProof.faceContinuous;
+  // Server-side face sanity, not just the client's continuity flag: a real
+  // face-api descriptor has a substantial L2 norm; a blank/all-zeros vector is ~0.
+  // This blocks a headless forge (and a no-face capture) from passing liveness
+  // and going on to mint a "verified human" credential with no real face.
+  const faceNorm = Math.sqrt(faceDescriptor.reduce((s, x) => s + x * x, 0));
+  const faceDescriptorReal = faceNorm >= MIN_FACE_NORM;
+  const faceOk = livenessProof.faceContinuous && faceDescriptorReal;
 
   // Timing: the client already sends per-action atMs + durationMs — validate them
   // instead of ignoring them. The submission must be fresh (within FRESHNESS_MS of
@@ -136,6 +146,7 @@ export async function POST(req: Request) {
     output: {
       verdict,
       checks: { actionsOk, faceOk, voiceOk, timingOk },
+      face: { faceContinuous: livenessProof.faceContinuous, descriptorReal: faceDescriptorReal, norm: Math.round(faceNorm * 1000) / 1000 },
       timing: { ageMs, durationMs: livenessProof.durationMs, atMonotonic, durOk, fresh: ageMs <= FRESHNESS_MS },
       voice: { digitsMatched, voiceMode, voiceActivity: voiceActivity ?? null },
       crossRound,

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { importJWK, jwtVerify } from "jose";
-import { QrCode, SealCheck, XCircle, Clock, X } from "@phosphor-icons/react";
+import { QrCode, SealCheck, XCircle, Clock, X, Warning } from "@phosphor-icons/react";
 import { BrowserQRCodeReader, type IScannerControls } from "@zxing/browser";
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
@@ -12,7 +12,7 @@ import { BackLink } from "@/components/back-link";
 import { shortId } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-type State = "idle" | "verifying" | "valid" | "expired" | "revoked" | "invalid";
+type State = "idle" | "verifying" | "valid" | "expired" | "revoked" | "invalid" | "unconfirmed";
 
 interface HpClaims {
   humanVerified: boolean;
@@ -26,7 +26,7 @@ interface Result {
   took: number;
   payload?: { sub?: string; iss?: string; iat?: number; exp?: number; hp?: HpClaims };
   reason?: string;
-  status?: { revoked?: boolean; rounds?: number };
+  status?: { revoked?: boolean; rounds?: number; found?: boolean };
 }
 
 /** A QR encodes the verify URL (…/v#<token>); accept a raw token too. */
@@ -77,18 +77,37 @@ export default function VerifyPage() {
       }
       if (!payload) throw expiredErr ?? otherErr ?? new Error("Signature invalid");
       let status: Result["status"];
+      let statusReachable = true;
       try {
         // Pass the token so the server confirms the signature too (and records a
         // truthful audit event) — the client already verified it offline above.
         status = await fetch(`/api/credential-status?id=${payload.sub}&token=${encodeURIComponent(token)}`).then((r) => r.json());
       } catch {
         status = undefined;
+        statusReachable = false;
       }
       window.clearInterval(timer.current);
       const took = (performance.now() - t0) / 1000;
       if (status?.revoked) {
         setState("revoked");
         setResult({ state: "revoked", took, payload: payload as Result["payload"], status });
+      } else if (status && status.found === false) {
+        // Signature verified, but this credential id is not on record (forged /
+        // unknown id). Fail closed — never render a green "verified".
+        setState("invalid");
+        setResult({ state: "invalid", took, reason: "Credential not on record" });
+      } else if (!statusReachable) {
+        // Signature is cryptographically valid offline, but the revocation status
+        // could NOT be confirmed (network/edge failure). Fail closed: surface that
+        // revocation is unconfirmed instead of asserting a plain "verified".
+        setState("unconfirmed");
+        setResult({
+          state: "unconfirmed",
+          took,
+          payload: payload as Result["payload"],
+          status,
+          reason: "Signature valid, but revocation status couldn't be confirmed — re-check on a stable connection.",
+        });
       } else {
         setState("valid");
         setResult({ state: "valid", took, payload: payload as Result["payload"], status });
@@ -191,7 +210,7 @@ export default function VerifyPage() {
                 "flex items-center gap-3 rounded-card border p-4",
                 state === "valid"
                   ? "border-proof/40 bg-proof-wash-dark/40"
-                  : state === "expired"
+                  : state === "expired" || state === "unconfirmed"
                     ? "border-warn/40 bg-warn-wash/10"
                     : "border-danger/40 bg-danger-wash/10"
               )}
@@ -199,10 +218,10 @@ export default function VerifyPage() {
               <span
                 className={cn(
                   "grid size-10 shrink-0 place-items-center rounded-full",
-                  state === "valid" ? "bg-proof text-ink-950" : state === "expired" ? "bg-warn text-ink-950" : "bg-danger text-white"
+                  state === "valid" ? "bg-proof text-ink-950" : state === "expired" || state === "unconfirmed" ? "bg-warn text-ink-950" : "bg-danger text-white"
                 )}
               >
-                {state === "valid" ? <SealCheck size={22} weight="fill" /> : state === "expired" ? <Clock size={22} weight="fill" /> : <XCircle size={22} weight="fill" />}
+                {state === "valid" ? <SealCheck size={22} weight="fill" /> : state === "expired" ? <Clock size={22} weight="fill" /> : state === "unconfirmed" ? <Warning size={22} weight="fill" /> : <XCircle size={22} weight="fill" />}
               </span>
               <div>
                 <p className="font-medium text-ink-50">
@@ -210,6 +229,7 @@ export default function VerifyPage() {
                   {state === "expired" && "Credential expired"}
                   {state === "revoked" && "Credential revoked"}
                   {state === "invalid" && "Could not verify"}
+                  {state === "unconfirmed" && "Signature valid · revocation unconfirmed"}
                 </p>
                 <p className="font-data text-xs text-ink-400">
                   {state === "valid" ? `signature valid · ${took.toFixed(2)}s` : result.reason}
@@ -217,7 +237,7 @@ export default function VerifyPage() {
               </div>
             </div>
 
-            {state === "valid" && hp && result.payload && (
+            {(state === "valid" || state === "unconfirmed") && hp && result.payload && (
               <>
                 <div className="mt-6 flex justify-center">
                   <CredentialCard

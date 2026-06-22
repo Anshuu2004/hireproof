@@ -17,7 +17,13 @@ export interface EmployerSession {
 }
 
 function key(): Buffer {
-  return createHash("sha256").update(`${env.supabaseServiceRole}|hireproof-employer-auth`).digest();
+  // Prefer a dedicated employer-session secret so a session forge and the
+  // RLS-bypassing service-role DB key are not the same root secret. Falls back to
+  // the service-role key when EMPLOYER_SESSION_SECRET is unset, so existing
+  // deploys keep working with zero config (setting it later just invalidates
+  // outstanding sessions, prompting a harmless re-login).
+  const base = env.employerSessionSecret ?? env.supabaseServiceRole;
+  return createHash("sha256").update(`${base}|hireproof-employer-auth`).digest();
 }
 
 export function signSession(employer: { id: string; email: string }, ttlMs = 12 * 3600_000): string {

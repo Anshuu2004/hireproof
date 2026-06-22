@@ -46,8 +46,11 @@ export async function appendAudit(params: {
   const createdAt = new Date().toISOString();
 
   // Canonical hash over every persisted application field, in a fixed order
-  // (see lib/audit-hash.ts — shared with the unit tests; must match the
-  // Postgres trigger's canonicalisation exactly).
+  // (see lib/audit-hash.ts — shared with the unit tests). NOTE: the Postgres
+  // trigger uses a DIFFERENT, stronger canonicalisation (it also folds in the
+  // db-assigned id + a monotonic seq and a microsecond timestamp) and OVERRIDES
+  // this value on insert — the two are intentionally NOT identical. We read back
+  // whichever hash was actually stored (see docs/adr/0004-audit-hash-chain.md).
   const rowHash = auditRowHash(prevHash, params, createdAt);
 
   // Insert with the app-computed chain. If the DB trigger is present it will

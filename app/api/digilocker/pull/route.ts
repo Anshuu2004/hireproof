@@ -73,6 +73,17 @@ export async function POST(req: Request) {
       : new NextResponse(notFoundResponse(txn, ts), { headers: { "Content-Type": "application/xml" } });
   }
 
+  // A revoked credential must NOT be served as an Issued Document (the embedded JWS
+  // verifies offline forever, so serving it would let a killed credential keep
+  // circulating). Treat revoked as not-found for the pull contract.
+  if (cred.revoked) {
+    await sb.from("digilocker_pull_log").insert({ dl_handle: handle, doc_type: DOC_TYPE, txn, ok: false });
+    await appendAudit({ eventType: "digilocker-pull", output: { credentialId: cred.id, dlHandle: handle, txn, ok: false, reason: "revoked" } });
+    return format === "json"
+      ? NextResponse.json({ status: 0, txn, ts })
+      : new NextResponse(notFoundResponse(txn, ts), { headers: { "Content-Type": "application/xml" } });
+  }
+
   const claims = cred.payload_json as { aiCollaboration?: { score?: number } };
   const payload: DocPayload = {
     docType: DOC_TYPE,
