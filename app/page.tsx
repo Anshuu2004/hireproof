@@ -80,6 +80,11 @@ const SHIFT = [
   ["Surveillance proctoring", "Spy on every applicant, bury honest candidates in false positives."],
   ["Employer-locked tests", "Verify once, for one employer — nothing the candidate owns or reuses."],
 ];
+const HIREPROOF_WAY = [
+  ["Proof, not detection", "The candidate proves they're live and real, so there's no deepfake arms race to lose."],
+  ["No spyware", "A short check the candidate opts into, not constant monitoring of every applicant."],
+  ["Owned and reusable", "One badge the candidate keeps and reuses with every employer, not a one-time test."],
+];
 
 const CANDIDATE = [
   ["01", "Prove you're live", "A 2-minute face and voice check that proves you are live on camera right now. The task is created the moment you start, so a stand-in, a deepfake, or an earpiece can't prepare for it."],
@@ -385,13 +390,29 @@ export default function Home() {
                 directing AI well.
               </p>
             </div>
-            <div className="lp-cols-3 lp-reveal" style={{ marginTop: "clamp(36px, 5vw, 56px)" }}>
-              {SHIFT.map(([t, d]) => (
-                <div key={t} className="lp-broken">
-                  <div className="lp-broken-head"><Cross /><span className="lp-title" style={{ fontSize: "1rem" }}>{t}</span></div>
-                  <p className="lp-body" style={{ fontSize: "0.92rem", marginTop: "0.55rem", color: "var(--ink-2)" }}>{d}</p>
-                </div>
-              ))}
+            <div className="lp-compare lp-reveal">
+              <div className="lp-compare-col lp-compare-old">
+                <p className="lp-compare-head"><span className="lp-compare-mark"><Cross /></span> Today&apos;s tools</p>
+                <ul className="lp-compare-list">
+                  {SHIFT.map(([t, d]) => (
+                    <li key={t}>
+                      <span className="lp-compare-mark"><Cross /></span>
+                      <span className="lp-compare-li-body"><span className="lp-compare-t">{t}</span><span className="lp-compare-d">{d}</span></span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="lp-compare-col lp-compare-new">
+                <p className="lp-compare-head"><span className="lp-compare-mark"><Check /></span> With HireProof</p>
+                <ul className="lp-compare-list">
+                  {HIREPROOF_WAY.map(([t, d]) => (
+                    <li key={t}>
+                      <span className="lp-compare-mark"><Check /></span>
+                      <span className="lp-compare-li-body"><span className="lp-compare-t">{t}</span><span className="lp-compare-d">{d}</span></span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
             <div className="lp-flip lp-reveal">
               <span className="lp-flip-mark" aria-hidden="true"><Check /></span>
@@ -415,7 +436,7 @@ export default function Home() {
             <div className="lp-tracks">
               {([["candidate", CANDIDATE], ["employer", EMPLOYER]] as const).map(([label, steps]) => (
                 <div key={label} className="lp-reveal">
-                  <div className="lp-track-label"><span className="lp-eyebrow lp-verify-ink">{label}</span><span className="lp-rule" /></div>
+                  <div className="lp-track-label"><span className="lp-track-ic">{label === "candidate" ? <IcPerson /> : <IcEmployer />}</span><span className="lp-eyebrow lp-verify-ink">{label}</span><span className="lp-rule" /></div>
                   <ol className="lp-steps">
                     {steps.map(([k, t, d]) => (
                       <li key={k} className="lp-step">

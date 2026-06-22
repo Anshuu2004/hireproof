@@ -164,7 +164,7 @@ export function CredentialCard({
             ) : (
               <p className="eyebrow text-ink-300">Checkable even offline</p>
             )}
-            <p className="font-data text-[0.7rem] text-ink-300">exp {expiresAt} · Ed25519 · did:web</p>
+            <p className="font-data text-[0.7rem] text-ink-300">expires {expiresAt} · tamper-proof signature</p>
           </div>
         </div>
       </div>
