@@ -79,10 +79,17 @@ function rotatedGeminiKeys(): string[] {
 
 const hasGemini = () => geminiKeys().length > 0;
 
+// Claude via the Vercel AI Gateway is only attempted when EXPLICITLY enabled: the
+// gateway returns a hard "requires a valid credit card" error otherwise, which
+// would surface to candidates as "AI unavailable". Default OFF so Gemini is the
+// workhorse and that error never appears. Turn it on (once a card is on file) with
+// AI_GATEWAY_API_KEY or LLM_ENABLE_CLAUDE=true.
+const hasClaude = () => Boolean(env.aiGatewayKey) || process.env.LLM_ENABLE_CLAUDE === "true";
+
 function providerOrder(): Provider[] {
   const primary: Provider = process.env.LLM_PRIMARY === "gemini" ? "gemini" : "claude";
   const order: Provider[] = primary === "gemini" ? ["gemini", "claude"] : ["claude", "gemini"];
-  return order.filter((p) => (p === "gemini" ? hasGemini() : true));
+  return order.filter((p) => (p === "gemini" ? hasGemini() : hasClaude()));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
