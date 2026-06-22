@@ -238,7 +238,8 @@ See also: [LICENSE](LICENSE) (Apache-2.0) · [SECURITY.md](SECURITY.md) · [COMP
 | Continuous work verification (post-hire) | **Real (demo)** — an employer enrols a credential; the holder re-passes liveness via a holder-secret-gated link (`/recheck`) and the new face is cross-round-matched, flagging MISMATCH. Scheduling is **pull-based** (status from `next_due`; no background cron or email reminders). |
 | DigiLocker issuance | **Demo sandbox (real contract)** — mirrors DigiLocker's Issued-Documents pull flow (OAuth-style link + HMAC-signed `POST /api/digilocker/pull` → DocDetails embedding the credential JWS, so it stays did:web-verifiable inside DigiLocker). **No real DigiLocker / Aadhaar call**; production needs Meri-Pehchaan / APISetu partner onboarding. |
 | Issuer key management | **Roadmap** — key is an env var today; KMS/HSM + rotation is the top hardening item ([SECURITY.md](SECURITY.md)) |
-| ATS write-back, SSO/SCIM, SOC 2 | **Roadmap** — see [docs/architecture.md](docs/architecture.md#what-is-working-vs-roadmap) |
+| ATS write-back | **Mock / demo** — a clearly-labelled mock endpoint ([`/api/employer/ats-writeback`](app/api/employer/ats-writeback/route.ts)) returns a flagged `mock: true` record (authenticated + audited); **no real ATS call**. Real Workday/Greenhouse/Lever REST is roadmap. |
+| SSO/SCIM, SOC 2 | **Roadmap** — see [docs/architecture.md](docs/architecture.md#what-is-working-vs-roadmap) |
 
 ---
 

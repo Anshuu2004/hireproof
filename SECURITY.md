@@ -20,6 +20,24 @@ within 72 hours. Do not file public issues for vulnerabilities.
 | Audit chain | `audit_log`, hash-chained, server-computed | loss of tamper-evidence / explainability |
 | Employer/session data | Supabase Postgres (RLS on, service-role server-side) | data leak |
 
+## Key management — current vs target
+
+The Ed25519 issuer key is the crown jewel (a leak forges every credential), so we
+state its handling plainly. **Current = honest prototype posture; target = what
+production requires.** KMS/HSM is **roadmap, not yet implemented.**
+
+| Aspect | Current | Target (roadmap) |
+|---|---|---|
+| Key storage | Ed25519 private key in an env var (`ISSUER_PRIVATE_KEY_HEX`), Vercel-encrypted at rest | KMS/HSM-held key — never leaves the HSM (AWS KMS added Ed25519 / `ECC_NIST_EDWARDS25519` in Nov 2025; sign via `ED25519_SHA_512`, `MessageType: RAW`) |
+| Signing path | local `jose` `importJWK` + `SignJWT.sign()` | remote `kms:Sign`; JWS assembled around the returned signature |
+| Rotation | manual env update (invalidates outstanding credentials) | `kid`-versioned keys; did:web publishes current + previous so live 180-day credentials keep verifying |
+| Access control | deploy-environment access | IAM least-privilege + MFA on the signer role |
+| Key-use audit | none | KMS / CloudTrail usage logs |
+
+**Honest note:** migrating is *not* a drop-in — KMS cannot import an existing
+Ed25519 private key, so it requires a fresh KMS key, a custom signer, and a
+did:web key rotation. Until that lands, the key is an env var (see T1).
+
 ## Threat model
 
 ### T1 — Credential forgery
