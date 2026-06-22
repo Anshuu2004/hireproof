@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { bearer } from "@/lib/auth/session";
+import { getEmployer } from "@/lib/auth/employer";
 import { deferAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ const Body = z.object({ credentialId: z.string().uuid() });
 
 /** Real revocation: an authenticated employer marks a credential revoked. */
 export async function POST(req: Request) {
-  const session = bearer(req);
+  const session = await getEmployer(req);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const parsed = Body.safeParse(await req.json().catch(() => null));

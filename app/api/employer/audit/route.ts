@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { bearer } from "@/lib/auth/session";
+import { getEmployer } from "@/lib/auth/employer";
 
 export const runtime = "nodejs";
 
@@ -8,7 +8,7 @@ export const runtime = "nodejs";
  *  Scoped: if the session's credential is governed by ANOTHER employer, the trail
  *  is not readable (no cross-tenant enumeration of candidates you don't govern). */
 export async function GET(req: Request) {
-  const session = bearer(req);
+  const session = await getEmployer(req);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const sessionId = new URL(req.url).searchParams.get("sessionId");
   if (!sessionId) return NextResponse.json({ error: "missing sessionId" }, { status: 400 });

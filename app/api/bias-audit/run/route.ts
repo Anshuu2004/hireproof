@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { bearer } from "@/lib/auth/session";
+import { getEmployer } from "@/lib/auth/employer";
 import { appendAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 import { signDetached } from "@/lib/credential/issuer";
@@ -24,7 +24,7 @@ const Body = z.object({
  * offline against /.well-known/did.json.
  */
 export async function POST(req: Request) {
-  const session = bearer(req);
+  const session = await getEmployer(req);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const rl = limited(req, "bias-audit-run", 10, 60_000, session.sub);

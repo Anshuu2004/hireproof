@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { bearer } from "@/lib/auth/session";
+import { getEmployer } from "@/lib/auth/employer";
 import { appendAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
 
@@ -18,7 +18,7 @@ const Body = z.object({
  * face is cross-round-matched against the enrolled ones.
  */
 export async function POST(req: Request) {
-  const session = bearer(req);
+  const session = await getEmployer(req);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const rl = limited(req, "work-enroll", 30, 60_000, session.sub);

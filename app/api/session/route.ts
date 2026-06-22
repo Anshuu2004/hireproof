@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { generateChallenge, spokenPhrase, type Language } from "@/lib/liveness/challenge";
 import { deferAudit } from "@/lib/audit";
 import { limited } from "@/lib/ratelimit";
-import { bearer } from "@/lib/auth/session";
+import { getEmployer } from "@/lib/auth/employer";
 
 export const runtime = "nodejs";
 
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
   // A re-verify started by an authenticated employer claims governance of that
   // candidate (best-effort; scopes the candidate to this employer's console).
   if (credentialId) {
-    const emp = bearer(req);
+    const emp = await getEmployer(req);
     if (emp) await sb.from("credentials").update({ governed_by: emp.sub }).eq("id", credentialId).then(() => {}, () => {});
   }
 

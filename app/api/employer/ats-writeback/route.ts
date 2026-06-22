@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { bearer } from "@/lib/auth/session";
+import { getEmployer } from "@/lib/auth/employer";
 import { appendAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -23,7 +23,7 @@ const Body = z.object({
  * a live integration. (See README honest-status table.)
  */
 export async function POST(req: Request) {
-  const session = bearer(req);
+  const session = await getEmployer(req);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const parsed = Body.safeParse(await req.json().catch(() => null));

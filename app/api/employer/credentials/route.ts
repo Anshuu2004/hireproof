@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { bearer } from "@/lib/auth/session";
+import { getEmployer } from "@/lib/auth/employer";
 
 export const runtime = "nodejs";
 
@@ -12,7 +12,7 @@ export const runtime = "nodejs";
  * governed_by column isn't migrated yet, so the console never hard-breaks.)
  */
 export async function GET(req: Request) {
-  const session = bearer(req);
+  const session = await getEmployer(req);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const sb = supabaseAdmin();

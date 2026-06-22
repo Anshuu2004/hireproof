@@ -6,6 +6,8 @@ import { ArrowsClockwise, X, Check, Warning, FileText, SignOut, Prohibit, LockKe
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
 import { Button } from "@/components/ui/button";
+import { GoogleButton } from "@/components/ui/google-button";
+import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { BackLink } from "@/components/back-link";
 import { LivenessStep, type LivenessResult } from "@/components/verify/liveness-step";
 import type { Language, LivenessAction } from "@/lib/liveness/challenge";
@@ -50,6 +52,7 @@ interface Enrollment {
 }
 
 const TOKEN_KEY = "hp_employer_token";
+const GOOGLE_SENTINEL = "hp-google-session"; // marks a Supabase (Google) session; routes read the cookie, not this string
 
 export default function EmployerPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -58,6 +61,7 @@ export default function EmployerPage() {
   const [password, setPassword] = useState("");
   const [loginErr, setLoginErr] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
+  const [pending, setPending] = useState(false); // Google sign-in not on the allowlist
 
   const [creds, setCreds] = useState<Credential[]>([]);
   const [sel, setSel] = useState<Credential | null>(null);
@@ -73,10 +77,48 @@ export default function EmployerPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // restore an existing session on load
+  // Restore a session on load: a legacy HMAC token (demo/password) OR a Supabase
+  // Auth cookie session (Google). The Google path sets a sentinel so the existing
+  // `if (token)` gates pass; the API routes read the cookie, not the sentinel.
   useEffect(() => {
-    setToken(typeof window !== "undefined" ? window.localStorage.getItem(TOKEN_KEY) : null);
-    setAuthReady(true);
+    if (typeof window !== "undefined") {
+      setPending(new URLSearchParams(window.location.search).get("access") === "pending");
+    }
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem(TOKEN_KEY) : null;
+    const supabase = createBrowserSupabase();
+
+    if (stored) {
+      // Legacy HMAC token (demo/password) — trusted here, re-validated server-side
+      // on every API call. Still subscribe below so a Google sign-out is observed.
+      setToken(stored);
+      setAuthReady(true);
+      if (!supabase) return;
+    } else if (!supabase) {
+      setAuthReady(true);
+      return;
+    } else {
+      // No legacy token: validate the Supabase session SERVER-SIDE (getUser, not
+      // getSession) before gating, so a stale/forged local session can't flash
+      // the authed console.
+      supabase.auth
+        .getUser()
+        .then((res: { data: { user: unknown } }) => {
+          const legacy = window.localStorage.getItem(TOKEN_KEY);
+          setToken(legacy ?? (res.data.user ? GOOGLE_SENTINEL : null));
+        })
+        .catch(() => setToken(null))
+        .finally(() => setAuthReady(true)); // never hang on the blank guard if getUser rejects
+    }
+
+    // Subscribe unconditionally so a SIGNED_OUT in another tab / token expiry is
+    // reflected live, even when a legacy token also exists. (supabase is non-null
+    // on every path that reaches here; this guard is for the type-checker.)
+    if (!supabase) return;
+    const listener = supabase.auth.onAuthStateChange((_e: unknown, session: unknown) => {
+      const legacy = window.localStorage.getItem(TOKEN_KEY);
+      setToken(legacy ?? (session ? GOOGLE_SENTINEL : null));
+    });
+    return () => listener.data.subscription.unsubscribe();
   }, []);
 
   const authHeaders = useCallback(
@@ -84,11 +126,34 @@ export default function EmployerPage() {
     [token]
   );
 
-  function logout() {
+  async function logout() {
     window.localStorage.removeItem(TOKEN_KEY);
+    // scope:'local' clears THIS device's session synchronously (no network
+    // dependency), so the on-device session is always gone before we flip the UI
+    // — even if a global revoke is unreachable. Awaited so there's no race.
+    await createBrowserSupabase()?.auth.signOut({ scope: "local" });
     setToken(null);
     setSel(null);
     setCreds([]);
+  }
+
+  async function signInWithGoogle() {
+    const supabase = createBrowserSupabase();
+    if (!supabase) {
+      setLoginErr("Google sign-in isn't configured yet — use the demo or email sign-in.");
+      return;
+    }
+    setLoginErr("");
+    setLoggingIn(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) {
+      setLoginErr(error.message);
+      setLoggingIn(false);
+    }
+    // on success the browser navigates to Google; nothing more to do here.
   }
 
   async function login(e?: React.FormEvent, demo?: boolean) {
@@ -270,6 +335,20 @@ export default function EmployerPage() {
               <h1 className="text-base font-semibold text-ink-50">Employer sign-in</h1>
             </div>
             <p className="mb-5 text-xs text-ink-500">The verify console is access-controlled.</p>
+
+            {pending && (
+              <p className="mb-4 rounded-control border border-warn/30 bg-warn-wash/10 px-3 py-2 text-xs text-warn">
+                Access pending. Your Google account isn&apos;t on the employer allowlist yet. Ask an admin to add you.
+              </p>
+            )}
+
+            <GoogleButton onClick={signInWithGoogle} disabled={loggingIn} />
+
+            <div className="my-4 flex items-center gap-3">
+              <span className="h-px flex-1 bg-ink-700" />
+              <span className="eyebrow text-ink-500">or</span>
+              <span className="h-px flex-1 bg-ink-700" />
+            </div>
 
             <label className="eyebrow text-ink-400">Work email</label>
             <input
