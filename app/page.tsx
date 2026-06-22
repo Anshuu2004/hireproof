@@ -225,8 +225,17 @@ export default function Home() {
             <div className="lp-hero">
               <div className="lp-hero-copy">
                 <p className="lp-eyebrow lp-reveal">Hiring-integrity infrastructure · Built for Bharat</p>
-                <h1 className="lp-display lp-reveal" style={{ "--d": "60ms" } as React.CSSProperties}>
-                  Prove you&apos;re a real <span className="lp-warm">human</span> — with real AI judgment.
+                <h1 className="lp-display lp-words">
+                  <span className="w" style={{ "--wd": "0ms" } as React.CSSProperties}>Prove</span>{" "}
+                  <span className="w" style={{ "--wd": "50ms" } as React.CSSProperties}>you&apos;re</span>{" "}
+                  <span className="w" style={{ "--wd": "100ms" } as React.CSSProperties}>a</span>{" "}
+                  <span className="w" style={{ "--wd": "150ms" } as React.CSSProperties}>real</span>{" "}
+                  <span className="w lp-warm" style={{ "--wd": "200ms" } as React.CSSProperties}>human</span>{" "}
+                  <span className="w" style={{ "--wd": "260ms" } as React.CSSProperties}>—</span>{" "}
+                  <span className="w" style={{ "--wd": "320ms" } as React.CSSProperties}>with</span>{" "}
+                  <span className="w" style={{ "--wd": "370ms" } as React.CSSProperties}>real</span>{" "}
+                  <span className="w" style={{ "--wd": "420ms" } as React.CSSProperties}>AI</span>{" "}
+                  <span className="w" style={{ "--wd": "470ms" } as React.CSSProperties}>judgment.</span>
                 </h1>
                 <p className="lp-lead lp-reveal" style={{ "--d": "120ms", maxWidth: "52ch" } as React.CSSProperties}>
                   HireProof is a candidate-owned, cryptographically-signed credential that proves a job

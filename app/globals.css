@@ -352,6 +352,16 @@ html[data-theme="dark"] {
 }
 @keyframes lp-underline { to { transform: scaleX(1); } }
 
+/* hero headline — words load in, staggered (the one premium entrance; restrained) */
+.lp-words .w {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.5em);
+  animation: lp-word 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--wd, 0ms);
+}
+@keyframes lp-word { to { opacity: 1; transform: none; } }
+
 /* ============================== buttons =================================== */
 .lp-btn {
   display: inline-flex;
@@ -720,6 +730,7 @@ html[data-theme="dark"] {
   .lp-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
   .lp-ambient, .vc-shimmer, .lp-marquee-track { animation: none !important; }
   .lp-warm::after { animation: none !important; transform: scaleX(1); }
+  .lp-words .w { animation: none !important; opacity: 1 !important; transform: none !important; }
   .vc-scan { display: none !important; }
   .vc-stroke { stroke-dashoffset: 0 !important; animation: none !important; }
   .vc-gauge-fill { transition: none !important; }
