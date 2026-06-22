@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { shortId } from "@/lib/format";
 
 export const runtime = "nodejs";
 
@@ -52,7 +53,7 @@ export async function GET() {
       synthetic: g.some((id) => (meta.get(id)?.issuer_did ?? "").includes("synthetic")),
       members: g.map((id) => ({
         id,
-        shortId: `HP·${id.slice(0, 4).toUpperCase()}-${id.slice(4, 8).toUpperCase()}`,
+        shortId: shortId(id),
         issuedAt: meta.get(id)?.issued_at ?? null,
         score: meta.get(id)?.payload_json?.aiCollaboration?.score ?? null,
       })),

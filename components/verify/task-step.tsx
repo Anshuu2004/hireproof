@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PaperPlaneRight, Robot, User, Sparkle, CheckCircle, XCircle, Scales } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { RelianceResult } from "@/lib/ai/reliance";
 
@@ -338,14 +339,15 @@ export function TaskStep({
                 Decide all {panel.length} AI-reliance claims (left) before submitting.
               </p>
             )}
-            <button
-              type="button"
+            <Button
+              variant="proof"
+              size="lg"
               onClick={submit}
               disabled={!finalAnswer.trim() || scoring || (!!panel && Object.keys(decisions).length < panel.length)}
-              className="w-full rounded-control bg-proof px-4 py-3 text-sm font-medium text-ink-950 transition-colors hover:bg-proof-strong disabled:bg-ink-800 disabled:text-ink-500 active:translate-y-px"
+              className="w-full"
             >
               {scoring ? "Scoring your judgment…" : "Submit for scoring"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

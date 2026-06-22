@@ -7,6 +7,7 @@ import { ConsentStep, type ConsentValue } from "./consent-step";
 import { LivenessStep, type LivenessResult } from "./liveness-step";
 import { TaskStep, type ScoreResult } from "./task-step";
 import { MintStep } from "./mint-step";
+import { Button } from "@/components/ui/button";
 import type { Language, LivenessAction } from "@/lib/liveness/challenge";
 import { cn } from "@/lib/cn";
 
@@ -71,13 +72,9 @@ function FailPanel({ result }: { result: LivenessResult }) {
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        onClick={() => location.reload()}
-        className="mt-6 rounded-control border border-ink-600 px-5 py-3 text-sm font-medium text-ink-100 transition-colors hover:border-ink-400 hover:bg-ink-900 active:translate-y-px"
-      >
+      <Button variant="ghost" size="lg" onClick={() => location.reload()} className="mt-6">
         Retry the check
-      </button>
+      </Button>
     </div>
   );
 }

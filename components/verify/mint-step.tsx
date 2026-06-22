@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { DownloadSimple, Copy, ArrowSquareOut, Check, Key, Scales, Warning } from "@phosphor-icons/react";
 import { CredentialCard } from "@/components/credential-card";
+import { Button, buttonClass } from "@/components/ui/button";
 import type { ScoreResult } from "./task-step";
+import { shortId } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 /** The five judgment axes, in weight order, with human labels. Mirrors WEIGHTS
@@ -218,7 +220,7 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
   }
 
   // done
-  const tokenId = cred ? `HP·${cred.credentialId.slice(0, 4).toUpperCase()}-${cred.credentialId.slice(4, 8).toUpperCase()}` : "";
+  const tokenId = cred ? shortId(cred.credentialId) : "";
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center">
       {/* seal */}
@@ -246,26 +248,13 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
       )}
 
       <div className="mt-6 grid w-full grid-cols-3 gap-2">
-        <a
-          href={cred?.qrDataUrl}
-          download={`hireproof-${tokenId}.png`}
-          className="flex items-center justify-center gap-1.5 rounded-control border border-ink-700 px-3 py-2.5 text-xs font-medium text-ink-200 transition-colors hover:border-ink-500 hover:bg-ink-900"
-        >
+        <a href={cred?.qrDataUrl} download={`hireproof-${tokenId}.png`} className={buttonClass("ghost", "sm", "gap-1.5")}>
           <DownloadSimple size={15} /> Save QR
         </a>
-        <button
-          type="button"
-          onClick={copyToken}
-          className="flex items-center justify-center gap-1.5 rounded-control border border-ink-700 px-3 py-2.5 text-xs font-medium text-ink-200 transition-colors hover:border-ink-500 hover:bg-ink-900"
-        >
+        <Button variant="ghost" size="sm" onClick={copyToken} className="gap-1.5">
           {copied ? <Check size={15} className="text-proof" /> : <Copy size={15} />} {copied ? "Copied" : "Copy token"}
-        </button>
-        <a
-          href={cred ? `/v#${cred.token}` : "#"}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center justify-center gap-1.5 rounded-control border border-ink-700 px-3 py-2.5 text-xs font-medium text-ink-200 transition-colors hover:border-ink-500 hover:bg-ink-900"
-        >
+        </Button>
+        <a href={cred ? `/v#${cred.token}` : "#"} target="_blank" rel="noreferrer" className={buttonClass("ghost", "sm", "gap-1.5")}>
           <ArrowSquareOut size={15} /> Verify it
         </a>
       </div>
@@ -337,21 +326,12 @@ export function MintStep({ sessionId, score }: { sessionId: string; score: Score
               Itemised consent and erasure are exercisable here — not a roadmap line.
             </p>
             <div className="mt-2.5 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={downloadReceipt}
-                className="flex items-center justify-center gap-1.5 rounded-control border border-ink-700 px-3 py-2 text-xs font-medium text-ink-200 transition-colors hover:border-ink-500 hover:bg-ink-900"
-              >
+              <Button variant="ghost" size="sm" onClick={downloadReceipt} className="gap-1.5">
                 <DownloadSimple size={14} /> Consent receipt
-              </button>
-              <button
-                type="button"
-                onClick={eraseData}
-                disabled={erasing}
-                className="flex items-center justify-center gap-1.5 rounded-control border border-danger/40 px-3 py-2 text-xs font-medium text-danger transition-colors hover:bg-danger-wash/10 disabled:opacity-50"
-              >
+              </Button>
+              <Button variant="danger" size="sm" onClick={eraseData} disabled={erasing} className="gap-1.5">
                 {erasing ? "Erasing…" : "Erase my data"}
-              </button>
+              </Button>
             </div>
           </>
         )}

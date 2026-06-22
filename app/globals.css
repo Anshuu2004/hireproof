@@ -60,8 +60,10 @@
   --shadow-card: 0 1px 2px rgba(10, 11, 13, 0.06), 0 1px 1px rgba(10, 11, 13, 0.04);
   --shadow-lift: 0 8px 24px rgba(10, 11, 13, 0.18);
 
-  /* ---- Motion ---- */
+  /* ---- Motion (Emil Kowalski curves: strong, GPU-only transform/opacity) ---- */
   --ease-instrument: cubic-bezier(0.2, 0, 0, 1);
+  --ease-snap: cubic-bezier(0.23, 1, 0.32, 1);    /* strong ease-out — entrances, button release */
+  --ease-glide: cubic-bezier(0.77, 0, 0.175, 1);  /* strong ease-in-out — on-screen movement */
 
   /* ---- Radii ---- */
   --radius-control: 8px;

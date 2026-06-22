@@ -8,6 +8,7 @@ import {
   type LivenessAction,
 } from "@/lib/liveness/challenge";
 import { cn } from "@/lib/cn";
+import { Button } from "@/components/ui/button";
 
 // Served locally from /public — version-matched WASM, no CDN/version drift,
 // works offline (e.g. on venue wifi at the finale).
@@ -586,13 +587,9 @@ export function LivenessStep({ sessionId, challenge, spokenPhrase, onComplete }:
 
       {phase === "ready" && (
         <>
-          <button
-            type="button"
-            onClick={begin}
-            className="mt-6 w-full rounded-control bg-indigo px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-indigo-deep active:translate-y-px"
-          >
+          <Button size="lg" onClick={begin} className="mt-6 w-full">
             Begin the live check
-          </button>
+          </Button>
           <p className="mt-3 text-center text-xs text-ink-500">
             Good light, face centred. {challenge.actions.length} quick actions, then read 3 numbers aloud.
           </p>

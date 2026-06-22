@@ -6,6 +6,8 @@ import { importJWK, jwtVerify } from "jose";
 import { QrCode, SealCheck, XCircle, Clock } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
+import { Button } from "@/components/ui/button";
+import { shortId } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 type State = "idle" | "verifying" | "valid" | "expired" | "revoked" | "invalid";
@@ -150,7 +152,7 @@ export default function VerifyPage() {
               <>
                 <div className="mt-6 flex justify-center">
                   <CredentialCard
-                    tokenId={`HP·${(result.payload.sub ?? "").slice(0, 4).toUpperCase()}-${(result.payload.sub ?? "").slice(4, 8).toUpperCase()}`}
+                    tokenId={shortId(result.payload.sub ?? "")}
                     issuedAt={result.payload.iat ? new Date(result.payload.iat * 1000).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : ""}
                     expiresAt={result.payload.exp ? new Date(result.payload.exp * 1000).toLocaleDateString("en-IN", { dateStyle: "medium" }) : ""}
                     scores={hp.aiCollaboration}
@@ -197,14 +199,9 @@ export default function VerifyPage() {
             placeholder="eyJhbGciOiJFZERTQSJ9…"
             className="mt-2 w-full resize-y rounded-control border border-ink-700 bg-ink-900 px-3 py-2 font-data text-xs text-ink-200 placeholder:text-ink-600 focus:border-indigo focus:outline-none"
           />
-          <button
-            type="button"
-            onClick={() => verify(pasted.trim())}
-            disabled={!pasted.trim()}
-            className="mt-2 w-full rounded-control bg-indigo px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-deep disabled:bg-ink-800 disabled:text-ink-500 active:translate-y-px"
-          >
+          <Button onClick={() => verify(pasted.trim())} disabled={!pasted.trim()} className="mt-2 w-full">
             Verify
-          </button>
+          </Button>
         </div>
 
         <Link href="/" className="mt-10 text-sm text-ink-500 underline-offset-4 hover:text-ink-300 hover:underline">

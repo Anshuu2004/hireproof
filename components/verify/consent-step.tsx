@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Camera, Microphone, ArrowsClockwise, Trash, Check } from "@phosphor-icons/react";
 import type { Language } from "@/lib/liveness/challenge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 export interface ConsentValue {
@@ -165,19 +166,9 @@ export function ConsentStep({
         ))}
       </ul>
 
-      <button
-        type="button"
-        disabled={!ready}
-        onClick={() => onProceed(language, consent)}
-        className={cn(
-          "mt-8 flex w-full items-center justify-center gap-2 rounded-control px-5 py-3.5 text-sm font-medium transition-all active:translate-y-px",
-          ready
-            ? "bg-indigo text-white hover:bg-indigo-deep"
-            : "cursor-not-allowed bg-ink-800 text-ink-500"
-        )}
-      >
+      <Button size="lg" disabled={!ready} onClick={() => onProceed(language, consent)} className="mt-8 w-full">
         {ready ? "I'm ready — start the live check" : "Turn on face & voice to continue"}
-      </button>
+      </Button>
       <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-500">
         <Trash size={13} /> You can stop anytime. Nothing is stored until you mint.
       </p>

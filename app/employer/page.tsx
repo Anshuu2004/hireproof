@@ -5,8 +5,10 @@ import Link from "next/link";
 import { ArrowsClockwise, X, Check, Warning, FileText, SignOut, Prohibit, LockKey } from "@phosphor-icons/react";
 import { Wordmark } from "@/components/wordmark";
 import { CredentialCard } from "@/components/credential-card";
+import { Button } from "@/components/ui/button";
 import { LivenessStep, type LivenessResult } from "@/components/verify/liveness-step";
 import type { Language, LivenessAction } from "@/lib/liveness/challenge";
+import { shortId } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 interface Claims {
@@ -36,7 +38,6 @@ interface SessionData {
   spokenPhrase: string;
 }
 
-const shortId = (id: string) => `HP·${id.slice(0, 4).toUpperCase()}-${id.slice(4, 8).toUpperCase()}`;
 const TOKEN_KEY = "hp_employer_token";
 
 export default function EmployerPage() {
@@ -205,21 +206,12 @@ export default function EmployerPage() {
 
             {loginErr && <p className="mt-3 text-xs text-danger">{loginErr}</p>}
 
-            <button
-              type="submit"
-              disabled={loggingIn}
-              className="mt-4 w-full rounded-control bg-indigo px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-deep disabled:bg-ink-800 active:translate-y-px"
-            >
+            <Button type="submit" disabled={loggingIn} className="mt-4 w-full">
               {loggingIn ? "Signing in…" : "Sign in"}
-            </button>
-            <button
-              type="button"
-              onClick={() => login(undefined, true)}
-              disabled={loggingIn}
-              className="mt-2 w-full rounded-control border border-ink-700 px-4 py-2.5 text-sm font-medium text-ink-200 transition-colors hover:border-ink-500 hover:bg-ink-900 disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="ghost" onClick={() => login(undefined, true)} disabled={loggingIn} className="mt-2 w-full">
               Sign in as demo employer
-            </button>
+            </Button>
             <p className="mt-3 text-center text-xs text-ink-400">
               No account needed — explore a verified candidate&apos;s record.
             </p>
@@ -338,22 +330,12 @@ export default function EmployerPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={startReverify}
-                      disabled={busy}
-                      className="flex items-center justify-center gap-2 rounded-control bg-indigo px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-indigo-deep disabled:bg-ink-800 active:translate-y-px"
-                    >
+                    <Button onClick={startReverify} disabled={busy} className="w-full">
                       <ArrowsClockwise size={16} /> Re-verify (next round)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={revoke}
-                      disabled={revoking || sel.revoked}
-                      className="flex items-center justify-center gap-2 rounded-control border border-danger/40 px-4 py-3 text-sm font-medium text-danger transition-colors hover:bg-danger-wash/10 disabled:opacity-40"
-                    >
+                    </Button>
+                    <Button variant="danger" onClick={revoke} disabled={revoking || sel.revoked} className="w-full">
                       <Prohibit size={16} /> {sel.revoked ? "Revoked" : revoking ? "Revoking…" : "Revoke"}
-                    </button>
+                    </Button>
                   </div>
 
                   {reverifyResult?.crossRound && (
