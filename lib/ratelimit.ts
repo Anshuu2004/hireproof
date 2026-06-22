@@ -39,11 +39,17 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
   return { ok: true, retryAfter: 0, remaining: limit - b.count };
 }
 
-/** Best-effort client IP from proxy headers (Vercel sets x-forwarded-for). */
+/** Client IP from proxy headers. Prefer the platform-set x-real-ip: on Vercel it
+ *  is the true connecting IP and overwrites any client-supplied value, whereas the
+ *  leftmost x-forwarded-for entry is client-spoofable (a caller can prepend a fake
+ *  IP to rotate past the limit). Fall back to x-forwarded-for only if x-real-ip is
+ *  absent (e.g. local dev / self-host without a trusted proxy). */
 export function clientIp(req: Request): string {
+  const real = req.headers.get("x-real-ip");
+  if (real) return real.trim();
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
+  return "unknown";
 }
 
 /**

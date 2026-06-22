@@ -22,8 +22,10 @@ export async function GET(req: Request) {
       .select("governed_by")
       .eq("id", sess.credential_id)
       .maybeSingle();
-    // Only enforce when the column exists (error === null) and is set to another employer.
-    if (!error && cred?.governed_by && cred.governed_by !== session.sub) {
+    // Fail CLOSED: deny on a governance-check error rather than allowing the read,
+    // and deny when the credential is governed by another employer.
+    if (error) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (cred?.governed_by && cred.governed_by !== session.sub) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
   }
