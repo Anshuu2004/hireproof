@@ -462,6 +462,30 @@ html[data-theme="dark"] {
 .lp-card--hover { transition: transform var(--micro), box-shadow var(--micro), border-color var(--micro); }
 .lp-card--hover:hover { transform: translateY(-3px); box-shadow: var(--lp-shadow-lift); border-color: color-mix(in srgb, var(--verify) 30%, var(--line)); }
 
+/* at-a-glance flow strip: Candidate -> Live + AI check -> Signed badge -> Employer */
+.lp-flow { display: flex; align-items: stretch; justify-content: center; gap: 0.6rem; flex-wrap: nowrap; }
+.lp-flow-step {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.5rem;
+  padding: clamp(16px, 2vw, 22px) clamp(10px, 1.4vw, 16px);
+  border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface);
+}
+.lp-flow-ic {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px;
+  color: var(--verify);
+  background: color-mix(in srgb, var(--verify) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--verify) 24%, var(--line));
+}
+.lp-flow-ic svg { width: 22px; height: 22px; }
+.lp-flow-t { font-weight: 600; font-size: 0.95rem; color: var(--ink); }
+.lp-flow-d { font-size: 0.8rem; line-height: 1.35; color: var(--ink-2); max-width: 22ch; }
+.lp-flow-sep { display: grid; place-items: center; flex: 0 0 auto; color: var(--ink-2); opacity: 0.65; }
+@media (max-width: 760px) {
+  .lp-flow { flex-direction: column; }
+  .lp-flow-step { flex: 0 0 auto; }
+  .lp-flow-sep { transform: rotate(90deg); padding: 2px 0; }
+}
+
 /* ================================ nav ===================================== */
 .lp-nav {
   position: sticky;

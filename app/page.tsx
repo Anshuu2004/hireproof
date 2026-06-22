@@ -10,6 +10,32 @@ const Arrow = () => (
     <path d="M4 10h11M11 5l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const IcPerson = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" strokeLinecap="round" />
+  </svg>
+);
+const IcLive = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <rect x="3" y="6.5" width="18" height="12.5" rx="2" />
+    <circle cx="12" cy="12.5" r="3.1" />
+    <path d="M8.2 6.5L9.4 4.5h5.2l1.2 2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IcBadge = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="9" r="6" />
+    <path d="M9.2 9l2 2 3.6-3.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8.5 14.4L7 22l5-2.6L17 22l-1.5-7.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IcEmployer = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M4 21V6l8-3v18M12 21V9l6 2v10M3 21h18" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M7 9.5v.01M7 13.5v.01M15 13.5v.01M15 17v.01" strokeLinecap="round" />
+  </svg>
+);
 const Sun = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <circle cx="12" cy="12" r="4" />
@@ -297,6 +323,37 @@ export default function Home() {
                 <VerificationCard variant="real" startDelay={400} />
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------ the whole thing, at a glance */}
+        <section className="lp-section lp-section--tight" aria-label="How it works at a glance">
+          <div className="lp-container lp-reveal">
+            <ol className="lp-flow">
+              <li className="lp-flow-step">
+                <span className="lp-flow-ic"><IcPerson /></span>
+                <p className="lp-flow-t">Real person</p>
+                <p className="lp-flow-d">A candidate. No account needed.</p>
+              </li>
+              <span className="lp-flow-sep" aria-hidden="true"><Arrow /></span>
+              <li className="lp-flow-step">
+                <span className="lp-flow-ic"><IcLive /></span>
+                <p className="lp-flow-t">Live + AI check</p>
+                <p className="lp-flow-d">A quick face check, then a real AI task.</p>
+              </li>
+              <span className="lp-flow-sep" aria-hidden="true"><Arrow /></span>
+              <li className="lp-flow-step">
+                <span className="lp-flow-ic"><IcBadge /></span>
+                <p className="lp-flow-t">Signed badge</p>
+                <p className="lp-flow-d">Tamper-proof. The candidate owns it.</p>
+              </li>
+              <span className="lp-flow-sep" aria-hidden="true"><Arrow /></span>
+              <li className="lp-flow-step">
+                <span className="lp-flow-ic"><IcEmployer /></span>
+                <p className="lp-flow-t">Any employer</p>
+                <p className="lp-flow-d">Checks it in seconds.</p>
+              </li>
+            </ol>
           </div>
         </section>
 
