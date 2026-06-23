@@ -9,7 +9,7 @@
 🔗 **Live demo:** https://hireproof-ecru.vercel.app
 &nbsp;·&nbsp; Candidate flow: [`/verify`](https://hireproof-ecru.vercel.app/verify) &nbsp;·&nbsp; Public verify: [`/v`](https://hireproof-ecru.vercel.app/v) &nbsp;·&nbsp; Employer console: [`/employer`](https://hireproof-ecru.vercel.app/employer)
 
-> Team **DOMINATORS** · InnovateZ 2026 (Zentiti) · Round 2. This is a **working prototype**, not a slide deck. The [status table](#9-demo-scenarios--honest-status-what-is-real--mocked--roadmap) maps, line by line, exactly **what is live today** and **what is future scope** — so the build and the claims always match.
+> Team **DOMINATOR$** · InnovateZ 2026 (Zentiti) · Round 2. This is a **working prototype**, not a slide deck. The [status table](#9-demo-scenarios--honest-status-what-is-real--mocked--roadmap) maps, line by line, exactly **what is live today** and **what is future scope** — so the build and the claims always match.
 
 **In one sentence:** *Today an employer cannot be sure the person on the video call is real, is the same person across rounds, or can actually think — HireProof turns "trust me" into a credential you can cryptographically check in under 2 seconds.*
 
