@@ -29,7 +29,7 @@ const main = async () => {
     headerTemplate: "<div></div>",
     footerTemplate:
       '<div style="width:100%;font-family:Segoe UI,Arial,sans-serif;font-size:7pt;color:#94a3b8;padding:0 16mm;display:flex;justify-content:space-between;">' +
-      '<span>HireProof · InnovateZ 2026 · Team DOMINATORS</span>' +
+      '<span>HireProof · InnovateZ 2026 · Team DOMINATOR$</span>' +
       '<span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>' +
       "</div>",
   });

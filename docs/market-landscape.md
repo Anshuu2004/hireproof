@@ -106,4 +106,4 @@ scoring.**
 - [Persona — candidate verification](https://www.computerweekly.com/blog/CW-Developer-Network/Persona-graduates-with-candidate-verification-for-job-identity-control)
 - [AuthBridge — Workforce Fraud Files 2025 (India)](https://authbridge.com/workforce-fraud-files-2025/)
 
-*Compiled June 2026 for InnovateZ 2026 · Team DOMINATORS. Directional market scan, not an audited report.*
+*Compiled June 2026 for InnovateZ 2026 · Team DOMINATOR$. Directional market scan, not an audited report.*

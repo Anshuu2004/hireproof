@@ -439,4 +439,4 @@ Raw video never leaves the device; only a 128-D descriptor + a salted hash are s
 - **[7]** [HackerRank AI Fluency Evaluation](https://support.hackerrank.com/articles/1773201418-ai-usage-summary) · [CodeSignal AI-Assisted Assessments](https://codesignal.com/blog/introducing-ai-assisted-coding-assessments-interviews/)
 - **[8]** [W3C publishes Verifiable Credentials 2.0 as a Standard (May 2025)](https://www.w3.org/press-releases/2025/verifiable-credentials-2-0/) · [Velocity Network Foundation](https://www.velocitynetwork.foundation/)
 
-*Built for InnovateZ 2026 · Team DOMINATORS. Prototype — calibrated claims over absolutes.*
+*Built for InnovateZ 2026 · Team DOMINATOR$. Prototype — calibrated claims over absolutes.*
