@@ -31,7 +31,7 @@ Every required section, and exactly where it is answered. (Built so a human revi
 | **GitHub repo + setup** | [§10 Setup](#10-setup--run-it-locally) · [§12 Repository map](#12-repository-structure) |
 | **Real-world market comparison** | [§6 Who else does this](#6-real-world-comparison--who-else-does-this-honest) · full version in [docs/market-landscape.md](docs/market-landscape.md) |
 
-**Try the cryptography in 5 seconds** (no setup, no server, no keys): `npm install && npm run verify:demo` — it mints a sample credential, verifies the Ed25519 signature, tampers one claim, and watches the verification **reject** it. Then `npm test` runs the **trust-core suite** (20 Vitest tests over the credential lifecycle, audit hash-chain, and reliance scoring — no keys, no DB, no network).
+**Try the cryptography in 5 seconds** (no setup, no server, no keys): `npm install && npm run verify:demo` — it mints a sample credential, verifies the Ed25519 signature, tampers one claim, and watches the verification **reject** it. Then `npm test` runs the **trust-core suite** (27 Vitest tests over the credential lifecycle, audit hash-chain, spoken-nonce match, and reliance scoring — no keys, no DB, no network).
 
 ---
 
@@ -118,7 +118,7 @@ The candidate gives **one input** (their live presence + their handling of the A
 - **Fusion:** `score = 100 × weighted_mean`, weights **error_detection .30 · final_correctness .25 · direction_quality .20 · verification .15 · iteration .10**; displayed as three plain bands — **Direct · Judge · Correct**.
 - **EU AI Act Art 5(1)(f) safe:** explicitly excludes tone, confidence, enthusiasm, accent, "cultural fit." Liveness computes anti-spoofing only — **never** emotion or affect.
 
-**Verified behaviour:** a candidate who **blind-accepts** the AI's flawed answer scores ~**32** (hard-capped); one who **catches and corrects** it scores ~**67**. The contrast is the whole point — we score *judgment*, not *usage*.
+**Verified behaviour:** a candidate who **blind-accepts** the AI's flawed answer scores ~**28–32** (hard-capped ≤ 40); one who **catches and corrects** it scores ~**67**. The contrast is the whole point — we score *judgment*, not *usage*.
 
 ### 4.2 End-to-end monitoring & detection system (live proctoring + anti-cheating)
 
@@ -231,7 +231,7 @@ These are **bounded + re-validated server-side** (`/api/score`, with Zod caps), 
 | **Web Speech API + Web Audio API** | Spoken-nonce transcription + voice-activity fallback → confirms the live spoken phrase |
 | **Anthropic Claude** via Vercel AI Gateway | `claude-haiku-4.5` generates the planted-error task; `claude-sonnet-4.6` is the steered assistant + the temp-0 grader |
 | **Google Gemini** (AI SDK v6) | Automatic failover (`gemini-2.5-flash-lite` / `gemini-2.5-flash`) if Claude is unavailable — same schemas, reproducible |
-| **Supabase (Postgres + pgvector)** | 16 tables; pgvector cosine distance drives the cross-round + cross-employer ring match |
+| **Supabase (Postgres + pgvector)** | 17 tables; pgvector cosine distance drives the cross-round + cross-employer ring match |
 | **`jose`** (Ed25519 / EdDSA) | Signs the W3C VC and the did:web-verifiable certificates |
 | **`qrcode`, `@zxing/browser`** | Render + scan the credential QR (real camera scanner on `/v`) |
 
@@ -278,7 +278,7 @@ These are **bounded + re-validated server-side** (`/api/score`, with Zod caps), 
    ┌──────────────────────────┐                       ┌────────────────────────────────────┐
    │  Supabase (Mumbai)       │                       │  Employer / verifier · analytics    │
    │  Postgres + pgvector     │                       │  /employer  sign-in · revoke · re-vfy│
-   │  16 tables · hash-chained │                       │  /v verify offline · /metrics live  │
+   │  17 tables · hash-chained │                       │  /v verify offline · /metrics live  │
    │  audit_log + trigger     │                       │  /rings cross-employer fraud-ring   │
    │  + verify_audit_chain()  │                       │  /fairness signed bias-audit cert   │
    └──────────────────────────┘                       └────────────────────────────────────┘
@@ -286,11 +286,11 @@ These are **bounded + re-validated server-side** (`/api/score`, with Zod caps), 
 
 **Stack at a glance:**
 - **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind v4 + shadcn-style components; in-browser ML (MediaPipe + face-api) so raw video stays on-device.
-- **Backend:** 29 Next.js API routes on the Vercel Node runtime; all TypeScript (no separate Python service).
-- **Storage:** Supabase **Postgres + pgvector** (16 tables, region-pinned to Mumbai `bom1`), hash-chained `audit_log` enforced by a Postgres trigger.
+- **Backend:** 31 Next.js API routes on the Vercel Node runtime; all TypeScript (no separate Python service).
+- **Storage:** Supabase **Postgres + pgvector** (17 tables, region-pinned to Mumbai `bom1`), hash-chained `audit_log` enforced by a Postgres trigger.
 - **AI / model layer:** **Claude** via the **Vercel AI Gateway** (OIDC) with automatic **Gemini** failover (Vercel AI SDK v6); two tiers (`fast` task-gen, `smart` assistant + grader).
 - **Crypto layer:** `jose` Ed25519 signing isolated behind a single `Signer` boundary; did:web key publication + rotation.
-- **Deployment:** Vercel (`vercel.json` pins `bom1`); CI runs lint + typecheck + the 20-test trust suite + an offline credential-verifier smoke test on every push.
+- **Deployment:** Vercel (`vercel.json` pins `bom1`); CI runs lint + typecheck + the 27-test trust suite + an offline credential-verifier smoke test on every push.
 
 Deeper write-up + decision records: **[docs/architecture.md](docs/architecture.md)** · **[docs/adr/](docs/adr/)** (7 ADRs).
 
@@ -301,7 +301,7 @@ Deeper write-up + decision records: **[docs/architecture.md](docs/architecture.m
 ### Demo scenarios (concrete input → processing → output → why it's useful)
 
 1. **Proxy / seat-swap caught mid-funnel.** *Input:* candidate A mints a credential; in round 2 a *different* person re-verifies. *Processing:* pgvector cosine distance between the two 128-D descriptors exceeds 0.30. *Output:* a live **MISMATCH** flag. *Why useful:* onboarding-only IDV completely misses this.
-2. **Judgment, not memorisation.** *Input:* the AI assistant hands the candidate a confidently-wrong answer (e.g. an `INNER` vs `LEFT JOIN` bug). *Processing:* deterministic verbatim check + temp-0 rubric grader on the server-recorded transcript. *Output:* blind-accept → **~32 (hard-capped)**; catch-and-correct → **~67**, with a "why this score" panel. *Why useful:* measures the skill that actually predicts Day-1 performance.
+2. **Judgment, not memorisation.** *Input:* the AI assistant hands the candidate a confidently-wrong answer (e.g. an `INNER` vs `LEFT JOIN` bug). *Processing:* deterministic verbatim check + temp-0 rubric grader on the server-recorded transcript. *Output:* blind-accept → **~28–32 (hard-capped ≤ 40)**; catch-and-correct → **~67**, with a "why this score" panel. *Why useful:* measures the skill that actually predicts Day-1 performance.
 3. **Portability in seconds.** *Input:* the same QR token at any employer's `/v`. *Processing:* fetch the issuer key from did:web, verify Ed25519 **offline**. *Output:* verified record in **< 2s** (real elapsed counter) — even with the network throttled. *Why useful:* no integration, no account, no trust in our servers required.
 4. **Governed lifecycle.** *Input:* employer signs in (one-click demo account) and revokes a credential. *Output:* `/v` flips to **Revoked**; the holder can still prove ownership with their secret; every step lands in the hash-chained audit trail.
 
@@ -353,7 +353,7 @@ cp .env.example .env.local      # then fill in the values (see table below)
 
 # apply the database schema to your Supabase project
 npx supabase link --project-ref <your-ref>
-npx supabase db push            # creates 16 tables + pgvector + cross-round match fn + audit trigger
+npx supabase db push            # creates 17 tables + pgvector + cross-round match fn + audit trigger
 
 # generate the Ed25519 issuer keypair (writes ISSUER_*_KEY_HEX) — or set your own
 node -e "const{generateKeyPairSync}=require('crypto');const{publicKey,privateKey}=generateKeyPairSync('ed25519');const h=s=>Buffer.from(s,'base64url').toString('hex');console.log('ISSUER_PRIVATE_KEY_HEX='+h(privateKey.export({format:'jwk'}).d));console.log('ISSUER_PUBLIC_KEY_HEX='+h(publicKey.export({format:'jwk'}).x));"
@@ -382,10 +382,11 @@ The MediaPipe WASM + the face-api / face-landmarker models are committed under `
 
 ## 11. Tests — the trust core (`npm test`)
 
-`npm test` runs a **Vitest suite (20 tests)** over the security-critical paths an employer's trust actually rests on — exercising the *real* `lib/` code, with no network, DB, or API keys. All run in **CI on every push**, alongside lint, typecheck, and the offline verifier.
+`npm test` runs a **Vitest suite (27 tests across 4 files)** over the security-critical paths an employer's trust actually rests on — exercising the *real* `lib/` code, with no network, DB, or API keys. All run in **CI on every push**, alongside lint, typecheck, and the offline verifier.
 
 - **Credential lifecycle** — [`tests/credential.test.ts`](tests/credential.test.ts): a genuine credential verifies; a **tampered claim**, an **expired** token, a **foreign key**, and a **wrong issuer** are each rejected; the **holder binding** (`cnf`) can't be re-bound without breaking the signature; a **rotated key** still verifies while published as retired, then fails once removed.
 - **Audit hash-chain** — [`tests/audit-hash.test.ts`](tests/audit-hash.test.ts): editing **any** persisted field, the timestamp, or the row order changes the digest. The same `lib/audit-hash.ts` is shared by the app and mirrored by the Postgres trigger.
+- **Spoken-nonce match** — [`tests/liveness-transcript.test.ts`](tests/liveness-transcript.test.ts): the voice-liveness check passes only when the transcript contains the challenge digits **in order** — across the many ways STT renders them (`eight three nine` / `8 3 9` / `839`, even embedded in noisy speech) — while a **wrong or partial phrase still fails**.
 - **Appropriate-reliance scoring** — [`tests/reliance.test.ts`](tests/reliance.test.ts): an over-relier and a blanket-rejecter both score 50; only a calibrated candidate (accept-correct **and** reject-wrong) scores 100.
 
 ---
@@ -401,7 +402,7 @@ hireproof/
 │  ├─ employer/                    # employer console + seat-swap re-verify
 │  ├─ fairness/  metrics/  rings/  # signed bias audit · live metrics · cross-employer rings
 │  ├─ .well-known/did.json/        # did:web issuer key (active + retired)
-│  └─ api/                         # 29 routes: session · liveness · task · assistant · score · mint ·
+│  └─ api/                         # 31 routes: session · liveness · task · assistant · score · mint ·
 │                                  #   credential/{revoke,prove,erase} · employer/* · digilocker/* · work/* · ...
 ├─ components/                     # wordmark, credential-card, verify/* (consent, liveness, task, mint, proctor-cam)
 ├─ lib/
@@ -411,11 +412,11 @@ hireproof/
 │  ├─ liveness/  (challenge)                 # randomised challenge + transcript match
 │  ├─ bias/ digilocker/                      # four-fifths fairness · DigiLocker doc contract
 │  ├─ audit.ts  audit-hash.ts  supabase/admin.ts  env.ts  ratelimit.ts  # hash-chained audit, DB, typed env
-├─ tests/                          # Vitest trust core — credential · audit-chain · reliance (20 tests)
+├─ tests/                          # Vitest trust core — credential · audit-chain · liveness · reliance (27 tests)
 ├─ scripts/verify-credential.mjs   # standalone offline verifier (also a CI smoke test)
-├─ supabase/migrations/            # 12 migrations: schema + pgvector + cross-round + audit trigger + ...
+├─ supabase/migrations/            # 16 migrations: schema + pgvector + cross-round + audit trigger + ...
 ├─ docs/                           # architecture.md · market-landscape.md · DEMO.md · adr/ (7 records)
-├─ .github/workflows/ci.yml        # lint · typecheck · 20 unit tests · offline verifier
+├─ .github/workflows/ci.yml        # lint · typecheck · 27 unit tests · offline verifier
 └─ public/{mediapipe,models}/      # in-browser ML assets (version-matched, offline)
 ```
 

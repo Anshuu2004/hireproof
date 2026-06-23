@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>HireProof — InnovateZ 2026 Submission</title>
+<style>
+  :root{
+    --ink:#16181d; --ink2:#3b4250; --muted:#6b7280; --line:#e5e7eb; --line2:#d1d5db;
+    --accent:#2746a6; --accent-soft:#f3f5fc; --wash:#f8f9fb; --link:#1a56db;
+  }
+  *{ box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); margin:0; background:#fff; line-height:1.66; font-size:10.5pt;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:0 30px; }
+  p{ margin:.55em 0; }
+  a{ color:var(--link); text-decoration:none; }
+  a.url{ text-decoration:underline; }
+  strong{ color:var(--ink); }
+  .muted{ color:var(--muted); }
+  .small{ font-size:9pt; }
+  .mono{ font-family:Consolas,"Cascadia Code",ui-monospace,monospace; font-size:9.2pt; }
+
+  h1,h2,h3,h4{ line-height:1.25; margin:0; color:var(--ink); font-weight:600; }
+  h2{ font-size:16pt; letter-spacing:-.01em; }
+  h3{ font-size:11.5pt; margin:1.4em 0 .3em; }
+  h4{ font-size:10pt; margin:1em 0 .2em; }
+
+  /* page system */
+  @page{ size:A4; margin:18mm 0 16mm; }
+  .page{ break-before:page; }
+  figure,table,.note,.kv,.steplist li,.bar{ break-inside:avoid; }
+  section{ padding-top:4px; }
+
+  /* cover */
+  .cover{ height:259mm; display:flex; flex-direction:column; padding:0 30px; }
+  .cover .rule{ height:4px; background:var(--accent); margin-top:0; }
+  .cover .top{ padding-top:26px; font-size:10pt; color:var(--muted); letter-spacing:.04em; }
+  .cover .mid{ margin-top:auto; margin-bottom:auto; }
+  .cover h1{ font-size:42pt; font-weight:700; letter-spacing:-.02em; }
+  .cover .sub{ font-size:14.5pt; color:var(--ink2); margin-top:14px; max-width:30ch; line-height:1.4; font-weight:400; }
+  .cover .desc{ font-size:11pt; color:var(--ink); margin-top:26px; max-width:64ch; }
+  .cover .meta{ margin-top:auto; border-top:1px solid var(--line); padding:20px 0 32px; }
+  .cover .team{ font-size:19pt; color:var(--ink); font-weight:400; }
+  .cover .team b{ font-weight:700; }
+  .cover .links{ margin-top:12px; display:flex; flex-direction:column; gap:5px; }
+  .cover .links a{ font-size:13pt; color:var(--link); }
+  .cover .builtwith{ margin-top:14px; font-size:9.5pt; color:var(--muted); }
+
+  /* section heads */
+  .sh{ display:flex; align-items:baseline; gap:12px; border-bottom:1px solid var(--line2); padding-bottom:7px; margin-bottom:10px; }
+  .sh .n{ font-size:12pt; font-weight:700; color:var(--accent); min-width:18px; }
+  .sh h2{ margin:0; }
+  .lead{ font-size:11pt; color:var(--ink2); margin-top:0; }
+
+  /* notes & lists */
+  .note{ border-left:3px solid var(--accent); background:var(--accent-soft); padding:9px 14px; margin:10px 0; font-size:10pt; }
+  ul{ margin:.5em 0; padding-left:20px; } li{ margin:.3em 0; }
+  ul.tight li{ margin:.22em 0; }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:8px 34px; }
+  .two ul{ margin:.2em 0; }
+
+  /* stat strip */
+  .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:14px 0; }
+  .stats div{ padding:13px 14px; border-right:1px solid var(--line); }
+  .stats div:last-child{ border-right:0; }
+  .stats .n{ font-size:17pt; font-weight:700; color:var(--accent); line-height:1; }
+  .stats .l{ font-size:8.4pt; color:var(--ink2); margin-top:6px; }
+
+  /* tables */
+  table{ width:100%; border-collapse:collapse; font-size:9.4pt; margin:12px 0; }
+  th,td{ text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ font-size:8.2pt; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); border-bottom:1px solid var(--line2); }
+  td.first{ font-weight:600; white-space:nowrap; }
+  .matrix td.c, .matrix th.c{ text-align:center; }
+  .matrix .yes{ color:var(--accent); font-weight:700; } .matrix .no{ color:#c0c4cc; }
+  .matrix tr.us td{ background:var(--accent-soft); }
+
+  /* simple flow */
+  .flow{ display:flex; align-items:stretch; margin:10px 0 2px; }
+  .flow .s{ flex:1; border:1px solid var(--line2); border-radius:7px; padding:8px 6px; text-align:center; }
+  .flow .s b{ font-size:8.6pt; } .flow .s span{ display:block; font-size:7.4pt; color:var(--muted); margin-top:3px; }
+  .flow .a{ display:grid; place-items:center; width:18px; color:var(--line2); }
+
+  /* numbered steps */
+  .steplist{ list-style:none; padding:0; margin:8px 0; counter-reset:st; }
+  .steplist li{ position:relative; padding:6px 0 6px 34px; border-bottom:1px solid var(--line); }
+  .steplist li:before{ counter-increment:st; content:counter(st); position:absolute; left:0; top:6px; width:22px; height:22px; border-radius:50%; background:var(--accent); color:#fff; font-size:8.5pt; font-weight:700; display:grid; place-items:center; }
+  .steplist li b{ display:block; }
+
+  /* layers */
+  .layer{ padding:7px 0; border-bottom:1px solid var(--line); }
+  .layer .h{ display:flex; align-items:baseline; gap:10px; }
+  .layer .h b{ font-size:10.2pt; }
+  .layer .tag{ font-family:Consolas,monospace; font-size:7.6pt; color:var(--muted); margin-left:auto; }
+
+  /* architecture */
+  .arch{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:10px 0; }
+  .arch .col h4{ font-size:8.6pt; color:var(--accent); text-transform:uppercase; letter-spacing:.04em; margin:0 0 6px; }
+  .arch .col{ font-size:8.4pt; }
+  .arch .col div{ padding:2px 0; color:var(--ink2); }
+
+  /* market bars */
+  .bar{ display:flex; align-items:center; gap:12px; margin:7px 0; }
+  .bar .lab{ width:150px; font-size:9pt; }
+  .bar .track{ flex:1; height:14px; background:var(--wash); border:1px solid var(--line); border-radius:4px; overflow:hidden; }
+  .bar .fill{ height:100%; background:var(--accent); }
+  .bar .val{ width:120px; text-align:right; font-size:8.8pt; color:var(--ink2); }
+
+  .kv{ display:grid; grid-template-columns:auto 1fr; gap:5px 16px; font-size:9.4pt; margin:8px 0; }
+  .kv .k{ font-weight:600; color:var(--ink2); }
+
+  /* quote */
+  .quote{ margin:14px 0; padding-left:16px; border-left:3px solid var(--line2); }
+  .quote .q{ font-style:italic; font-size:10.6pt; }
+  .quote .by{ margin-top:8px; font-size:9pt; color:var(--muted); }
+  .quote .by b{ color:var(--ink); }
+
+  /* contents */
+  .toc{ font-size:10pt; }
+  .toc div{ padding:4px 0; border-bottom:1px solid var(--line); display:flex; gap:12px; }
+  .toc .n{ color:var(--accent); font-weight:700; min-width:18px; }
+
+  /* appendix figures */
+  .figtitle{ font-size:10.5pt; font-weight:600; margin-top:4px; }
+  figure{ margin:0 0 6px; }
+  .shot{ border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:#0b1020; }
+  .shot img{ display:block; width:100%; }
+  .shot.narrow{ max-width:540px; margin:0 auto; }
+  .shot.portrait{ max-width:420px; margin:0 auto; }
+  .shot.portrait.sm{ max-width:285px; }
+  .appcont{ font-family:Consolas,monospace; font-size:8pt; color:var(--muted); letter-spacing:.04em; margin-bottom:10px; }
+  figcaption{ font-size:9pt; color:var(--ink2); margin-top:6px; }
+  figcaption b{ color:var(--accent); }
+  .diagram{ margin:10px 0 8px; }
+  .diagram svg{ display:block; width:100%; }
+  .figlabel{ font-family:Consolas,monospace; font-size:8pt; color:var(--accent); letter-spacing:.05em; }
+</style>
+</head>
+<body>
+
+<!-- ===================== COVER (simple) ===================== -->
+<div class="cover">
+  <div class="rule"></div>
+  <div class="top">HireProof &nbsp;·&nbsp; InnovateZ 2026 — Round&nbsp;2 Submission</div>
+  <div class="mid">
+    <h1>HireProof</h1>
+    <div class="sub">A credential that proves a candidate is real, the same person every round, and can actually think with AI.</div>
+    <div class="desc">
+      Today an employer cannot be sure the person on a video call is a real human, is the same person across interview rounds, or can truly do the job. HireProof turns “trust me” into a credential anyone can cryptographically verify in under two seconds — offline, with no login.
+    </div>
+  </div>
+  <div class="meta">
+    <div class="team">Team — <b>DOMINATORS</b></div>
+    <div class="links">
+      <a class="url" href="https://github.com/Anshuu2004/hireproof">https://github.com/Anshuu2004/hireproof</a>
+      <a class="url" href="https://hireproof-ecru.vercel.app/">https://hireproof-ecru.vercel.app/</a>
+    </div>
+    <div class="builtwith">InnovateZ 2026 (Zentiti) · Round 2 &nbsp;·&nbsp; Built with Next.js · Supabase · W3C VC 2.0</div>
+  </div>
+</div>
+
+<!-- ===================== CONTENTS ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n"></div><h2>Contents</h2></div>
+    <p class="lead">A working, deployed prototype — and a plain-English explanation of exactly how it works and why it is worth building.</p>
+    <div class="toc">
+      <div><span class="n">1</span><span>The problem and why now</span></div>
+      <div><span class="n">2</span><span>The market and the investment case</span></div>
+      <div><span class="n">3</span><span>The solution and the user journey</span></div>
+      <div><span class="n">4</span><span>Under the hood — exactly how it works</span></div>
+      <div><span class="n">5</span><span>The monitoring and detection system</span></div>
+      <div><span class="n">6</span><span>Value beyond a generic LLM</span></div>
+      <div><span class="n">7</span><span>Data sources, APIs and references</span></div>
+      <div><span class="n">8</span><span>Architecture and technical design</span></div>
+      <div><span class="n">9</span><span>Feature list</span></div>
+      <div><span class="n">10</span><span>Demo scenarios</span></div>
+      <div><span class="n">11</span><span>What is live today and what is next</span></div>
+      <div><span class="n">12</span><span>Why HireProof is the best</span></div>
+      <div><span class="n">A</span><span>Appendix — screenshots, step by step</span></div>
+    </div>
+
+    <div class="stats">
+      <div><div class="n">1 in 4</div><div class="l">candidate profiles fake by 2028 (Gartner)</div></div>
+      <div><div class="n">41%</div><div class="l">of firms actually hired a fraudulent candidate (Checkr)</div></div>
+      <div><div class="n">$43.4B</div><div class="l">identity-verification market by 2034</div></div>
+      <div><div class="n">&lt; 2s</div><div class="l">to verify a credential, offline</div></div>
+    </div>
+    <p class="small muted">All screenshots are collected in the Appendix and arranged in the order a candidate experiences them, so the body stays readable.</p>
+  </section>
+</div>
+
+<!-- ===================== 1 PROBLEM ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">1</div><h2>The problem and why now</h2></div>
+    <p class="lead">Remote hiring quietly broke a basic assumption: that the person you interview is real, is the same person each round, and can actually do the work. In 2026, none of those are safe to assume.</p>
+
+    <div class="note"><b>The need, in simple words:</b> companies are interviewing people who may not be real, may not be the same person in the next round, and may not actually be able to do the job. It is expensive, it is happening at scale, and the usual tools — résumés, certificates, basic ID checks — no longer catch it.</div>
+
+    <h3>This is measured, not hype</h3>
+    <ul class="tight">
+      <li><b>Gartner —</b> by 2028, one in four candidate profiles worldwide will be fake; 6% of candidates admitted to interview fraud; 59% of hiring managers suspect candidates use AI to misrepresent themselves.</li>
+      <li><b>U.S. DOJ (Nov 2025) —</b> nationwide takedown of the North-Korean remote-IT-worker scheme: $15M+ forfeited, 100+ companies infiltrated with 80+ stolen identities.</li>
+      <li><b>Checkr —</b> 41% of IT/security/risk leaders confirmed their organisation actually hired a fraudulent candidate.</li>
+      <li><b>India —</b> AuthBridge reported a 9.46% discrepancy rate in IT/ITeS hiring; NASSCOM IT-BPM employs about 5.95M people — a huge, high-volume hiring surface.</li>
+    </ul>
+
+    <h3>The deeper problem most tools miss</h3>
+    <p>Fake certificates are only the visible symptom. Even a genuine résumé says almost nothing about how someone performs under real conditions. The signal that actually matters now is <strong>execution under constraint — can you direct an AI and catch it when it is confidently wrong</strong> — not the completeness of a résumé.</p>
+
+    <div class="quote">
+      <div class="q">“Fake certificates are the visible symptom, but the deeper issue is that even legitimate certifications tell you almost nothing about performance under actual conditions. Interviewed 60+ candidates last year — every one had the right credentials on paper. Maybe three could ship something functional from Day 1. The signal that matters is execution under constraint, not completeness of résumé. Solving that with AI is the right direction; good luck with the build.”</div>
+      <div class="by">— <b>Shouvik Mukherjee</b>, Founder &amp; CEO, Bachao.AI · TEDx speaker (public LinkedIn comment, 2026)</div>
+    </div>
+
+    <p>Today’s tools pick one of two losing strategies: a detection arms race (forever chasing better deepfakes), or surveillance (record every applicant, the candidate owns nothing). HireProof flips the model — the candidate owns the proof, and we measure the one skill that matters now.</p>
+  </section>
+</div>
+
+<!-- ===================== 2 MARKET ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">2</div><h2>The market and the investment case</h2></div>
+    <p class="lead">A large, fast-growing market; a pain that just became the #1 hiring threat; a standards-and-regulation tailwind; and a position no incumbent occupies.</p>
+
+    <h3>How big is the opportunity</h3>
+    <p><b>In plain words:</b> every company that hires online already pays for three things — checking <b>identity</b>, testing <b>skills</b>, and <b>screening backgrounds</b>. Those three budgets together are worth tens of billions of dollars and are growing fast. HireProof does all three in one short step, so it can earn a share of all three.</p>
+    <p class="small muted" style="margin-top:0;">The hard figures below are sourced; the combined total is a directional estimate.</p>
+    <div class="bar"><div class="lab">Identity verification</div><div class="track"><div class="fill" style="width:34%"></div></div><div class="val">$14.9B → $43.4B</div></div>
+    <div class="bar"><div class="lab">Skills / talent assessment</div><div class="track"><div class="fill" style="width:16%"></div></div><div class="val">~$6B and growing</div></div>
+    <div class="bar"><div class="lab">Background screening</div><div class="track"><div class="fill" style="width:14%"></div></div><div class="val">~$5–6B</div></div>
+    <div class="bar"><div class="lab"><b>Combined TAM</b></div><div class="track"><div class="fill" style="width:62%"></div></div><div class="val"><b>~$25B → $55B+</b></div></div>
+
+    <h3>Where HireProof sits — no one else fuses all three</h3>
+    <p class="small">Every piece exists somewhere, but no single product combines a live human-proof, an AI-judgment score, and a candidate-owned, offline-verifiable credential. That gap is our position. (✓ = does it · ~ = partial · — = no)</p>
+    <table class="matrix">
+      <tr>
+        <th>Capability</th>
+        <th class="c">Coding tests<br/><span class="muted small">HackerRank · CodeSignal</span></th>
+        <th class="c">Identity vendors<br/><span class="muted small">iProov · Persona</span></th>
+        <th class="c">Credential networks<br/><span class="muted small">Velocity · Dock</span></th>
+        <th class="c">HireProof</th>
+      </tr>
+      <tr><td class="first">Live anti-proxy liveness</td><td class="c no">—</td><td class="c yes">✓</td><td class="c no">—</td><td class="c yes">✓</td></tr>
+      <tr><td class="first">Scores AI-collaboration judgment</td><td class="c">~</td><td class="c no">—</td><td class="c no">—</td><td class="c yes">✓</td></tr>
+      <tr><td class="first">Same person across rounds</td><td class="c no">—</td><td class="c">~</td><td class="c no">—</td><td class="c yes">✓</td></tr>
+      <tr><td class="first">Candidate-owned, offline credential</td><td class="c no">—</td><td class="c no">—</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
+      <tr class="us"><td class="first">All three fused in one token</td><td class="c no">—</td><td class="c no">—</td><td class="c no">—</td><td class="c yes">✓</td></tr>
+      <tr><td class="first">Privacy-first &amp; India-compliant</td><td class="c">~</td><td class="c">~</td><td class="c">~</td><td class="c yes">✓</td></tr>
+    </table>
+  </section>
+</div>
+
+<div class="wrap page">
+  <section>
+    <div class="two">
+      <div>
+        <h4>The slice we own (SAM)</h4>
+        <p class="small">AI-era hiring integrity: deepfake/proxy defence plus AI-judgment assessment. The fastest-growing slice — “fake candidates” are now the #1 anticipated 2026 hiring threat.</p>
+      </div>
+      <div>
+        <h4>The wedge we start with (SOM)</h4>
+        <p class="small">India-first, DPDP-compliant high-volume IT/ITeS hiring (NASSCOM ~5.95M workforce) — a compliance and privacy wedge US-centric incumbents handle weakly.</p>
+      </div>
+    </div>
+
+    <h3>Why a company would invest</h3>
+    <ul class="tight">
+      <li><b>Validated, urgent pain</b> — sourced from Gartner, the DOJ and Checkr, not vendor marketing.</li>
+      <li><b>Perfect timing</b> — W3C Verifiable Credentials 2.0 became an official standard in May 2025; the EU AI Act and India DPDP create a compliance tailwind now.</li>
+      <li><b>Proven investor appetite</b> — Persona raised $200M at a $2B valuation (and blocked 75M deepfakes in one month); Incode is raising at up to $3B.</li>
+      <li><b>Capital-efficient</b> — all TypeScript, serverless, in-browser ML, no heavy infrastructure; commodity identity vendors drop in behind one interface.</li>
+    </ul>
+
+    <h3>How HireProof makes money</h3>
+    <ul class="tight">
+      <li>Per-verification pricing for employers and platforms</li>
+      <li>An enterprise console subscription (governance: re-verify, revoke, audit)</li>
+      <li>An issuer / ATS trust-rail licence</li>
+      <li>Continuous post-hire re-verification (recurring revenue)</li>
+    </ul>
+
+    <div class="note">Hiring is shifting from “trust the résumé” to “verify the human and their judgment.” HireProof is the candidate-owned trust rail for that shift — at the exact moment the market, the standards and the regulation all line up.</div>
+  </section>
+</div>
+
+<!-- ===================== 3 SOLUTION ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">3</div><h2>The solution and the user journey</h2></div>
+    <p class="lead">One candidate. One ~90-second session on a webcam. One tamper-proof badge any employer can verify in seconds.</p>
+
+    <div class="flow">
+      <div class="s"><b>Consent</b><span>DPDP, camera + mic</span></div><div class="a">→</div>
+      <div class="s"><b>Live check</b><span>actions + spoken code</span></div><div class="a">→</div>
+      <div class="s"><b>Secured task</b><span>catch the AI error</span></div><div class="a">→</div>
+      <div class="s"><b>Score</b><span>judgment, not usage</span></div><div class="a">→</div>
+      <div class="s"><b>Badge</b><span>signed + QR</span></div><div class="a">→</div>
+      <div class="s"><b>Verify</b><span>employer, offline</span></div>
+    </div>
+
+    <h3>The journey, step by step</h3>
+    <ol class="steplist">
+      <li><b>Consent</b>The candidate grants camera and mic through an itemised, DPDP-style consent screen.</li>
+      <li><b>Live check</b>A random sequence of actions plus a spoken 3-digit code proves a live human is present right now. <span class="muted small">(Appendix, Figure 1)</span></li>
+      <li><b>A fresh task</b>A skill task is generated the instant they start, so it cannot be pre-staged. <span class="muted small">(Figure 2)</span></li>
+      <li><b>Secured test mode</b>The task runs full-screen with the camera on; clear, fair rules are shown first. <span class="muted small">(Figure 3)</span></li>
+      <li><b>The AI task</b>A real problem with an AI assistant that is steered to be confidently wrong; the candidate must catch and correct it. <span class="muted small">(Figures 4–6)</span></li>
+      <li><b>Explain it back</b>A short, live spoken explanation binds the work to the verified person. <span class="muted small">(Figure 7)</span></li>
+      <li><b>The badge</b>A tamper-proof, signed credential with a QR — the candidate owns it and reuses it with any employer. <span class="muted small">(Figure 8)</span></li>
+      <li><b>Verify</b>An employer scans the QR and verifies the signature offline, in under two seconds, with no login.</li>
+    </ol>
+  </section>
+</div>
+
+<!-- ===================== 4 UNDER THE HOOD ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">4</div><h2>Under the hood — exactly how it works</h2></div>
+    <p class="lead">The literal sequence from “candidate clicks start” to “employer trusts the result”, naming the real mechanism at every step.</p>
+
+    <table>
+      <tr><th style="width:130px">Step / API</th><th>What actually happens</th></tr>
+      <tr><td class="first">Session<br/><span class="mono">/api/session</span></td><td>Camera + mic granted via itemised consent. The server creates a session with a random nonce.</td></tr>
+      <tr><td class="first">Challenge</td><td>The server issues a unique action sequence (3 of blink/turn/mouth/smile, shuffled) plus a 3-digit spoken phrase — generated the instant the candidate starts, so it cannot be pre-staged.</td></tr>
+      <tr><td class="first">Capture</td><td>MediaPipe FaceLandmarker confirms each action live; face-api computes a 128-D face descriptor locally; the Web Speech API confirms the spoken phrase. Raw video never leaves the device.</td></tr>
+      <tr><td class="first">Re-check<br/><span class="mono">/api/liveness</span></td><td>The server independently verifies the actions happened in order, the face is real (descriptor L2-norm ≥ 0.1 blocks blank/bot vectors), the timing is fresh and monotonic, and the spoken digits match. The descriptor is stored in pgvector.</td></tr>
+      <tr><td class="first">Cross-round</td><td>On a re-verify, the new descriptor is compared by cosine distance (threshold 0.30) to the enrolled one — same person, or a MISMATCH flag for the proxy / seat-swap case.</td></tr>
+      <tr><td class="first">Task<br/><span class="mono">/api/task · /assistant</span></td><td>A fresh task with a hidden planted error; the assistant is steered to be wrong. Every turn is recorded server-side as the model produced it, so the score is computed from an authoritative transcript a forged payload cannot fake.</td></tr>
+      <tr><td class="first">Score<br/><span class="mono">/api/score</span></td><td>Deterministic signals (did they ship the AI’s answer verbatim?) plus a locked-rubric grader at temperature 0. Shipping the AI’s flawed answer hard-caps the score at 40, outside the model.</td></tr>
+      <tr><td class="first">Audit</td><td>Every step writes an append-only, hash-chained row. Editing any field or reordering breaks the chain — re-checkable with <span class="mono">verify_audit_chain()</span>.</td></tr>
+      <tr><td class="first">Mint<br/><span class="mono">/api/mint</span></td><td>Assemble a W3C VC 2.0, sign it with Ed25519, bind a holder secret into the signature, render a QR.</td></tr>
+      <tr><td class="first">Verify<br/><span class="mono">/v</span></td><td>The employer fetches the issuer key from <span class="mono">/.well-known/did.json</span> and verifies the signature offline. Tampering is rejected.</td></tr>
+    </table>
+
+    <h3>How the score is computed</h3>
+    <p><b>Part A (no LLM):</b> a verbatim-copy check using two similarity measures, so paraphrasing the AI’s wrong answer cannot slip through; shipping it caps the score at 40. <b>Part B (locked rubric, temperature 0):</b> five sub-scores 0–5 — error detection, direction quality, verification, iteration, final correctness — each justification must quote the transcript, and the grader is firewalled against prompt injection.</p>
+    <p class="small"><b>Formula:</b> score = 100 × (error-detection 0.30 + final-correctness 0.25 + direction-quality 0.20 + verification 0.15 + iteration 0.10). Tone, confidence, accent and “cultural fit” are never scored (EU AI Act Art 5(1)(f)).</p>
+  </section>
+</div>
+
+<!-- ===================== 5 DETECTION ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">5</div><h2>The monitoring and detection system</h2></div>
+    <p class="lead">From start to signed, HireProof watches for the common ways people cheat a remote test — a stand-in, a helper off-camera, pasted answers, or tab-switching. It runs in four layers.</p>
+
+    <div class="note">The golden rule: detection produces <b>signals for a human reviewer, not automatic rejections.</b> Only the two failure modes we test for — shipping the AI’s wrong answer, and injecting a score — affect the number, and even then they only cap it.</div>
+
+    <div class="layer"><div class="h"><b>Layer 1 — Identity &amp; liveness</b><span class="tag">server-enforced</span></div>
+      <p class="small" style="margin:.3em 0 0;">Right actions in order · a real face (L2-norm check) · live, not replayed (freshness + timing) · the spoken nonce · a replay guard · cross-round face match (proxy / seat-swap).</p></div>
+    <div class="layer"><div class="h"><b>Layer 2 — Live in-task proctor</b><span class="tag">in-browser</span></div>
+      <p class="small" style="margin:.3em 0 0;">On-device camera monitoring for no face, a second face, or looking away, plus tab-switch and leaving full-screen. Each sustained issue is one warning; three warnings end the test. Raw video stays on the device.</p></div>
+    <div class="layer"><div class="h"><b>Layer 3 — Anti-outsourcing telemetry</b><span class="tag">review only</span></div>
+      <p class="small" style="margin:.3em 0 0;">Paste-heavy, fast-solve, and focus-away signals, captured on the client and re-validated on the server. They inform a human reviewer; they never auto-reject.</p></div>
+    <div class="layer"><div class="h"><b>Layer 4 — Anti-gaming scoring</b><span class="tag">server-enforced</span></div>
+      <p class="small" style="margin:.3em 0 0;">Verbatim-copy detection (caps the score), a prompt-injection firewall, a server-authoritative transcript, and rate limits.</p></div>
+    <p class="small muted" style="margin-top:6px;">Everything is auditable: each check is written to the hash-chained audit log (the reviewer’s view is in the Appendix, Figures 9–10).</p>
+  </section>
+
+  <section style="margin-top:14px;">
+    <div class="sh"><div class="n">6</div><h2>Value beyond a generic LLM</h2></div>
+    <p class="lead">The direct answer to “why can’t I just paste the same input into ChatGPT, Claude or Gemini?”</p>
+    <ul class="tight">
+      <li><b>It is a protocol, not a prompt.</b> Liveness depends on a server-issued random challenge checked against real-time motion — a chatbot has no challenge-response loop.</li>
+      <li><b>It is bound to the moment.</b> The sample is tied to a phrase generated under two minutes ago — an LLM will happily score a pre-recorded or proxy submission.</li>
+      <li><b>It is stateful across rounds.</b> Face descriptors in pgvector catch seat-swap rings; an LLM is stateless per call.</li>
+      <li><b>It produces a cryptographic, candidate-owned credential.</b> An employer trusts the issuer key, not a screenshot — ChatGPT cannot mint a signed credential against a published key.</li>
+      <li><b>Its scoring is anchored and auditable.</b> A planted error, deterministic caps, and a hash-chained trail — not an unanchored opinion.</li>
+      <li><b>Compliance is built in.</b> Consented, minimised, no emotion inference, append-only audit, erasure by revocation.</li>
+    </ul>
+    <div class="note">In one line: ChatGPT can generate text <i>about</i> a candidate. HireProof <i>issues a fact</i> about a verified human event, signed so anyone can check it without trusting us.</div>
+  </section>
+</div>
+
+<!-- ===================== 7 DATA SOURCES + 8 ARCHITECTURE ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">7</div><h2>Data sources, APIs and references</h2></div>
+    <p class="lead">Every external library, model, API and framework used — and how each one shapes the output.</p>
+    <table>
+      <tr><th style="width:178px">Source / API / framework</th><th>Role in the pipeline</th></tr>
+      <tr><td class="first">MediaPipe Tasks-Vision</td><td>In-browser face landmarks and head-pose — confirms the liveness actions and powers the in-task proctor.</td></tr>
+      <tr><td class="first">@vladmandic/face-api</td><td>In-browser 128-D face descriptor — the input to cross-round matching.</td></tr>
+      <tr><td class="first">Web Speech / Web Audio</td><td>Spoken-nonce transcription and the live explain-back.</td></tr>
+      <tr><td class="first">Anthropic Claude</td><td>Generates the planted-error task; the steered assistant and the temperature-0 grader.</td></tr>
+      <tr><td class="first">Google Gemini (AI SDK v6)</td><td>Automatic failover with the same schemas, so the flow is reproducible.</td></tr>
+      <tr><td class="first">Supabase (Postgres + pgvector)</td><td>17 tables; cosine distance for cross-round and ring matching; the hash-chained audit log.</td></tr>
+      <tr><td class="first">jose (Ed25519 / EdDSA)</td><td>Signs the W3C credential, verifiable against the published did:web key.</td></tr>
+      <tr><td class="first">Node crypto</td><td>scrypt password hashing, HMAC sessions, and the SHA-256 audit hash-chain.</td></tr>
+      <tr><td class="first">zod</td><td>Validates and bounds every API request body server-side (anti-tamper).</td></tr>
+      <tr><td class="first">qrcode / @zxing</td><td>Render and scan the credential QR (a real camera scanner on /v).</td></tr>
+      <tr><td class="first">Next.js 16 · React 19 · Tailwind v4</td><td>The app framework, UI and styling — one TypeScript codebase, no separate service.</td></tr>
+    </table>
+    <h3>Standards &amp; regulations that shape the design</h3>
+    <ul class="tight small">
+      <li><b>W3C Verifiable Credentials 2.0</b> + DID Core + <span class="mono">did:web</span> — the credential format and key publication.</li>
+      <li><b>India DPDP Act 2023 + Rules 2025</b> — itemised consent, data minimisation, erasure by revocation.</li>
+      <li><b>EU AI Act</b> — recruitment is high-risk; emotion recognition in the workplace is prohibited (Art 5(1)(f)), so scoring excludes all affect.</li>
+      <li><b>ISO/IEC 30107-3 + NIST FATE-PAD</b> — the liveness benchmarks we build toward.</li>
+      <li><b>NYC Local Law 144 + EEOC four-fifths rule</b> — the bias-audit framing.</li>
+    </ul>
+  </section>
+</div>
+
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">8</div><h2>Architecture and technical design</h2></div>
+    <p class="lead">All TypeScript. Next.js 16 on Vercel with Supabase (Postgres + pgvector). In-browser biometrics; server-side signing, scoring and audit. The diagram shows how one request flows end to end.</p>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 720 472" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+        <defs>
+          <marker id="ah" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L7,3 L0,6 Z" fill="#2746a6"/>
+          </marker>
+        </defs>
+        <rect x="8" y="6" width="704" height="96" rx="9" fill="#f3f5fc" stroke="#2746a6" stroke-width="1.3"/>
+        <text x="22" y="27" font-size="11" font-weight="700" fill="#2746a6">CANDIDATE BROWSER</text>
+        <text x="190" y="27" font-size="8.5" fill="#6b7280">in-browser ML — raw video never leaves the device</text>
+        <g font-size="9">
+          <rect x="22" y="40" width="160" height="50" rx="6" fill="#fff" stroke="#d1d5db"/>
+          <text x="32" y="59" font-weight="600" fill="#16181d">MediaPipe</text><text x="32" y="73" font-size="8" fill="#6b7280">active liveness</text>
+          <rect x="196" y="40" width="160" height="50" rx="6" fill="#fff" stroke="#d1d5db"/>
+          <text x="206" y="59" font-weight="600" fill="#16181d">face-api</text><text x="206" y="73" font-size="8" fill="#6b7280">128-D descriptor</text>
+          <rect x="370" y="40" width="160" height="50" rx="6" fill="#fff" stroke="#d1d5db"/>
+          <text x="380" y="59" font-weight="600" fill="#16181d">Web Speech</text><text x="380" y="73" font-size="8" fill="#6b7280">spoken-nonce voice</text>
+          <rect x="544" y="40" width="160" height="50" rx="6" fill="#fff" stroke="#d1d5db"/>
+          <text x="554" y="59" font-weight="600" fill="#16181d">Secured task UI</text><text x="554" y="73" font-size="8" fill="#6b7280">AI workspace + proctor</text>
+        </g>
+        <line x1="200" y1="102" x2="200" y2="150" stroke="#2746a6" stroke-width="1.3" marker-end="url(#ah)"/>
+        <text x="210" y="130" font-size="8" fill="#6b7280">POST: descriptor + transcript + turns</text>
+        <text x="210" y="141" font-size="8" fill="#6b7280">(no raw video)</text>
+        <rect x="8" y="152" width="472" height="118" rx="9" fill="#f3f5fc" stroke="#2746a6" stroke-width="1.3"/>
+        <text x="22" y="172" font-size="11" font-weight="700" fill="#2746a6">EDGE · NEXT.JS API ON VERCEL</text>
+        <g font-size="8.5" font-family="Consolas, monospace">
+          <rect x="22" y="182" width="106" height="26" rx="5" fill="#fff" stroke="#d1d5db"/><text x="75" y="199" text-anchor="middle" fill="#16181d">/session</text>
+          <rect x="134" y="182" width="106" height="26" rx="5" fill="#fff" stroke="#d1d5db"/><text x="187" y="199" text-anchor="middle" fill="#16181d">/liveness</text>
+          <rect x="246" y="182" width="106" height="26" rx="5" fill="#fff" stroke="#d1d5db"/><text x="299" y="199" text-anchor="middle" fill="#16181d">/task</text>
+          <rect x="358" y="182" width="106" height="26" rx="5" fill="#fff" stroke="#d1d5db"/><text x="411" y="199" text-anchor="middle" fill="#16181d">/assistant</text>
+          <rect x="22" y="214" width="106" height="26" rx="5" fill="#fff" stroke="#d1d5db"/><text x="75" y="231" text-anchor="middle" fill="#16181d">/score</text>
+          <rect x="134" y="214" width="106" height="26" rx="5" fill="#fff" stroke="#d1d5db"/><text x="187" y="231" text-anchor="middle" fill="#16181d">/mint</text>
+          <rect x="246" y="214" width="106" height="26" rx="5" fill="#fff" stroke="#d1d5db"/><text x="299" y="231" text-anchor="middle" fill="#16181d">/credential</text>
+          <rect x="358" y="214" width="106" height="26" rx="5" fill="#fff" stroke="#d1d5db"/><text x="411" y="231" text-anchor="middle" fill="#16181d">/employer</text>
+        </g>
+        <text x="22" y="258" font-size="8" fill="#6b7280">Ed25519 signing · hash-chained audit · scrypt/HMAC auth (server-side)</text>
+        <rect x="500" y="152" width="212" height="118" rx="9" fill="#fff" stroke="#2746a6" stroke-width="1.1" stroke-dasharray="3 2.5"/>
+        <text x="514" y="172" font-size="10" font-weight="700" fill="#2746a6">AI MODELS</text>
+        <text x="514" y="192" font-size="9" fill="#16181d">Claude — via Vercel AI Gateway</text>
+        <text x="514" y="208" font-size="9" fill="#16181d">↳ Gemini — auto failover</text>
+        <text x="514" y="228" font-size="8" fill="#6b7280">task-gen · steered assistant</text>
+        <text x="514" y="240" font-size="8" fill="#6b7280">· temp-0 locked-rubric grader</text>
+        <line x1="480" y1="211" x2="500" y2="211" stroke="#2746a6" stroke-width="1.2" marker-end="url(#ah)" marker-start="url(#ah)"/>
+        <line x1="120" y1="270" x2="120" y2="314" stroke="#2746a6" stroke-width="1.3" marker-end="url(#ah)"/>
+        <text x="128" y="292" font-size="8" fill="#6b7280">store / read</text>
+        <line x1="430" y1="270" x2="430" y2="314" stroke="#2746a6" stroke-width="1.3" marker-end="url(#ah)"/>
+        <text x="440" y="296" font-size="8" fill="#6b7280">credential QR + holder secret</text>
+        <rect x="8" y="316" width="346" height="120" rx="9" fill="#f3f5fc" stroke="#2746a6" stroke-width="1.3"/>
+        <text x="22" y="336" font-size="11" font-weight="700" fill="#2746a6">DATA · SUPABASE (Mumbai)</text>
+        <text x="22" y="358" font-size="9" fill="#16181d">Postgres + RLS — 17 tables</text>
+        <text x="22" y="376" font-size="9" fill="#16181d">pgvector — cross-round cosine 0.30</text>
+        <text x="22" y="394" font-size="9" fill="#16181d">audit_log — hash-chained (trigger)</text>
+        <text x="22" y="416" font-size="8" fill="#6b7280">verify_audit_chain() re-checks the whole chain</text>
+        <rect x="366" y="316" width="346" height="120" rx="9" fill="#f3f5fc" stroke="#2746a6" stroke-width="1.3"/>
+        <text x="380" y="336" font-size="11" font-weight="700" fill="#2746a6">VERIFY · ANY EMPLOYER (offline)</text>
+        <text x="380" y="358" font-size="9" fill="#16181d">/v — in-browser signature check</text>
+        <text x="380" y="376" font-size="9" fill="#16181d">/.well-known/did.json — issuer key</text>
+        <text x="380" y="394" font-size="9" fill="#16181d">verify-credential.mjs — CLI</text>
+        <text x="380" y="416" font-size="8" fill="#6b7280">no DB, no callback — verifies even if our server is down</text>
+        <text x="8" y="463" font-size="8" fill="#6b7280">Trust anchor: the employer trusts the published issuer key (did:web), not our servers — tampering is rejected.</text>
+      </svg>
+      <figcaption>System architecture &amp; data flow — biometrics run in the browser (raw video stays on the device); the Edge API signs, scores and audits; any employer verifies the credential offline against the published issuer key.</figcaption>
+    </figure>
+
+    <div class="kv">
+      <div class="k">Frontend</div><div>Next.js 16 (App Router), TypeScript, Tailwind, in-browser ML (raw video stays on-device)</div>
+      <div class="k">Backend</div><div>31 Next.js API routes on the Vercel Node runtime — all TypeScript</div>
+      <div class="k">Storage</div><div>Supabase Postgres + pgvector, region-pinned to Mumbai; hash-chained audit log</div>
+      <div class="k">AI layer</div><div>Claude via Vercel AI Gateway with automatic Gemini failover; two tiers (task-gen, grader)</div>
+      <div class="k">Crypto</div><div>jose Ed25519 signing behind one Signer boundary; did:web key publication and rotation</div>
+      <div class="k">Deployment</div><div>Vercel; CI runs lint, typecheck, a 27-test trust suite and an offline verifier on every push</div>
+    </div>
+    <p class="small muted">The employer console — the governance side, with re-verify, revoke and a tamper-proof activity log — is shown in the Appendix (Figure 11).</p>
+  </section>
+</div>
+
+<!-- ===================== 9 FEATURES + 10 DEMO ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">9</div><h2>Feature list</h2></div>
+    <div class="two">
+      <div>
+        <h4>Prove you are a real, live human</h4>
+        <ul class="tight small"><li>Randomised liveness (actions + spoken code)</li><li>Server re-check of actions, face, timing, voice</li><li>Cross-round face match (proxy / seat-swap)</li><li>Live spoken explain-back</li></ul>
+        <h4>Measure real judgment</h4>
+        <ul class="tight small"><li>Planted-error task</li><li>Accept-right / reject-wrong reliance probe</li><li>Transparent five-axis score with quotes</li><li>Verbatim hard-cap</li></ul>
+      </div>
+      <div>
+        <h4>A credential you own</h4>
+        <ul class="tight small"><li>W3C VC 2.0, Ed25519-signed</li><li>Offline verify in under 2s, no login</li><li>Holder binding (a private key, not a bearer token)</li><li>Revocation and status</li><li>Save to DigiLocker (demo)</li></ul>
+        <h4>Trust, governance and rights</h4>
+        <ul class="tight small"><li>Employer console (list, re-verify, revoke)</li><li>Hash-chained audit log</li><li>Cross-employer fraud-ring view</li><li>Live metrics and a signed fairness audit</li><li>India DPDP consent receipt + one-click erase</li><li>Continuous post-hire re-verification</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-top:18px;">
+    <div class="sh"><div class="n">10</div><h2>Demo scenarios</h2></div>
+    <table>
+      <tr><th style="width:150px">Scenario</th><th>Input → processing → output</th></tr>
+      <tr><td class="first">Good judgment vs blind accept</td><td>The AI gives a confidently-wrong answer. Catch and correct → score ~67. Blind-accept → the verbatim signal fires and the score is capped (~28–32). We score judgment, not usage.</td></tr>
+      <tr><td class="first">Catch a proxy</td><td>Re-verify with a different face → cross-round distance &gt; 0.30 → a live MISMATCH flag. Onboarding-only identity checks miss this.</td></tr>
+      <tr><td class="first">Portability in seconds</td><td>The same QR at any employer’s /v → verify Ed25519 offline in under 2s, even with the network throttled. No integration, no account.</td></tr>
+      <tr><td class="first">Governed lifecycle</td><td>An employer revokes a credential → /v flips to Revoked; the holder can still prove ownership; every step is in the audit trail.</td></tr>
+    </table>
+    <p class="small"><b>Instant verification:</b> <span class="mono">npm run seed:demo</span> signs three real credentials — GOOD (67), BLIND (32), REVOKED — that verify offline against the published did.json. The signatures are genuine.</p>
+  </section>
+</div>
+
+<!-- ===================== 11 STATUS + 12 CLOSE ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">11</div><h2>What is live today and what is next</h2></div>
+    <p class="lead">A working, deployed prototype — the full candidate flow, signing, offline verify, scoring, the four-layer detection system and the employer console all run end to end.</p>
+    <div class="two">
+      <div>
+        <h4>Live today</h4>
+        <ul class="tight small"><li>Randomised challenge-response liveness</li><li>Cross-round biometric match</li><li>Planted-error task + judgment scoring</li><li>Four-layer monitoring &amp; detection</li><li>Spoken explain-back &amp; reliance probe</li><li>Ed25519 W3C credential + offline verify</li><li>Holder proof-of-possession · revocation</li><li>Employer auth · hash-chained audit · metrics</li></ul>
+      </div>
+      <div>
+        <h4>Future scope</h4>
+        <ul class="tight small"><li>Certified PAD (ISO 30107-3) drops in behind the same interface</li><li>KMS/HSM-backed signing</li><li>FAR/FRR calibration with pilot volume</li><li>Live ATS push &amp; DigiLocker (real contracts exist today)</li><li>Enterprise track: SSO/SCIM, SOC 2</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-top:18px;">
+    <div class="sh"><div class="n">12</div><h2>Why HireProof is the best</h2></div>
+    <ul class="tight">
+      <li>It solves a real, urgent, expensive problem, validated by Gartner, the DOJ and Checkr.</li>
+      <li>It ships a fusion no incumbent has — live human-proof, AI-judgment, and a candidate-owned, offline-verifiable credential in one token.</li>
+      <li>It is real engineering, not a wrapper — Ed25519 credentials, did:web, pgvector, a hash-chained audit and an injection-proof grader.</li>
+      <li>It is privacy-first and compliant by design — raw video never leaves the device; DPDP and EU AI Act safe.</li>
+      <li>It is investable — a big market, perfect timing, proven investor appetite, and a capital-efficient build.</li>
+      <li>It is honest and demoable — every claim is something you can run, scan and verify yourself in seconds.</li>
+    </ul>
+    <div class="note">HireProof turns hiring from “trust the résumé” into “verify the human and their judgment” — a credential the candidate owns, an employer can check offline in under two seconds, and a regulator would approve of.</div>
+    <p class="small muted" style="margin-top:16px;">Team DOMINATORS · InnovateZ 2026 (Zentiti) · Live demo: <a class="url" href="https://hireproof-ecru.vercel.app/">hireproof-ecru.vercel.app</a> · GitHub: <a class="url" href="https://github.com/Anshuu2004/hireproof">github.com/Anshuu2004/hireproof</a></p>
+  </section>
+</div>
+
+<!-- ===================== APPENDIX: SCREENSHOTS ===================== -->
+<div class="wrap page">
+  <section>
+    <div class="sh"><div class="n">A</div><h2>Appendix — screenshots, step by step</h2></div>
+    <p class="lead">The candidate experience in order, captured from the live app, followed by the reviewer and employer views.</p>
+
+    <figure>
+      <div class="figlabel">FIGURE 1 — LIVE CHECK</div>
+      <div class="shot"><img src="screenshots/01-liveness.png" alt="liveness check"/></div>
+      <figcaption><b>The live check is strict and multi-signal.</b> Three checks must all pass — action sequence, face present throughout, and spoken phrase / live voice. Here the spoken phrase is “not met”, so the whole check fails. It cannot be passed with a photo or a silent video.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="figlabel">FIGURE 2 — FRESH TASK</div>
+      <div class="shot"><img src="screenshots/02-task-gen.png" alt="task generating"/></div>
+      <figcaption><b>The task is generated the instant you start —</b> “a fresh task you can’t have pre-staged.” There is no question bank to leak or memorise.</figcaption>
+    </figure>
+  </section>
+</div>
+
+<div class="wrap page">
+  <section>
+    <div class="appcont">APPENDIX — SCREENSHOTS (CONTINUED)</div>
+    <figure>
+      <div class="figlabel">FIGURE 3 — SECURED TEST MODE</div>
+      <div class="shot"><img src="screenshots/03-secured-gate.png" alt="secured test gate"/></div>
+      <figcaption><b>The skill task runs in secured mode.</b> Full-screen, camera on, face monitored. Switching tabs, leaving full-screen, or a second face each costs a warning; three warnings end the test. The rules are shown up front.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="figlabel">FIGURE 4 — PROCTORED AI TASK</div>
+      <div class="shot"><img src="screenshots/04-ai-task.png" alt="proctored AI task"/></div>
+      <figcaption><b>The proctored AI task.</b> A real problem (an A/B-test analysis) with an AI assistant steered to be confidently wrong. The live face monitor (“MONITORED”, bottom-right) runs on-device throughout.</figcaption>
+    </figure>
+  </section>
+</div>
+
+<div class="wrap page">
+  <section>
+    <div class="appcont">APPENDIX — SCREENSHOTS (CONTINUED)</div>
+    <figure>
+      <div class="figlabel">FIGURE 5 — RELIANCE PROBE</div>
+      <div class="shot"><img src="screenshots/05-reliance.png" alt="reliance panel"/></div>
+      <figcaption><b>“Trust the AI only when it’s right.”</b> The candidate must accept the AI’s correct claims and reject its wrong ones — a calibrated-reliance probe that directly measures judgment.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="figlabel">FIGURE 6 — LOGGED STEPS</div>
+      <div class="shot"><img src="screenshots/06-ledger.png" alt="logged steps"/></div>
+      <figcaption><b>Every step is logged.</b> A timestamped ledger of what the candidate asked and when — the record the score is later computed from, server-side.</figcaption>
+    </figure>
+  </section>
+</div>
+
+<div class="wrap page">
+  <section>
+    <div class="appcont">APPENDIX — SCREENSHOTS (CONTINUED)</div>
+    <figure>
+      <div class="figlabel">FIGURE 7 — SPOKEN EXPLAIN-BACK</div>
+      <div class="shot"><img src="screenshots/07-explainback.png" alt="oral explain back"/></div>
+      <figcaption><b>A live spoken explain-back.</b> In about 25 seconds, in their own words, the candidate explains how their answer works. It binds the work to the verified person and catches outsourced answers.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="figlabel">FIGURE 8 — THE SIGNED BADGE</div>
+      <div class="shot narrow"><img src="screenshots/08-badge.png" alt="signed badge"/></div>
+      <figcaption><b>The result: “Done. This proof is yours.”</b> A tamper-proof, Ed25519-signed badge with a QR. Scan to verify, no login. Reusable with any employer, valid 180 days. The candidate owns it.</figcaption>
+    </figure>
+  </section>
+</div>
+
+<div class="wrap page">
+  <section>
+    <div class="appcont">APPENDIX — SCREENSHOTS (CONTINUED)</div>
+    <figure>
+      <div class="figlabel">FIGURE 9 — TRANSPARENT SCORE</div>
+      <div class="shot portrait"><img src="screenshots/09-score.png" alt="why this score"/></div>
+      <figcaption><b>“Why this score.”</b> Every line comes from the candidate’s actual chat, with a quoted justification per axis. Here the candidate blind-accepted the AI, so error detection is 0/5 and the result is an honest 28/100. Catch-and-correct lands around 67.</figcaption>
+    </figure>
+  </section>
+</div>
+
+<div class="wrap page">
+  <section>
+    <div class="appcont">APPENDIX — SCREENSHOTS (CONTINUED)</div>
+    <figure>
+      <div class="figlabel">FIGURE 10 — INTEGRITY SIGNALS &amp; OWNERSHIP</div>
+      <div class="shot portrait sm"><img src="screenshots/10-integrity.png" alt="integrity signals"/></div>
+      <figcaption><b>Integrity signals and ownership.</b> The reliance score, the spoken explain-back result, session-integrity flags (“never an automatic reject”), the holder’s private key, and India-DPDP data rights.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="figlabel">FIGURE 11 — EMPLOYER CONSOLE</div>
+      <div class="shot"><img src="screenshots/11-employer.png" alt="employer console"/></div>
+      <figcaption><b>The employer console.</b> Verified candidates with scores, the credential detail, one-click re-verify and revoke, enrolment in continuous verification, and a tamper-proof activity log where every event is hash-chained.</figcaption>
+    </figure>
+  </section>
+</div>
+
+</body>
+</html>

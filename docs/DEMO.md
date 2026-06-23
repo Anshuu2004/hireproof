@@ -122,7 +122,7 @@ Seeded/synthetic data is labelled as such (`/metrics`, `/fairness`, `/rings`).
 cp .env.example .env.local      # fill in Supabase + issuer keys (gen command in .env.example)
 npm install
 npm run dev                     # http://localhost:3000
-npm test                        # trust-core suite — 20 Vitest tests (credential · audit-chain · reliance)
+npm test                        # trust-core suite — 27 Vitest tests (credential · audit-chain · liveness · reliance)
 npm run seed:demo               # mint the 3 demo credentials + QR codes
 ```
 
